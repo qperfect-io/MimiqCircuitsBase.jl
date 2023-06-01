@@ -23,10 +23,10 @@ Returns the OpenQASM id of the given gate.
 function openqasmid end
 
 # TODO: does it inline properly?
-openqasmid(::T) where {T<:AbstractGate} = openqasmid(T)
+openqasmid(::T) where {T<:Gate} = openqasmid(T)
 
 # TODO: nothing or just a nonvalid id?
-openqasmid(::Type{AbstractGate}) = nothing
+openqasmid(::Type{GateCustom}) = nothing
 
 openqasmid(::Type{GateP}) = 1
 openqasmid(::Type{GateX}) = 2
@@ -72,7 +72,7 @@ const SIMPLE_QASM_TO_GATE = Dict(
     "cy" => GateCY(),
     "cz" => GateCZ(),
     "ch" => GateCH(),
-    "ecr" => Gate([0 0 1 im; 0 0 im im; 1 -im 0 0; -im 1 0 0]),
+    "ecr" => GateECR(),
 )
 
 const PARAMETRIC_QASM_TO_GATE = Dict(
@@ -91,7 +91,7 @@ const PARAMETRIC_QASM_TO_GATE = Dict(
     r"\bcu\((.*)\)" => (θ, ϕ, λ, γ) -> GateCU(θ, ϕ, λ, γ),
 )
 
-function parse_qasm_gate(gatestring::AbstractString)::AbstractGate
+function parse_qasm_gate(gatestring::AbstractString)::Gate
     if gatestring in keys(SIMPLE_QASM_TO_GATE)
         return SIMPLE_QASM_TO_GATE[gatestring]
     else  # we have a parametric gate

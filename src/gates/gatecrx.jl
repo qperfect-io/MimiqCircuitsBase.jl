@@ -78,6 +78,6 @@ inverse(g::GateCRX) = GateCRX(-g.θ)
 
 numparams(::Type{GateCRX}) = 1
 
-gatename(::Type{GateCRX}) = "CRX"
+opname(::Type{GateCRX}) = "CRX"
 
 parnames(::Type{GateCRX}) = (:θ,)

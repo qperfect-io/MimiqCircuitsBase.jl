@@ -70,6 +70,6 @@ inverse(g::GateCR) = GateCR(-g.θ, g.ϕ)
 
 numparams(::Type{GateCR}) = 2
 
-gatename(::Type{GateCR}) = "CR"
+opname(::Type{GateCR}) = "CR"
 
 parnames(::Type{GateCR}) = (:θ, :ϕ)

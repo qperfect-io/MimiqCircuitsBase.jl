@@ -66,7 +66,7 @@ inverse(g::GateU1) = GateU1(-g.λ)
 
 numparams(::Type{GateU1}) = 1
 
-gatename(::Type{GateU1}) = "U1"
+opname(::Type{GateU1}) = "U1"
 
 parnames(::Type{GateU1}) = (:λ,)
 

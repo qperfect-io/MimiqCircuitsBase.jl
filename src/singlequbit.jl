@@ -15,7 +15,7 @@
 #
 
 @doc raw"""
-    struct GateX <: AbstractGate{1}
+    struct GateX <: Gate{1}
 
 Single qubit Pauli-X gate.
 
@@ -42,16 +42,16 @@ julia> push!(Circuit(), GateX(), 1)
 └── X @ q1
 ```
 """
-struct GateX <: AbstractGate{1} end
+struct GateX <: Gate{1} end
 
 @generated matrix(::GateX) = umatrixpi(1, 0, 1) |> _decomplex
 
 inverse(g::GateX) = g
 
-gatename(::Type{GateX}) = "X"
+opname(::Type{GateX}) = "X"
 
 @doc raw"""
-    struct GateY <: AbstractGate{1}
+    struct GateY <: Gate{1}
 
 Single qubit Pauli-Y gate.
 
@@ -78,16 +78,16 @@ julia> push!(Circuit(), GateY(), 1)
 └── Y @ q1
 ```
 """
-struct GateY <: AbstractGate{1} end
+struct GateY <: Gate{1} end
 
 @generated matrix(::GateY) = umatrixpi(1, 1 / 2, 1 / 2) |> _decomplex
 
 inverse(g::GateY) = g
 
-gatename(::Type{GateY}) = "Y"
+opname(::Type{GateY}) = "Y"
 
 @doc raw"""    
-    struct GateZ <: AbstractGate{1}
+    struct GateZ <: Gate{1}
 
 Single qubit Pauli-Z gate.
 
@@ -114,16 +114,16 @@ julia> push!(Circuit(), GateZ(), 1)
 └── Z @ q1
 ```
 """
-struct GateZ <: AbstractGate{1} end
+struct GateZ <: Gate{1} end
 
 @generated matrix(::GateZ) = pmatrixpi(1) |> _decomplex
 
 inverse(g::GateZ) = g
 
-gatename(::Type{GateZ}) = "Z"
+opname(::Type{GateZ}) = "Z"
 
 @doc raw"""
-    struct GateH <: AbstractGate{1}
+    struct GateH <: Gate{1}
 
 Single qubit Hadamard gate.
 
@@ -150,16 +150,16 @@ julia> push!(Circuit(), GateH(), 1)
 └── H @ q1
 ```
 """
-struct GateH <: AbstractGate{1} end
+struct GateH <: Gate{1} end
 
 @generated matrix(::GateH) = umatrixpi(1 / 2, 0, 1) |> _decomplex
 
 inverse(g::GateH) = g
 
-gatename(::Type{GateH}) = "H"
+opname(::Type{GateH}) = "H"
 
 @doc raw"""
-    struct GateS <: AbstractGate{1}
+    struct GateS <: Gate{1}
 
 Single qubit S gate (or Phase gate).
 
@@ -188,16 +188,16 @@ julia> push!(Circuit(), GateS(), 1)
 └── S @ q1
 ```
 """
-struct GateS <: AbstractGate{1} end
+struct GateS <: Gate{1} end
 
 @generated matrix(::GateS) = pmatrixpi(1 / 2) |> _decomplex
 
 inverse(::GateS) = GateSDG()
 
-gatename(::Type{GateS}) = "S"
+opname(::Type{GateS}) = "S"
 
 @doc raw"""
-    struct GateSDG <: AbstractGate{1}
+    struct GateSDG <: Gate{1}
 
 Single qubit S-dagger gate (conjugate transpose of the S gate).
 
@@ -226,16 +226,16 @@ julia> push!(Circuit(), GateSDG(), 1)
 └── SDG @ q1
 ```
 """
-struct GateSDG <: AbstractGate{1} end
+struct GateSDG <: Gate{1} end
 
 @generated matrix(::GateSDG) = pmatrixpi(-1 / 2) |> _decomplex
 
 inverse(::GateSDG) = GateS()
 
-gatename(::Type{GateSDG}) = "SDG"
+opname(::Type{GateSDG}) = "SDG"
 
 @doc raw"""
-    struct GateT <: AbstractGate{1}
+    struct GateT <: Gate{1}
 
 Single qubit T gate.
 
@@ -264,16 +264,16 @@ julia> push!(Circuit(), GateT(), 1)
 └── T @ q1
 ```
 """
-struct GateT <: AbstractGate{1} end
+struct GateT <: Gate{1} end
 
 @generated matrix(::GateT) = pmatrixpi(1 / 4) |> _decomplex
 
 inverse(::GateT) = GateTDG()
 
-gatename(::Type{GateT}) = "T"
+opname(::Type{GateT}) = "T"
 
 @doc raw"""
-    struct GateTDG <: AbstractGate{1}
+    struct GateTDG <: Gate{1}
 
 Single qubit T-dagger gate (conjugate transpose of the T gate).
 
@@ -302,16 +302,16 @@ julia> push!(Circuit(), GateTDG(), 1)
 └── TDG @ q1
 ```
 """
-struct GateTDG <: AbstractGate{1} end
+struct GateTDG <: Gate{1} end
 
 @generated matrix(::GateTDG) = pmatrixpi(-1 / 4) |> _decomplex
 
 inverse(::GateTDG) = GateT()
 
-gatename(::Type{GateTDG}) = "TDG"
+opname(::Type{GateTDG}) = "TDG"
 
 @doc raw"""
-    struct GateSX <: AbstractGate{1}
+    struct GateSX <: Gate{1}
 
 Single qubit √X gate.
 
@@ -340,16 +340,16 @@ julia> push!(Circuit(), GateSX(), 1)
 └── SX @ q1
 ```
 """
-struct GateSX <: AbstractGate{1} end
+struct GateSX <: Gate{1} end
 
 @generated matrix(::GateSX) = gphase(π / 4) * rxmatrix(π / 2) |> _decomplex
 
 inverse(::GateSX) = GateSXDG()
 
-gatename(::Type{GateSX}) = "SX"
+opname(::Type{GateSX}) = "SX"
 
 @doc raw"""
-    struct GateSXDG <: AbstractGate{1}
+    struct GateSXDG <: Gate{1}
 
 Single qubit √X-dagger gate (conjugate transpose of the √X gate)
 
@@ -378,16 +378,16 @@ julia> push!(Circuit(), GateSXDG(), 1)
 └── SXDG @ q1
 ```
 """
-struct GateSXDG <: AbstractGate{1} end
+struct GateSXDG <: Gate{1} end
 
 @generated matrix(::GateSXDG) = gphase(-π / 4) * rxmatrix(-π / 2) |> _decomplex
 
 inverse(::GateSXDG) = GateSX()
 
-gatename(::Type{GateSXDG}) = "SXDG"
+opname(::Type{GateSXDG}) = "SXDG"
 
 @doc raw"""
-    struct GateID <: AbstractGate{1}
+    struct GateID <: Gate{1}
 
 Single qubit Identity gate
 
@@ -414,10 +414,10 @@ julia> push!(Circuit(), GateID(), 1)
 └── ID @ q1
 ```
 """
-struct GateID <: AbstractGate{1} end
+struct GateID <: Gate{1} end
 
 @generated matrix(::GateID) = umatrixpi(0, 0, 0) |> _decomplex
 
-gatename(::Type{GateID}) = "ID"
+opname(::Type{GateID}) = "ID"
 
 inverse(g::GateID) = g

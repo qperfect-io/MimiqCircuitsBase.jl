@@ -4,7 +4,7 @@
     "description": "Validation of a general Quantum Circuit",
     "type": "object",
     "properties": {
-        "gates": {
+        "instructions": {
             "type": "array",
             "items": {
                 "type": "object",
@@ -60,15 +60,26 @@
                             "CU",
                             "CCX",
                             "CSWAP",
-                            "Custom"
+                            "Custom",
+                            "Barrier"
                         ]
                     },
-                    "targets": {
+                    "qtargets": {
                         "type": "array",
                         "items": {
                             "type": "integer",
                             "minimum": 1
-                        }
+                        },
+                        "minItems": 1,
+                        "uniqueItems": true
+                    },
+                    "ctargets": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "uniqueItems": true
                     },
                     "params": {
                         "type": "array"
@@ -76,12 +87,13 @@
                 },
                 "required": [
                     "name",
-                    "targets"
+                    "qtargets",
+                    "ctargets"
                 ]
             }
         }
     },
     "required": [
-        "gates"
+        "instructions"
     ]
 }

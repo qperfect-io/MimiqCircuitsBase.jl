@@ -13,6 +13,12 @@ for gatetype in
     end
 end
 
+# barrier
+push!(c, Barrier, 1, 2, 3, 4)
+push!(c, Barrier, 1, 3, 8, 10)
+push!(c, Barrier, 26)
+push!(c, Barrier, 3, 28)
+
 # non parametric 2-qubit gate
 for gatetype in Type[GateCX, GateCY, GateCZ, GateCH, GateSWAP, GateISWAP, GateISWAPDG]
     gate = gatetype()
@@ -39,7 +45,7 @@ end
 
 for T in [Float64, ComplexF64]
     N = 1
-    gate = Gate(rand(T, 2^N, 2^N))
+    gate = GateCustom(rand(T, 2^N, 2^N))
     for i in 1:nq
         push!(c, gate, i)
     end
@@ -47,7 +53,7 @@ end
 
 for T in [Float64, ComplexF64]
     N = 2
-    gate = Gate(rand(T, 2^N, 2^N))
+    gate = GateCustom(rand(T, 2^N, 2^N))
     for targets in [(1, 2), (2, 1), (nq - 1, nq), (nq, nq - 1), (1, nq), (nq, 1)]
         push!(c, gate, targets...)
     end
@@ -56,18 +62,26 @@ end
 json = tojson(c)
 cnew = fromjson(json)
 
-for (g1, g2) in zip(c.gates, cnew.gates)
+for (g1, g2) in zip(c.instructions, cnew.instructions)
 
-    if g1.gate isa ParametricGate
-        @test typeof(g1) == typeof(g2)
-        for par in parnames(g1.gate)
-            @test getfield(g1.gate, par) == getfield(g2.gate, par)
+    @test typeof(g1) == typeof(g2)
+
+    op1 = getoperation(g1)
+    op2 = getoperation(g2)
+
+    @test length(getqubits(g1)) == length(getqubits(g2))
+    @test length(getbits(g1)) == length(getbits(g2))
+
+    if op1 isa ParametricGate
+        @test typeof(op1) == typeof(op2)
+        for par in parnames(op1)
+            @test getfield(op1, par) == getfield(op2, par)
         end
-    elseif g1.gate isa Gate
-        @test numqubits(g1) == numqubits(g2)
-        @test complex(matrix(g1)) == matrix(g2)
+    elseif op1 isa GateCustom
+        @test numqubits(op1) == numqubits(op2)
+        @test complex(matrix(op1)) == matrix(op2)
     else
-        @test typeof(g1) == typeof(g2)
+        @test op1 === op2
     end
 
 end

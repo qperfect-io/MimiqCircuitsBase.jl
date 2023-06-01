@@ -15,27 +15,26 @@
 #
 
 """
-    struct GateCCX <: Gate{3}
+    struct Barrier <: Operation
 
-C₂X (or C₂NOT) 3-qubits gate. Where the first two qubits are used as controls.
+A barrier is a special operation that does not affect the quantum state or the
+execution of a circuit, but it prevents compression or optimization operation
+from being applied across it.
+
+# Examples
+
+```jldoctest
+julia> push!(Circuit(), Barrier(), 1, 2)
+2-qubit circuit with 1 gates:
+└── Barrier @ q1, q2
+```
 """
-struct GateCCX <: Gate{3} end
+struct Barrier <: Operation end
 
-opname(::Type{GateCCX}) = "CCX"
+inverse(b::Barrier) = b
 
-inverse(g::GateCCX) = g
+opname(::Type{<:Barrier}) = "Barrier"
 
-@generated matrix(::GateCCX) = ctrl(ctrl(matrix(GateX())))
-
-"""
-    struct GateCSWAP <: Gate{3} end
-
-3-qubits control SWAP gate where the first qubit is the control.
-"""
-struct GateCSWAP <: Gate{3} end
-
-opname(::Type{GateCSWAP}) = "CSWAP"
-
-inverse(g::GateCSWAP) = g
-
-@generated matrix(::GateCSWAP) = ctrl(matrix(GateSWAP()))
+function Base.show(io::IO, ::Barrier)
+    print(io, opname(Barrier))
+end

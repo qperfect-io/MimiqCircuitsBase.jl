@@ -70,5 +70,5 @@ numparams(::Type{GateP}) = 1
 
 parnames(::Type{GateP}) = (:λ,)
 
-gatename(::Type{GateP}) = "P"
+opname(::Type{GateP}) = "P"
 

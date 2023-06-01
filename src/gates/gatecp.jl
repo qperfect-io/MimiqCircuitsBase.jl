@@ -69,11 +69,11 @@ end
 
 GateCP(λ) = GateCP(λ, ctrl(pmatrix(λ)))
 
-inverse(g::GateCP) = GateCP(-g.λ) 
+inverse(g::GateCP) = GateCP(-g.λ)
 
 numparams(::Type{GateCP}) = 1
 
-gatename(::Type{GateCP}) = "CP"
+opname(::Type{GateCP}) = "CP"
 
 parnames(::Type{GateCP}) = (:λ,)
 

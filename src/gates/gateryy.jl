@@ -40,10 +40,10 @@ Two qubit RYY gate.
 ```jldoctest
 julia> matrix(GateRYY(π/4))
 4×4 Matrix{ComplexF64}:
- 0.92388+0.0im           0.0+0.0im           0.0+0.0im           0.0+0.382683im
-     0.0+0.0im       0.92388+0.0im           0.0-0.382683im      0.0+0.0im
-     0.0+0.0im           0.0-0.382683im  0.92388+0.0im           0.0+0.0im
-     0.0+0.382683im      0.0+0.0im           0.0+0.0im       0.92388+0.0im
+ 0.92388+0.0im           0.0+0.0im       …      0.0+0.382683im
+     0.0+0.0im       0.92388+0.0im              0.0+0.0im
+     0.0+0.0im           0.0-0.382683im         0.0+0.0im
+     0.0+0.382683im      0.0+0.0im          0.92388+0.0im
 
 julia> push!(Circuit(), GateRYY(π), 1, 2)
 2-qubit circuit with 1 gates:
@@ -76,6 +76,6 @@ inverse(g::GateRYY) = GateRYY(-g.θ)
 
 numparams(::Type{GateRYY}) = 1
 
-gatename(::Type{GateRYY}) = "RYY"
+opname(::Type{GateRYY}) = "RYY"
 
 parnames(::Type{GateRYY}) = (:θ,)

@@ -26,7 +26,7 @@ Two qubit RXX gate.
 # Matrix Representation
 
 ```math
-\operatorname{RYY}(\theta) =
+\operatorname{RXX}(\theta) =
 \begin{pmatrix}
     \cos(\\frac{\theta}{2}) & 0 & 0 & -i\sin(\\frac{\theta}{2}) \\
     0 & \cos(\frac{\theta}{2}) & -i\sin(\frac{\theta}{2}) & 0 \\
@@ -40,10 +40,10 @@ Two qubit RXX gate.
 ```jldoctest
 julia> matrix(GateRXX(π/4))
 4×4 Matrix{ComplexF64}:
- 0.92388+0.0im           0.0+0.0im           0.0+0.0im           0.0-0.382683im
-     0.0+0.0im       0.92388+0.0im           0.0-0.382683im      0.0+0.0im
-     0.0+0.0im           0.0-0.382683im  0.92388+0.0im           0.0+0.0im
-     0.0-0.382683im      0.0+0.0im           0.0+0.0im       0.92388+0.0im
+ 0.92388+0.0im           0.0+0.0im       …      0.0-0.382683im
+     0.0+0.0im       0.92388+0.0im              0.0+0.0im
+     0.0+0.0im           0.0-0.382683im         0.0+0.0im
+     0.0-0.382683im      0.0+0.0im          0.92388+0.0im
 
 julia> push!(Circuit(), GateRXX(π), 1, 2)
 2-qubit circuit with 1 gates:
@@ -76,6 +76,6 @@ inverse(g::GateRXX) = GateRXX(-g.θ)
 
 numparams(::Type{GateRXX}) = 1
 
-gatename(::Type{GateRXX}) = "RXX"
+opname(::Type{GateRXX}) = "RXX"
 
 parnames(::Type{GateRXX}) = (:θ,)

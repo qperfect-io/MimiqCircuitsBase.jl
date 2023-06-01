@@ -26,12 +26,12 @@ Two qubit XXplusYY gate.
 # Matrix Representation
 ```math
 \operatorname{XXplusYY}(\theta, \beta) =
-\begin{pmatrix}
-    1 & 0 & 0 & 0 \\
-    0 & \cos(\frac{\theta}{2}) & -i\sin(\frac{\theta}{2})e^{-i\phi} & 0 \\
-    0 & -i\sin(\\frac{theta}{2})e^{i\phi} & \cos(\frac{\theta}{2}) & 0 \\
-    0 & 0 & 0 & 1
-\end{pmatrix}
+    \begin{pmatrix}
+        1 & 0 & 0 & 0 \\
+        0 & \cos(\frac{\theta}{2}) & -i\sin(\frac{\theta}{2})e^{-i\beta} & 0 \\
+        0 & -i\sin(\\frac{theta}{2})e^{i\beta} & \cos(\frac{\theta}{2}) & 0 \\
+        0 & 0 & 0 & 1
+    \end{pmatrix}
 ```
 
 # Examples
@@ -77,6 +77,6 @@ inverse(g::GateXXplusYY) = GateXXplusYY(-g.θ, g.β)
 
 numparams(::Type{GateXXplusYY}) = 2
 
-gatename(::Type{GateXXplusYY}) = "XXplusYY"
+opname(::Type{GateXXplusYY}) = "XXplusYY"
 
 parnames(::Type{GateXXplusYY}) = (:θ, :β)

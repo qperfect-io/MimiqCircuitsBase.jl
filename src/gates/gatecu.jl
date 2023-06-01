@@ -81,7 +81,7 @@ inverse(g::GateCU) = GateCU(-g.θ, -g.λ, -g.ϕ, -g.γ)
 
 numparams(::Type{GateCU}) = 4
 
-gatename(::Type{GateCU}) = "CU"
+opname(::Type{GateCU}) = "CU"
 
 parnames(::Type{GateCU}) = (:θ, :ϕ, :λ, :γ)
 

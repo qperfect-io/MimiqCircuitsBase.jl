@@ -74,7 +74,7 @@ inverse(g::GateCRZ) = GateCRZ(-g.λ)
 
 numparams(::Type{GateCRZ}) = 1
 
-gatename(::Type{GateCRZ}) = "CRZ"
+opname(::Type{GateCRZ}) = "CRZ"
 
 parnames(::Type{GateCRZ}) = (:λ,)
 

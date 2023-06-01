@@ -4,9 +4,9 @@
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -30,21 +30,26 @@ Returns a circuit from a JSON string or parsed JSON.
 function fromjson end
 
 function tojson(c::Circuit)
-    gates = []
+    instructions = []
 
     for g in c
-        gate_dict = Dict("name" => gatename(g.gate), "targets" => collect(g.targets))
-        if g.gate isa ParametricGate
-            gate_dict["params"] = map(x -> getfield(g.gate, x), collect(parnames(g.gate)))
+        op = getoperation(g)
+        dict = Dict(
+            "name" => opname(op),
+            "qtargets" => collect(getqubits(g)),
+            "ctargets" => collect(getbits(g)),
+        )
+        if op isa ParametricGate
+            dict["params"] = map(x -> getfield(op, x), collect(parnames(op)))
         end
-        if g.gate isa Gate
-            N = numqubits(g.gate)
-            gate_dict["matrix"] = reshape(complex(matrix(g.gate)), 2^(2 * N))
-            gate_dict["numqubits"] = N
+        if op isa GateCustom
+            N = numqubits(op)
+            dict["matrix"] = reshape(complex(matrix(op)), 2^(2 * N))
+            dict["numqubits"] = N
         end
-        push!(gates, gate_dict)
+        push!(instructions, dict)
     end
-    data = Dict("gates" => gates)
+    data = Dict("instructions" => instructions)
 
     if !isnothing(validate(CIRCUIT_SCHEMA, data))
         @warn "Validation of JSON Schema failed" validate(CIRCUIT_SCHEMA, data)
@@ -61,34 +66,38 @@ function fromjson(data::Dict)
         error("Invalid json circuit format.")
     end
 
-    gates = data["gates"]
+    instructions = data["instructions"]
 
     c = Circuit()
 
-    for g in gates
-        gatetype = BiMaps.getright(GATES, g["name"], nothing)
+    for g in instructions
+        optype = BiMaps.getright(OPERATIONS, g["name"], nothing)
 
         # since we validated the schema, this should never happen
-        if isnothing(gatetype)
+        if isnothing(optype)
             if g["name"] == "Custom"
-                gatetype = Gate
+                optype = GateCustom
             else
                 gn = g["name"]
-                error("Erro in JSON. No such gate as $gn")
+                error("Erro in JSON. No such operation as \"$gn\"")
             end
         end
 
-        targets = g["targets"]
-        if gatetype <: ParametricGate
+        qtargets = tuple(g["qtargets"]...)
+        ctargets = tuple(g["ctargets"]...)
+        N = length(qtargets)
+        M = length(ctargets)
+        if optype <: ParametricGate
             pars = g["params"]
-            push!(c, gatetype(pars...), targets...)
-        elseif gatetype <: Gate
-            N = g["numqubits"]
-            U = reshape(map(d -> d["re"] + im * d["im"], g["matrix"]), (2^N, 2^N))
-
-            push!(c, gatetype(U), targets...)
+            op = optype(pars...)
+            push!(c, Instruction{N,M,typeof(op)}(op, qtargets, ctargets))
+        elseif optype <: GateCustom
+            hdim = 2^N
+            U = reshape(map(d -> d["re"] + im * d["im"], g["matrix"]), (hdim, hdim))
+            op = optype(_decomplex.(U))
+            push!(c, Instruction{N,M,typeof(op)}(op, qtargets, ctargets))
         else
-            push!(c, gatetype(), targets...)
+            push!(c, Instruction{N,M,optype}(optype(), qtargets, ctargets))
         end
     end
 

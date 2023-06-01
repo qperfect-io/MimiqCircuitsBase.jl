@@ -69,5 +69,5 @@ numparams(::Type{GateU}) = 3
 
 parnames(::Type{GateU}) = (:θ, :ϕ, :λ)
 
-gatename(::Type{GateU}) = "U"
+opname(::Type{GateU}) = "U"
 

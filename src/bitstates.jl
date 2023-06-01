@@ -186,6 +186,11 @@ Base.getindex(bs::BitState, i) = bs.bits[i]
 
 Base.setindex!(bs::BitState, i, val) = setindex!(bs.bits, i, val)
 
+"""
+    nonzeros(bitstate)
+
+Return the indices of the non-zero qubits in a bit state.
+"""
 nonzeros(bs::BitState) = findall(x -> x, bs.bits)
 
 Base.length(bs::BitState) = length(bs.bits)
@@ -270,10 +275,10 @@ Optionally endianess can be specified, which can be either `:big` or `:little`.
 julia> to01(bs"10011")
 "10011"
 
-julia> to01(bs"10011"; endianess=:big))
+julia> to01(bs"10011"; endianess=:big)
 "10011"
 
-julia> to01(bs"10011"; endianess=:little))
+julia> to01(bs"10011"; endianess=:little)
 "11001"
 ```
 """
@@ -313,7 +318,7 @@ Convert a string into a bit state.
 
 ## Example usage
 
-```
+```jldoctests
 julia> bs"101011"
 6-qubit BitState with 4 non-zero qubits:
 ├── |101011⟩
@@ -324,5 +329,10 @@ macro bs_str(s)
     return :(parse(BitState, "bs" * $s))
 end
 
+"""
+    bits(bitstate)
+
+Get the underlying bit array of a bit state.
+"""
 bits(bs::BitState) = bs.bits
 

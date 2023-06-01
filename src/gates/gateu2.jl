@@ -59,7 +59,7 @@ inverse(g::GateU2) = GateU2DG(g.ϕ, g.λ)
 
 numparams(::Type{GateU2}) = 2
 
-gatename(::Type{GateU2}) = "U2"
+opname(::Type{GateU2}) = "U2"
 
 parnames(::Type{GateU2}) = (:ϕ, :λ)
 

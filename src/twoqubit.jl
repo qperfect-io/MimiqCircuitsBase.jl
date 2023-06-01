@@ -15,7 +15,7 @@
 #
 
 @doc raw"""
-    struct GateCX <: AbstractGate{2}
+    struct GateCX <: Gate{2}
 
 Two qubit Controlled-X gate (or CNOT).
 
@@ -49,16 +49,16 @@ julia> push!(Circuit(), GateCX(), 1, 2)
 └── CX @ q1, q2
 ```
 """
-struct GateCX <: AbstractGate{2} end
+struct GateCX <: Gate{2} end
 
 @generated matrix(::GateCX) = ctrl(matrix(GateX()))
 
 inverse(g::GateCX) = g
 
-gatename(::Type{GateCX}) = "CX"
+opname(::Type{GateCX}) = "CX"
 
 @doc raw"""
-    struct GateCY <: AbstractGate{2}
+    struct GateCY <: Gate{2}
 
 Two qubit Controlled-Y gate.
 
@@ -90,16 +90,16 @@ julia> push!(Circuit(), GateCY(), 1, 2)
 └── CY @ q1, q2
 ```
 """
-struct GateCY <: AbstractGate{2} end
+struct GateCY <: Gate{2} end
 
 @generated matrix(::GateCY) = ctrl(matrix(GateY()))
 
 inverse(g::GateCY) = g
 
-gatename(::Type{GateCY}) = "CY"
+opname(::Type{GateCY}) = "CY"
 
 @doc raw"""
-    struct GateCZ <: AbstractGate{2}
+    struct GateCZ <: Gate{2}
 
 Two qubit Controlled-Z gate.
 
@@ -130,16 +130,16 @@ julia> push!(Circuit(), GateCZ(), 1, 2)
 └── CZ @ q1, q2
 ```
 """
-struct GateCZ <: AbstractGate{2} end
+struct GateCZ <: Gate{2} end
 
 @generated matrix(::GateCZ) = ctrl(matrix(GateZ()))
 
 inverse(g::GateCZ) = g
 
-gatename(::Type{GateCZ}) = "CZ"
+opname(::Type{GateCZ}) = "CZ"
 
 @doc raw"""
-    struct GateCH <: AbstractGate{2}
+    struct GateCH <: Gate{2}
 
 Two qubit Controlled-Hadamard gate.
 
@@ -171,16 +171,16 @@ julia> push!(Circuit(), GateCH(), 1, 2)
 └── CH @ q1, q2
 ```
 """
-struct GateCH <: AbstractGate{2} end
+struct GateCH <: Gate{2} end
 
 @generated matrix(::GateCH) = ctrl(matrix(GateH()))
 
 inverse(g::GateCH) = g
 
-gatename(::Type{GateCH}) = "CH"
+opname(::Type{GateCH}) = "CH"
 
 @doc raw"""
-    struct GateSWAP <: AbstractGate{2}
+    struct GateSWAP <: Gate{2}
 
 Two qubit SWAP gate.
 
@@ -213,16 +213,16 @@ julia> push!(Circuit(), GateSWAP(), 1, 2)
 └── SWAP @ q1, q2
 ```
 """
-struct GateSWAP <: AbstractGate{2} end
+struct GateSWAP <: Gate{2} end
 
 @generated matrix(::GateSWAP) = Float64[1 0 0 0; 0 0 1 0; 0 1 0 0; 0 0 0 1]
 
 inverse(g::GateSWAP) = g
 
-gatename(::Type{GateSWAP}) = "SWAP"
+opname(::Type{GateSWAP}) = "SWAP"
 
 @doc raw"""
-    struct GateISWAP <: AbstractGate{2}
+    struct GateISWAP <: Gate{2}
 
 Two qubit ISWAP gate.
 
@@ -255,16 +255,16 @@ julia> push!(Circuit(), GateISWAP(), 1, 2)
 └── ISWAP @ q1, q2
 ```
 """
-struct GateISWAP <: AbstractGate{2} end
+struct GateISWAP <: Gate{2} end
 
 @generated matrix(::GateISWAP) = Complex{Float64}[1 0 0 0; 0 0 im 0; 0 im 0 0; 0 0 0 1]
 
 inverse(::GateISWAP) = GateISWAPDG()
 
-gatename(::Type{GateISWAP}) = "ISWAP"
+opname(::Type{GateISWAP}) = "ISWAP"
 
 @doc raw"""
-    struct GateISWAPDG <: AbstractGate{2}
+    struct GateISWAPDG <: Gate{2}
 
 Two qubit ISWAP-dagger gate (conjugate transpose of ISWAP)
 
@@ -297,17 +297,17 @@ julia> push!(Circuit(), GateISWAPDG(), 1, 2)
 └── ISWAPDG @ q1, q2
 ```
 """
-struct GateISWAPDG <: AbstractGate{2} end
+struct GateISWAPDG <: Gate{2} end
 
 @generated matrix(::GateISWAPDG) = Complex{Float64}[1 0 0 0; 0 0 -im 0; 0 -im 0 0; 0 0 0 1]
 
 inverse(::GateISWAPDG) = GateISWAP()
 
-gatename(::Type{GateISWAPDG}) = "ISWAPDG"
+opname(::Type{GateISWAPDG}) = "ISWAPDG"
 
 
 @doc raw"""
-    struct GateCS <: AbstractGate{2}
+    struct GateCS <: Gate{2}
 
 Two qubit Controlled-S gate.
 
@@ -337,16 +337,16 @@ julia> push!(Circuit(), GateCS(), 1, 2)
 └── CS @ q1, q2
 ```
 """
-struct GateCS <: AbstractGate{2} end
+struct GateCS <: Gate{2} end
 
 @generated matrix(::GateCS) = ctrl(matrix(GateS()))
 
 inverse(::GateCS) = GateCSDG()
 
-gatename(::Type{GateCS}) = "CS"
+opname(::Type{GateCS}) = "CS"
 
 @doc raw"""
-    struct GateCSDG <: AbstractGate{2}
+    struct GateCSDG <: Gate{2}
 
 Two qubit CS-dagger gate.
 
@@ -365,26 +365,27 @@ Two qubit CS-dagger gate.
 
 ```jldoctest
 julia> matrix(GateCSDG())
-1.0+0.0im  0.0+0.0im  0.0+0.0im  0.0+0.0im
-0.0+0.0im  1.0+0.0im  0.0+0.0im  0.0+0.0im
-0.0+0.0im  0.0+0.0im  1.0+0.0im  0.0+0.0im
-0.0+0.0im  0.0+0.0im  0.0+0.0im  0.0-1.0im
+4×4 Matrix{ComplexF64}:
+ 1.0+0.0im  0.0+0.0im  0.0+0.0im  0.0+0.0im
+ 0.0+0.0im  1.0+0.0im  0.0+0.0im  0.0+0.0im
+ 0.0+0.0im  0.0+0.0im  1.0+0.0im  0.0+0.0im
+ 0.0+0.0im  0.0+0.0im  0.0+0.0im  0.0-1.0im
 
 julia> push!(Circuit(), GateCSDG(), 1, 2)
 2-qubit circuit with 1 gates:
 └── CSDG @ q1, q2
 ```
 """
-struct GateCSDG <: AbstractGate{2} end
+struct GateCSDG <: Gate{2} end
 
 @generated matrix(::GateCSDG) = ctrl(matrix(GateSDG()))
 
 inverse(::GateCSDG) = GateCS()
 
-gatename(::Type{GateCSDG}) = "CSDG"
+opname(::Type{GateCSDG}) = "CSDG"
 
 @doc raw"""
-    struct GateCSX <: AbstractGate{2}
+    struct GateCSX <: Gate{2}
 
 Two qubit Controlled-SX gate. (Control on second qubit)
 
@@ -414,16 +415,16 @@ julia> push!(Circuit(), GateCSX(), 1, 2)
 └── CSX @ q1, q2
 ```
 """
-struct GateCSX <: AbstractGate{2} end
+struct GateCSX <: Gate{2} end
 
 @generated matrix(::GateCSX) = ctrl2(matrix(GateSX()))
 
 inverse(::GateCSX) = GateCSXDG()
 
-gatename(::Type{GateCSX}) = "CSX"
+opname(::Type{GateCSX}) = "CSX"
 
 @doc raw"""
-    struct GateCSXDG <: AbstractGate{2}
+    struct GateCSXDG <: Gate{2}
 
 Two qubit CSX-dagger gate. (Control on second qubit)
 
@@ -453,16 +454,16 @@ julia> push!(Circuit(), GateCSXDG(), 1, 2)
 └── CSXDG @ q1, q2
 ```
 """
-struct GateCSXDG <: AbstractGate{2} end
+struct GateCSXDG <: Gate{2} end
 
 @generated matrix(::GateCSXDG) = ctrl2(matrix(GateSXDG()))
 
 inverse(::GateCSXDG) = GateCSX()
 
-gatename(::Type{GateCSXDG}) = "CSXDG"
+opname(::Type{GateCSXDG}) = "CSXDG"
 
 @doc raw"""
-    struct GateECR <: AbstractGate{2}
+    struct GateECR <: Gate{2}
 
 Two qubit ECR echo gate.
 
@@ -492,17 +493,17 @@ julia> push!(Circuit(), GateCSX(), 1, 2)
 └── CSX @ q1, q2
 ```
 """
-struct GateECR <: AbstractGate{2} end
+struct GateECR <: Gate{2} end
 
 @generated matrix(::GateECR) = ComplexF64[0 1 0 im; 1 0 -im 0; 0 im 0 1; -im 0 1 0] ./ sqrt(2)
 
 inverse(::GateECR) = GateECR()
 
-gatename(::Type{GateECR}) = "ECR"
+opname(::Type{GateECR}) = "ECR"
 
 
 @doc raw"""
-    struct GateDCX <: AbstractGate{2}
+    struct GateDCX <: Gate{2}
 
 Two qubit double-CNOT (Control on first qubit and then second) OR DCX gate.
 
@@ -520,28 +521,28 @@ Two qubit double-CNOT (Control on first qubit and then second) OR DCX gate.
 # Examples
 
 ```jldoctest
-julia> matrix(GateCSX())
-4×4 Matrix{ComplexF64}:
- 1.0+0.0im  0.0+0.0im  0.0+0.0im  0.0+0.0im
- 0.0+0.0im  0.5+0.5im  0.0+0.0im  0.5-0.5im
- 0.0+0.0im  0.0+0.0im  1.0+0.0im  0.0+0.0im
- 0.0+0.0im  0.5-0.5im  0.0+0.0im  0.5+0.5im
+julia> matrix(GateDCX())
+4×4 Matrix{Float64}:
+ 1.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  1.0
+ 0.0  1.0  0.0  0.0
+ 0.0  0.0  1.0  0.0
 
-julia> push!(Circuit(), GateCSX(), 1, 2)
+julia> push!(Circuit(), GateDCX(), 1, 2)
 2-qubit circuit with 1 gates:
-└── CSX @ q1, q2
+└── DCX @ q1, q2
 ```
 """
-struct GateDCX <: AbstractGate{2} end
+struct GateDCX <: Gate{2} end
 
 @generated matrix(::GateDCX) = ctrlfs(matrix(GateX()))
 
 inverse(::GateDCX) = GateDCXDG()
 
-gatename(::Type{GateDCX}) = "DCX"
+opname(::Type{GateDCX}) = "DCX"
 
 @doc raw"""
-    struct GateDCXDG <: AbstractGate{2}
+    struct GateDCXDG <: Gate{2}
 
 Two qubit DCX-dagger gate.
 
@@ -561,21 +562,21 @@ Two qubit DCX-dagger gate.
 
 ```jldoctest
 julia> matrix(GateDCXDG())
-4×4 Matrix{ComplexF64}:
- 1.0+0.0im  0.0+0.0im  0.0+0.0im  0.0+0.0im
- 0.0+0.0im  0.5-0.5im  0.0+0.0im  0.5+0.5im
- 0.0+0.0im  0.0+0.0im  1.0+0.0im  0.0+0.0im
- 0.0+0.0im  0.5+0.5im  0.0+0.0im  0.5-0.5im
+4×4 Matrix{Float64}:
+ 1.0  0.0  0.0  0.0
+ 0.0  0.0  1.0  0.0
+ 0.0  0.0  0.0  1.0
+ 0.0  1.0  0.0  0.0
 
 julia> push!(Circuit(), GateDCXDG(), 1, 2)
 2-qubit circuit with 1 gates:
 └── DCXDG @ q1, q2
 ```
 """
-struct GateDCXDG <: AbstractGate{2} end
+struct GateDCXDG <: Gate{2} end
 
 @generated matrix(::GateDCXDG) = ctrlsf(matrix(GateX()))
 
 inverse(::GateDCXDG) = GateDCX()
 
-gatename(::Type{GateDCXDG}) = "DCXDG"
+opname(::Type{GateDCXDG}) = "DCXDG"

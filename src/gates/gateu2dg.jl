@@ -34,7 +34,7 @@ julia> matrix(GateU2DG(pi/2,pi/4))
 
 julia> push!(Circuit(), GateU2DG(pi/2,pi/4), 1)
 1-qubit circuit with 1 gates:
-└── U2DG(ϕ=-π⋅0.5, λ=-π⋅0.25) @ q1
+└── U2DG(ϕ=π⋅0.5, λ=π⋅0.25) @ q1
 ```
 """
 struct GateU2DG <: ParametricGate{1}
@@ -57,7 +57,7 @@ inverse(g::GateU2DG) = GateU2(g.ϕ, g.λ)
 
 numparams(::Type{GateU2DG}) = 2
 
-gatename(::Type{GateU2DG}) = "U2DG"
+opname(::Type{GateU2DG}) = "U2DG"
 
 parnames(::Type{GateU2DG}) = (:ϕ, :λ)
 

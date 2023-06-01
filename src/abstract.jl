@@ -15,39 +15,90 @@
 #
 
 """
-    abstract type AbstractGate{N}
-
-Supertype for all the `N`-qubit gates.
-
-# Methods
-
-* [`numqubits`](@ref)
-* [`hilbertspacedim`](@ref)
-* [`gatename`](@ref)
-"""
-abstract type AbstractGate{N} end
-
-"""
     numqubits(gate)
+    numqubits(barrier)
+    numqubits(instruction)
     numqubits(circuit)
 
-Number of qubits on which the given operation is defined.
+Number of qubits on which the given operation or instruction is defined.
 """
 function numqubits end
 
-numqubits(::Type{<:AbstractGate{N}}) where {N} = N
-numqubits(::AbstractGate{N}) where {N} = N
+"""
+    numbits(instruction)
+    numbits(circuit)
+
+Number of classical bits on which the given operation or instruction is defined.
+"""
+function numbits end
 
 """
     hilbertspacedim(gate)
     hilberspacedim(circuit)
 
-Hilbert space dimension for the given quantum operation.
+Hilbert space dimension for the given operation.
 """
 function hilbertspacedim end
 
-hilbertspacedim(::AbstractGate{N}) where {N} = 1 << N
+"""
+    matrix(gate)
+
+Return the matrix associated to the specified quantum gate.
+"""
+function matrix end
+
+"""
+    inverse(circuit)
+    inverse(instruction)
+    inverse(operation)
+
+Return the inverse of the given operation.
+"""
+function inverse end
+
+"""
+    opname(instruction)
+    opname(operation)
+
+Returns the name of the given operation in a human readable format.
+"""
+function opname end
+
+
+"""
+    abstract type Operation
+
+## Methods
+
+* [`opname`](@ref)
+* [`inverse`](@ref)
+"""
+abstract type Operation end
+
+opname(::Type{Operation}) = ""
+opname(::T) where {T<:Operation} = opname(T)
+
+"""
+    abstract type Gate{N} <: Operation
+
+Supertype for all the `N`-qubit gates.
+
+# Methods
+
+* [`inverse`](@ref)
+* [`numqubits`](@ref)
+* [`opname`](@ref)
+* [`hilbertspacedim`](@ref)
+* [`matrix`](@ref)
+"""
+abstract type Gate{N} <: Operation end
+
+numqubits(::Type{<:Gate{N}}) where {N} = N
+numqubits(::Gate{N}) where {N} = N
+numbits(::Type{<:Gate{N}}) where {N} = 0
+numbits(::Gate{N}) where {N} = 0
 hilbertspacedim(N::Integer) = 1 << N
+hilbertspacedim(::Gate{N}) where {N} = 1 << N
 
 """
     abstract type ParametricGate{N}
@@ -56,9 +107,15 @@ Supertype for all the parametric `N`-qubit gates.
 
 # Methods
 
+* [`inverse`](@ref)
+* [`numqubits`](@ref)
+* [`opname`](@ref)
+* [`hilbertspacedim`](@ref)
+* [`matrix`](@ref)
 * [`numparams`](@ref)
+* [`parnames`](@ref)
 """
-abstract type ParametricGate{N} <: AbstractGate{N} end
+abstract type ParametricGate{N} <: Gate{N} end
 
 """
     numparams(gate)
@@ -68,9 +125,9 @@ gates.
 """
 function numparams end
 
-numparams(::T) where {T<:AbstractGate} = numparams(T)
+numparams(::T) where {T<:Gate} = numparams(T)
 
-numparams(::Type{T}) where {T<:AbstractGate} = 0
+numparams(::Type{T}) where {T<:Gate} = 0
 
 """
     parnames(gate)
@@ -79,48 +136,22 @@ Name of the parameters allowed for the given gate
 """
 function parnames end
 
-parnames(::T) where {T<:AbstractGate} = parnames(T)
+parnames(::T) where {T<:Gate} = parnames(T)
 
-parnames(::Type{T}) where {T<:AbstractGate} = ()
+parnames(::Type{T}) where {T<:Gate} = ()
 
-"""
-    gatename(gate)
-    gatename(gate_type)
 
-Returns the name of the given gate in a human readable format
-"""
-function gatename end
-
-# TODO: does it inline properly?
-gatename(::T) where {T<:AbstractGate} = gatename(T)
-
-gatename(::Type{AbstractGate}) = ""
-
-"""
-    matrix(gate)
-
-Return the matrix associated to the specified quantum gate.
-"""
-function matrix end
+opname(::Type{Gate}) = ""
 
 matrix(g::ParametricGate) = g.U
 
-"""
-    inverse(circuit)
-    inverse(circuit_gate)
-    inverse(gate)
-
-Return the inverse of the given circuit, circuit gate or gate.
-"""
-function inverse end
-
-function Base.show(io::IO, gate::AbstractGate)
-    print(io, gatename(gate))
+function Base.show(io::IO, gate::Operation)
+    print(io, opname(gate))
 end
 
 function Base.show(io::IO, gate::ParametricGate)
     compact = get(io, :compact, false)
-    print(io, gatename(gate), "(")
+    print(io, opname(gate), "(")
     join(io, map(x -> "$x=" * _shortenfloat_pi(getproperty(gate, x)), parnames(gate)), compact ? "," : ", ")
     print(io, ")")
 end

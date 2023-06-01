@@ -1,10 +1,10 @@
 using Random
 using LinearAlgebra
 
-Random.seed!(19890501)
+Random.seed!(20230501)
 
 function checknpgate(gatetype, n, N)
-    @testset "$(gatename(gatetype))" begin
+    @testset "$(opname(gatetype))" begin
 
         # since it is not parametric, then it should be a singleton type
         @test Base.issingletontype(gatetype)
@@ -16,7 +16,7 @@ function checknpgate(gatetype, n, N)
         @test numqubits(inst) == n
 
         # same name bewtween an instance or a gate type
-        @test gatename(inst) === gatename(gatetype)
+        @test opname(inst) === opname(gatetype)
 
         M = matrix(inst)
 
@@ -37,7 +37,7 @@ function checknpgate(gatetype, n, N)
 end
 
 function checkpgate(gatetype, n, N, numpars)
-    @testset "$(gatename(gatetype))" begin
+    @testset "$(opname(gatetype))" begin
 
         # since it is parametric, then it should not be a singleton type
         @test !Base.issingletontype(gatetype)
@@ -50,7 +50,7 @@ function checkpgate(gatetype, n, N, numpars)
         @test numqubits(inst) == n
 
         # same name bewtween an instance or a gate type
-        @test gatename(inst) === gatename(gatetype)
+        @test opname(inst) === opname(gatetype)
 
         M = matrix(inst)
 
@@ -141,14 +141,14 @@ end
 function checkcustomgate(N, T)
     M = 2^N
     mat = rand(T, M, M)
-    gate = Gate(mat)
+    gate = GateCustom(mat)
 
-    @test gate isa Gate{N,T}
+    @test gate isa GateCustom{N,T}
     @test matrix(gate) == mat
 end
 
 @testset "Custom Gates" begin
-    @test_throws "Wrong matrix" Gate(rand(ComplexF64, 3, 3))
+    @test_throws "Wrong matrix" GateCustom(rand(ComplexF64, 3, 3))
 
     checkcustomgate(1, ComplexF64)
     checkcustomgate(1, Float64)
@@ -158,13 +158,13 @@ end
     checkcustomgate(3, Float64)
 end
 
-@testset "CircuitGate" begin
-    @test_throws ArgumentError CircuitGate(GateX(), 1, 2)
-    @test_throws ArgumentError CircuitGate(GateCX(), 1)
-
-    g = CircuitGate(GateX(), 1)
-    @test matrix(g) === matrix(GateX())
-
+@testset "Instruction" begin
+    @test_throws ArgumentError Instruction(GateX(), 1, 2)
+    @test_throws ArgumentError Instruction(GateCX(), 1)
+    @test_throws ArgumentError Instruction(GateCX(), 1, 1)
+    @test_throws ArgumentError Instruction(GateX(), -1)
+    @test_throws ArgumentError Instruction(GateCX(), 1, -1)
+    @test_throws ArgumentError Instruction(GateCX(), -1, 1)
 end
 
 @testset "Circuit" begin
@@ -187,7 +187,7 @@ end
     @test numqubits(c) == 4
 
     for gc in c
-        @test gc.gate == GateCX()
+        @test getoperation(gc) == GateCX()
     end
 end
 

@@ -5,33 +5,59 @@
 
 
 @doc raw"""
-    struct Gate{N,M,T} <: AbstractGate{N}
+    struct GateCustom{N,T} <: Gate{N}
 
-`N` qubit gate specified by a `M`×`M` matrix with elements of type `T`.
+`N` qubit gate specified by a ``2^N \times 2^N`` matrix with elements of type
+`T`.
+
 Use this to construct your own gates based on unitary matrices.
 Currently only N=1,2 (M=2,4) are recognised.
 
-MIMIQ uses textbook convention for specifying gates
+MIMIQ uses textbook convention for specifying gates.
 
-one qubit gate matrices are defined in the basis |0>, |1>
+One qubit gate matrices are defined in the basis ``|0\rangle``, ``|1\rangle``
 e.g.,
-Z = [1  0; 
-     0 -1]  
 
-two qubit gate matrices are defined in the basis |00>, |01>, |10>, |11>
-where the left-most qubit is the first to appear in the target list 
+```math
+\operatorname{Z} =
+\begin{pmatrix}
+    1&0\\
+    0&-1
+\end{pmatrix}
+```
 
-e.g.
-CNOT = [1 0 0 0; 
-        0 1 0 0; 
-        0 0 0 1; 
-        0 0 1 0]
+Two qubit gate matrices are defined in the basis ``|00\rangle``,
+``|01\rangle``>, ``|10\rangle``, ``|11\rangle`` where the left-most qubit is
+the first to appear in the target list
+e.g.,
 
-CircuitGate(Gate(CNOT),1,2) # CNOT gate with control on q1 and target on q2
+```math
+\operatorname{CNOT} =
+\begin{pmatrix}
+    1&0&0&0\\
+    0&1&0&0\\
+    0&0&0&1\\
+    0&0&1&0
+\end{pmatrix}
+```
+
+```
+julia> CNOT = [1 0 0 0; 0 1 0 0; 0 0 0 1; 0 0 1 0]
+4×4 Matrix{Int64}:
+ 1  0  0  0
+ 0  1  0  0
+ 0  0  0  1
+ 0  0  1  0
+
+julia> # CNOT gate with control on q1 and target on q2
+
+julia> Instruction(GateCustom(CNOT), 1, 2)
+GateCustom([1 0 0 0; 0 1 0 0; 0 0 0 1; 0 0 1 0]) @ q1, q2
 
 # Examples
+
 ```jldoctest
-julia> g = Gate([1 0; 0 1])
+julia> g = GateCustom([1 0; 0 1])
 Custom([1.0 0.0; 0.0 1.0])
 
 julia> push!(Circuit(), g, 1)
@@ -39,18 +65,23 @@ julia> push!(Circuit(), g, 1)
 └── Custom([1.0 0.0; 0.0 1.0]) @ q1
 ```
 """
-struct Gate{N,T<:Number} <: AbstractGate{N}
+struct GateCustom{N,T<:Number} <: Gate{N}
     U::Matrix{T}
     a::Union{Float64,ComplexF64}
     b::Union{Float64,ComplexF64}
     c::Union{Float64,ComplexF64}
     d::Union{Float64,ComplexF64}
 
-    function Gate{N,T}(U::AbstractMatrix{T}) where {N,T}
+    function GateCustom{N,T}(U::AbstractMatrix{T}) where {N,T}
         M = 1 << N
         if size(U, 1) != M || size(U, 2) != M
             error("Wrong matrix dimension for a $N qubit gate")
         end
+
+        if !(U * adjoint(U) ≈ Matrix(I, M, M))
+            @warn "Custom gate matrix U is not unitary." U
+        end
+
         return new{N,T}(
             U,
             _decomplex(U[1, 1]),
@@ -61,19 +92,19 @@ struct Gate{N,T<:Number} <: AbstractGate{N}
     end
 end
 
-function Gate(U::AbstractMatrix{T}) where {T<:Number}
+function GateCustom(U::AbstractMatrix{T}) where {T<:Number}
     N = size(U, 1) >> 2 + 1
-    Gate{N,float(T)}(float.(U))
+    GateCustom{N,float(T)}(float.(U))
 end
 
-gatename(::Type{<:Gate}) = "Custom"
+opname(::Type{<:GateCustom}) = "Custom"
 
-inverse(g::Gate) = Gate(adjoint(g.U))
+inverse(g::GateCustom) = Gate(adjoint(g.U))
 
-@inline matrix(g::Gate) = g.U
+@inline matrix(g::GateCustom) = g.U
 
-function Base.show(io::IO, gate::Gate)
-    print(io, gatename(gate), "(")
+function Base.show(io::IO, gate::GateCustom)
+    print(io, opname(gate), "(")
     io1 = IOContext(io, :compact => true)
     print(io1, gate.U)
     print(io, ")")

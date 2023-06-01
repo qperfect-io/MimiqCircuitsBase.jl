@@ -14,8 +14,8 @@
 # limitations under the License.
 #
 
-const GATES = let
-    gates = [
+const OPERATIONS = let
+    operations = [
         GateX, GateY, GateZ, GateH, GateS, GateSDG,
         GateT, GateTDG, GateSX, GateSXDG, GateID,
         GateP, GateRX, GateRY, GateRZ, GateR,
@@ -24,6 +24,9 @@ const GATES = let
         GateISWAP, GateISWAPDG, GateCP, GateCRX, GateCRY,
         GateCRZ, GateCU, GateCCX, GateCSWAP, GateCR, GateRZZ,
         GateRXX, GateRYY, GateXXplusYY, GateXXminusYY, GateCSX,
-        GateCSXDG, GateCS, GateCSDG, GateECR, GateDCX, GateDCXDG]
-    BiMap(gates, gatename.(gates))
+        GateCSXDG, GateCS, GateCSDG, GateECR, GateDCX, GateDCXDG,
+        Barrier
+    ]
+
+    BiMap(operations, opname.(operations))
 end

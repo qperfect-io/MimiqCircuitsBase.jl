@@ -15,81 +15,13 @@
 #
 
 """
-using Base: typename
-    struct CircuitGate{N,T<:AbstractGate{N}}
-
-Element of a quantum circuit, representing a `N`-qubit gate applied to `N` targets
-
-# Parameters
-
-* `gate::T` actual gate represented
-* `targets::NTuple{N, Int64}` tuple of target indices specifying on which
-  qubits the gate is applied
-"""
-struct CircuitGate{N,T<:AbstractGate{N}}
-    gate::T
-    targets::NTuple{N,Int64}
-end
-
-function CircuitGate(gate::AbstractGate{N}, targets...) where {N}
-    if length(targets) != N
-        throw(ArgumentError("Wrong number of target for $N-qubit gate"))
-    end
-
-    if any(x -> x <= 0, targets)
-        throw(ArgumentError("Targets must be positive and >=1"))
-    end
-
-    CircuitGate{N,typeof(gate)}(gate, targets)
-end
-
-"""
-    gettarget(circuit_gate, i)
-
-Returns the i-th target qubit of a circuit gate.
-"""
-gettarget(g::CircuitGate, i) = g.targets[i]
-
-"""
-    gettargets(circuit_gate)
-
-Returns the targets of a circuit gate.
-"""
-gettargets(g::CircuitGate) = g.targets
-
-"""
-    getgate(circuit_gate)
-
-Returns the quantum gate associated to the given circuit gate.
-"""
-getgate(g::CircuitGate) = g.gate
-
-@inline matrix(g::CircuitGate) = matrix(g.gate)
-@inline numqubits(::Type{CircuitGate{N,T}}) where {N,T} = N
-@inline numqubits(::CircuitGate{N,T}) where {N,T} = N
-
-inverse(c::CircuitGate) = CircuitGate(inverse(c.gate), c.targets...)
-
-function Base.show(io::IO, g::CircuitGate)
-    compact = get(io, :compact, false)
-
-    if compact
-        print(io, g.gate, "@")
-        join(io, map(x -> "q$x", g.targets), ",")
-    else
-        print(io, g.gate, " @ ")
-        join(io, map(x -> "q$x", g.targets), ", ")
-    end
-end
-
-"""
     struct Circuit
 
 Representation of a quantum circuit as a vector of gates applied to the qubits.
 
 # Parameters
 
-* `gates::Vector{CircuitGate}` vector of gates (see [`CircuitGate`](@ref))
+* `gates::Vector{Instruction}` vector of quantum instructions (see [`Instruction`](@ref))
 
 # Example iteration
 
@@ -97,13 +29,13 @@ Representation of a quantum circuit as a vector of gates applied to the qubits.
 circuit = Circuit()
 # add gates to circuit
 
-for (; gate, targets) in circuit
+for (; operation, targets) in circuit
     # do something with the gate and its targets
     # e.g.
 end
 ```
-(here the iteration parameters should be called `gate` and `targets` to
-proper destructure a `CircuitGate`)
+(here the iteration parameters should be called `operation` and `targets` to
+proper destructure a `Instruction`)
 
 ## Gate types
 * Single qubit gates (basic): [`GateX`](@ref), [`GateY`](@ref), [`GateZ`](@ref), [`GateH`](@ref), [`GateS`](@ref), [`GateSDG`](@ref), [`GateT`](@ref), [`GateTDG`](@ref), [`GateSX`](@ref), [`GateSXDG`](@ref), [`GateID`](@ref)
@@ -114,40 +46,53 @@ proper destructure a `CircuitGate`)
     
 """
 struct Circuit
-    gates::Vector{CircuitGate}
+    instructions::Vector{Instruction}
 end
 
-Circuit() = Circuit(CircuitGate[])
+Circuit() = Circuit(Instruction[])
 
-@inline Base.iterate(c::Circuit) = iterate(c.gates)
-@inline Base.iterate(c::Circuit, state) = iterate(c.gates, state)
-@inline Base.length(c::Circuit) = length(c.gates)
-@inline Base.isempty(c::Circuit) = isempty(c.gates)
-@inline Base.getindex(c::Circuit, i) = getindex(c.gates, i)
+@inline Base.iterate(c::Circuit) = iterate(c.instructions)
+@inline Base.iterate(c::Circuit, state) = iterate(c.instructions, state)
+@inline Base.length(c::Circuit) = length(c.instructions)
+@inline Base.isempty(c::Circuit) = isempty(c.instructions)
+@inline Base.getindex(c::Circuit, i) = getindex(c.instructions, i)
 
-@inline function Base.push!(c::Circuit, g)
-    push!(c.gates, g)
+@inline function Base.push!(c::Circuit, g::Instruction)
+    push!(c.instructions, g)
     return c
 end
 
 @inline function Base.append!(c::Circuit, c2::Circuit)
-    append!(c.gates, c2.gates)
+    append!(c.instructions, c2.instructions)
     return c
 end
 
 @inline Base.push!(c::Circuit, c2::Circuit) = Base.append!(c, c2)
 
-function Base.push!(c::Circuit, g::AbstractGate{N}, targets...) where {N}
-    push!(c, CircuitGate(g, targets...))
+function Base.push!(c::Circuit, g::Gate{N}, qtargets...) where {N}
+    push!(c, Instruction(g, qtargets...))
+end
+
+@inline function Base.push!(c::Circuit, b::Barrier, qtargets...)
+    push!(c, Instruction(b, qtargets...))
+end
+
+function Base.push!(c::Circuit, ::Type{Barrier}, qtargets...)
+    push!(c, Instruction(Barrier(), qtargets...))
 end
 
 function numqubits(c::Circuit)
     isempty(c) && return 0
-    return maximum(map(g -> maximum(gettargets(g)), c))
+    return maximum(Iterators.map(g -> maximum(getqubits(g)), c))
+end
+
+function numbits(c::Circuit)
+    isempty(c) && return 0
+    return maximum(Iterators.map(g -> maximum(getbits(g)), c))
 end
 
 function inverse(c::Circuit)
-    gates = map(inverse, reverse(c.gates))
+    gates = map(inverse, reverse(c.instructions))
     return Circuit(gates)
 end
 
@@ -161,24 +106,24 @@ function Base.show(io::IO, c::Circuit)
         if rows - 4 <= 0
             print(io, "└── ...")
         elseif rows - 4 >= n
-            for g in c.gates[1:end-1]
+            for g in c.instructions[1:end-1]
                 println(io, "├── ", g)
             end
-            print(io, "└── ", c.gates[end])
+            print(io, "└── ", c.instructions[end])
         else
             chunksize = div(rows - 6, 2)
 
-            for g in c.gates[1:chunksize]
+            for g in c.instructions[1:chunksize]
                 println(io, "├── ", g)
             end
 
             println(io, "⋮   ⋮")
 
-            for g in c.gates[end-chunksize:end-1]
+            for g in c.instructions[end-chunksize:end-1]
                 println(io, "├── ", g)
             end
 
-            print(io, "└── ", c.gates[end])
+            print(io, "└── ", c.instructions[end])
         end
     else
         if isempty(c)

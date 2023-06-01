@@ -65,7 +65,7 @@ inverse(g::GateR) = GateR(-g.θ, g.ϕ)
 
 numparams(::Type{GateR}) = 1
 
-gatename(::Type{GateR}) = "R"
+opname(::Type{GateR}) = "R"
 
 parnames(::Type{GateR}) = (:θ, :ϕ)
 

@@ -40,10 +40,10 @@ Two qubit RZZ gate.
 ```jldoctest
 julia> matrix(GateRZZ(π/4))
 4×4 Matrix{ComplexF64}:
- 0.92388-0.382683im      0.0+0.0im           0.0+0.0im           0.0+0.0im
-     0.0+0.0im       0.92388+0.382683im      0.0+0.0im           0.0+0.0im
-     0.0+0.0im           0.0+0.0im       0.92388+0.382683im      0.0+0.0im
-     0.0+0.0im           0.0+0.0im           0.0+0.0im       0.92388-0.382683im
+ 0.92388-0.382683im      0.0+0.0im       …      0.0+0.0im
+     0.0+0.0im       0.92388+0.382683im         0.0+0.0im
+     0.0+0.0im           0.0+0.0im              0.0+0.0im
+     0.0+0.0im           0.0+0.0im          0.92388-0.382683im
 
 julia> push!(Circuit(), GateRZZ(π), 1, 2)
 2-qubit circuit with 1 gates:
@@ -68,6 +68,6 @@ inverse(g::GateRZZ) = GateRZZ(-g.θ)
 
 numparams(::Type{GateRZZ}) = 1
 
-gatename(::Type{GateRZZ}) = "RZZ"
+opname(::Type{GateRZZ}) = "RZZ"
 
 parnames(::Type{GateRZZ}) = (:θ,)

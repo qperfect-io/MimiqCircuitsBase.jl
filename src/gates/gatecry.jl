@@ -74,7 +74,7 @@ inverse(g::GateCRY) = GateCRY(-g.θ)
 
 numparams(::Type{GateCRY}) = 1
 
-gatename(::Type{GateCRY}) = "CRY"
+opname(::Type{GateCRY}) = "CRY"
 
 parnames(::Type{GateCRY}) = (:θ,)
 

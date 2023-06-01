@@ -29,9 +29,14 @@ include("utils.jl")
 include("matrices.jl")
 
 # abstract gate types
-export AbstractGate
+export Gate
 export ParametricGate
-export gatename, matrix, hilbertspacedim, numparams, numqubits, inverse, parnames
+export opname
+export inverse
+export hilbertspacedim
+export numbits, numqubits
+export matrix
+export numparams, parnames
 include("abstract.jl")
 
 # single-qubit simple gates
@@ -52,7 +57,7 @@ include("gates/gateu3.jl")
 include("gates/gateu.jl")
 
 # two-qubit simple gates
-export GateCX, GateCY, GateCZ, GateCH, GateSWAP, GateISWAP, GateISWAPDG, GateCS, GateCSDG, GateCSX, GateCSXDG, GateECR, GateDCX,GateDCXDG
+export GateCX, GateCY, GateCZ, GateCH, GateSWAP, GateISWAP, GateISWAPDG, GateCS, GateCSDG, GateCSX, GateCSXDG, GateECR, GateDCX, GateDCXDG
 include("twoqubit.jl")
 
 # two-qubit parametric gates
@@ -74,12 +79,24 @@ export GateCCX, GateCSWAP
 include("multiqubit.jl")
 
 # custom gates
-export Gate
+export GateCustom
 include("gates/custom.jl")
 
+# other non-gate type instructions
+export Barrier
+include("barrier.jl")
+
+# instructions apply quantum operations to specific qubits
+# and classical bits
+export Instruction
+export getqubit, getqubits
+export getbit, getbits
+export gettarget, gettargets
+export getoperation
+include("instruction.jl")
+
 # circuits and circuit-embedded gates
-export Circuit, CircuitGate
-export getgate, gettarget, gettargets
+export Circuit
 include("circuit.jl")
 
 # functions for circuits

@@ -72,7 +72,7 @@ inverse(g::GateRX) = GateRX(-g.θ)
 
 numparams(::Type{GateRX}) = 1
 
-gatename(::Type{GateRX}) = "RX"
+opname(::Type{GateRX}) = "RX"
 
 parnames(::Type{GateRX}) = (:θ,)
 

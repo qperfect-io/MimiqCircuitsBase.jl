@@ -59,7 +59,7 @@ inverse(g::GateU3) = GateU3(-g.θ, -g.λ, -g.ϕ)
 
 numparams(::Type{GateU3}) = 3
 
-gatename(::Type{GateU3}) = "U3"
+opname(::Type{GateU3}) = "U3"
 
 parnames(::Type{GateU3}) = (:θ, :ϕ, :λ)
 

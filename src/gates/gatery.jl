@@ -67,7 +67,7 @@ inverse(g::GateRY) = GateRY(-g.θ)
 
 numparams(::Type{GateRY}) = 1
 
-gatename(::Type{GateRY}) = "RY"
+opname(::Type{GateRY}) = "RY"
 
 parnames(::Type{GateRY}) = (:θ,)
 

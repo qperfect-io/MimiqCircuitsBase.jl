@@ -68,7 +68,7 @@ inverse(g::GateRZ) = GateRZ(-g.λ)
 
 numparams(::Type{GateRZ}) = 1
 
-gatename(::Type{GateRZ}) = "RZ"
+opname(::Type{GateRZ}) = "RZ"
 
 parnames(::Type{GateRZ}) = (:λ,)
 

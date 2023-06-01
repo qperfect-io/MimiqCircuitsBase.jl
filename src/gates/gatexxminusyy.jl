@@ -27,12 +27,12 @@ Two qubit XXminusYY gate.
 # Matrix Representation
 ```math
 \operatorname{XXminusYY}(\theta, \beta) =
-\begin{pmatrix}
-    \cos(\frac{\theta}{2}) & 0 & 0 & -i\sin(\frac{\theta}{2})e^{-i\phi} \\
-    0 & 1 & 0 & 0 \\
-    0 & 0 & 1 & 0 \\
-    -i\sin(\frac{\theta}{2})e^{i\phi} & 0 & 0 & \cos(\frac{\theta}{2})
-\end{pmatrix}
+    \begin{pmatrix}
+        \cos(\frac{\theta}{2}) & 0 & 0 & -i\sin(\frac{\theta}{2})e^{-i\beta} \\
+        0 & 1 & 0 & 0 \\
+        0 & 0 & 1 & 0 \\
+        -i\sin(\frac{\theta}{2})e^{i\beta} & 0 & 0 & \cos(\frac{\theta}{2})
+    \end{pmatrix}
 ```
 
 # Examples
@@ -40,10 +40,10 @@ Two qubit XXminusYY gate.
 ```jldoctest
 julia> matrix(GateXXminusYY(π/2,π/2))
 4×4 Matrix{ComplexF64}:
-  0.707107+0.0im          0.0+0.0im  0.0+0.0im  -0.707107-4.32978e-17im
-       0.0+0.0im          1.0+0.0im  0.0+0.0im        0.0+0.0im
-       0.0+0.0im          0.0+0.0im  1.0+0.0im        0.0+0.0im
- -0.707107-4.32978e-17im  0.0+0.0im  0.0+0.0im   0.707107+0.0im
+ 0.707107+0.0im          0.0+0.0im  0.0+0.0im  -0.707107-4.32978e-17im
+      0.0+0.0im          1.0+0.0im  0.0+0.0im        0.0+0.0im
+      0.0+0.0im          0.0+0.0im  1.0+0.0im        0.0+0.0im
+ 0.707107-4.32978e-17im  0.0+0.0im  0.0+0.0im   0.707107+0.0im
 
 julia> push!(Circuit(), GateXXminusYY(π,π), 1, 2)
 2-qubit circuit with 1 gates:
@@ -78,6 +78,6 @@ inverse(g::GateXXminusYY) = GateXXminusYY(-g.θ, g.β)
 
 numparams(::Type{GateXXminusYY}) = 2
 
-gatename(::Type{GateXXminusYY}) = "XXminusYY"
+opname(::Type{GateXXminusYY}) = "XXminusYY"
 
 parnames(::Type{GateXXminusYY}) = (:θ, :β)
