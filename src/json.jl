@@ -85,19 +85,17 @@ function fromjson(data::Dict)
 
         qtargets = tuple(g["qtargets"]...)
         ctargets = tuple(g["ctargets"]...)
-        N = length(qtargets)
-        M = length(ctargets)
         if optype <: ParametricGate
             pars = g["params"]
             op = optype(pars...)
-            push!(c, Instruction{N,M,typeof(op)}(op, qtargets, ctargets))
+            push!(c, Instruction(op, qtargets, ctargets))
         elseif optype <: GateCustom
-            hdim = 2^N
+            hdim = 2^length(qtargets)
             U = reshape(map(d -> d["re"] + im * d["im"], g["matrix"]), (hdim, hdim))
             op = optype(_decomplex.(U))
-            push!(c, Instruction{N,M,typeof(op)}(op, qtargets, ctargets))
+            push!(c, Instruction(op, qtargets, ctargets))
         else
-            push!(c, Instruction{N,M,optype}(optype(), qtargets, ctargets))
+            push!(c, Instruction(optype(), qtargets, ctargets))
         end
     end
 

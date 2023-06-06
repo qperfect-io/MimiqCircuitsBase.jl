@@ -107,7 +107,7 @@ struct Instruction{N,M,T<:Operation}
     qtargets::NTuple{N,Int64}
     ctargets::NTuple{M,Int64}
 
-    function Instruction{N,M,T}(op::T, qtargets, ctargets) where {N,M,T<:Operation}
+    function Instruction(op::T, qtargets::NTuple{N,<:Integer}, ctargets::NTuple{M,<:Integer}) where {N,M,T<:Operation}
         _checktargets(qtargets, N, "qubit")
         _checktargets(ctargets, M, "bit")
 
@@ -115,18 +115,20 @@ struct Instruction{N,M,T<:Operation}
     end
 end
 
-function Instruction(gate::T, qtargets...) where {N,T<:Gate{N}}
-    Instruction{N,0,T}(gate, qtargets, ())
+function Instruction(gate::T, qtargets::Vararg{Integer,N}) where {N,T<:Gate{N}}
+    Instruction(gate, qtargets, ())
 end
 
-function Instruction(b::Barrier, qtargets...)
-    N = length(qtargets)
-    Instruction{N,0,Barrier}(b, qtargets, ())
+function Instruction(::Gate{N}, ::Vararg{Integer,M}) where {M,N}
+    throw(ArgumentError("Wrong number of targets: given $M for $N-qubit gate"))
 end
 
-function Instruction(::Type{Barrier}, qtargets...)
-    N = length(qtargets)
-    Instruction{N,0,Barrier}(Barrier(), qtargets, ())
+function Instruction(b::Barrier, qtargets::Vararg{Integer})
+    Instruction(b, qtargets, ())
+end
+
+function Instruction(::Type{Barrier}, qtargets::Vararg{Integer})
+    Instruction(Barrier(), qtargets, ())
 end
 
 numqubits(::Type{Instruction{N,M}}) where {N,M} = N

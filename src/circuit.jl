@@ -56,6 +56,7 @@ Circuit() = Circuit(Instruction[])
 @inline Base.length(c::Circuit) = length(c.instructions)
 @inline Base.isempty(c::Circuit) = isempty(c.instructions)
 @inline Base.getindex(c::Circuit, i) = getindex(c.instructions, i)
+Base.eltype(::Circuit) = Instruction
 
 @inline function Base.push!(c::Circuit, g::Instruction)
     push!(c.instructions, g)
@@ -83,12 +84,22 @@ end
 
 function numqubits(c::Circuit)
     isempty(c) && return 0
-    return maximum(Iterators.map(g -> maximum(getqubits(g)), c))
+    maxtarget_iter = Iterators.map(c) do g
+        targets = getqubits(g)
+        isempty(targets) && return 0
+        return maximum(targets)
+    end
+    return maximum(maxtarget_iter)
 end
 
 function numbits(c::Circuit)
     isempty(c) && return 0
-    return maximum(Iterators.map(g -> maximum(getbits(g)), c))
+    maxtarget_iter = Iterators.map(c) do g
+        targets = getbits(g)
+        isempty(targets) && return 0
+        return maximum(targets)
+    end
+    return maximum(maxtarget_iter)
 end
 
 function inverse(c::Circuit)

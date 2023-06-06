@@ -23,10 +23,15 @@ The depth of a quantum circuit is a metric computing the maximum time (in units 
 gates application) between the input and output of the circuit.
 """
 function depth(c::Circuit)
-    d = zeros(Int64, numqubits(c))
-    for g in c.gates
-        for t in gettargets(g)
-            d[t] += 1
+    d = zeros(Int64, numqubits(c) + numbits(c))
+    for g in c
+        optargets = collect(getqubits(g))
+        dm = maximum(d[optargets])
+        for t in getqubits(g)
+            d[t] = dm + 1
+        end
+        for t in getbits(g)
+            d[t+numqubits(c)] = dm + 1
         end
     end
     return maximum(d)

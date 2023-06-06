@@ -14,6 +14,7 @@ function checknpgate(gatetype, n, N)
         # proper hilbert space dimension and number of qubits
         @test hilbertspacedim(inst) == N
         @test numqubits(inst) == n
+        @test numbits(inst) == 0
 
         # same name bewtween an instance or a gate type
         @test opname(inst) === opname(gatetype)
@@ -48,6 +49,7 @@ function checkpgate(gatetype, n, N, numpars)
         # proper hilbert space dimension and number of qubits
         @test hilbertspacedim(inst) == N
         @test numqubits(inst) == n
+        @test numbits(inst) == 0
 
         # same name bewtween an instance or a gate type
         @test opname(inst) === opname(gatetype)
