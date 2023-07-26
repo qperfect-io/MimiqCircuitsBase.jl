@@ -1,87 +1,168 @@
 using JSON
+using Random
 
-nq = 26
-c = Circuit()
+Random.seed!(20230501)
 
-#non parametric 1-qubit gate
-for gatetype in
-    Type[GateX, GateY, GateZ, GateH, GateS, GateSDG, GateTDG, GateSX, GateSXDG, GateID]
-    gate = gatetype()
+const NCONTROLS = 3
+const REPEATS = 3
+const BARRIERN = 5
+const CUSTOMN = 3
 
-    for i in 1:nq
-        push!(c, gate, i)
+function _testdict(op; verbose=false)
+    dict = MimiqCircuitsBase.todict(op)
+    @test dict[:name] == opname(op)
+    @test dict[:N] == numqubits(op)
+    @test dict[:M] == numbits(op)
+
+    if verbose
+        @info "" MimiqCircuitsBase.fromdict(Operation, dict) op
+    end
+
+    @test areequal(MimiqCircuitsBase.fromdict(Operation, dict), op)
+    @test areequal(fromjson(Operation, tojson(op)), op)
+
+    nothing
+end
+
+function _pushtotest!(c::Circuit, op::Operation)
+    push!(c, op, 1:numqubits(op)..., 1:numbits(op)...)
+    push!(c, op, numqubits(op):-1:1..., numbits(op):-1:1...)
+end
+
+function _testcircuit(c::Circuit)
+    @test areequal(MimiqCircuitsBase.fromdict(Circuit, MimiqCircuitsBase.todict(c)), c)
+    @test areequal(fromjson(Circuit, tojson(c)), c)
+end
+
+function _testcircuit(op::Operation)
+    c = Circuit()
+
+    _pushtotest!(c, op)
+
+    _testcircuit(c)
+
+    nothing
+end
+
+@testset "Simple non parametric Operations" begin
+    NONPARAMETRICOPS = [GateX, GateY, GateZ, GateH, GateS, GateSDG, GateT, GateTDG, GateSX, GateSXDG, GateID, GateCX, GateCY, GateCZ, GateCH, GateSWAP, GateISWAP, GateISWAPDG, Reset, Measure]
+    @testset "$(opname(optype))" for optype in NONPARAMETRICOPS
+        op = optype()
+
+        _testdict(op)
+        _testcircuit(op)
     end
 end
 
-# barrier
-push!(c, Barrier, 1, 2, 3, 4)
-push!(c, Barrier, 1, 3, 8, 10)
-push!(c, Barrier, 26)
-push!(c, Barrier, 3, 28)
+@testset "Simple parametric Operations" begin
+    PARAMETRICOPS = [GateP, GateRX, GateRY, GateRZ, GateU1, GateU2, GateU2DG, GateU3, GateU, GateCP, GateCRX, GateCRY, GateCRZ, GateCU]
+    @testset "$(opname(optype))" for optype in PARAMETRICOPS
+        op = optype(rand(numparams(optype))...)
 
-# non parametric 2-qubit gate
-for gatetype in Type[GateCX, GateCY, GateCZ, GateCH, GateSWAP, GateISWAP, GateISWAPDG]
-    gate = gatetype()
-    for targets in [(1, 2), (2, 1), (nq - 1, nq), (nq, nq - 1), (1, nq), (nq, 1)]
-        push!(c, gate, targets...)
+        _testdict(op)
+        _testcircuit(op)
     end
 end
 
-# parametric 1-qubit gate
-for gatetype in Type[GateP, GateRX, GateRY, GateRZ, GateU1, GateU2, GateU2DG, GateU3, GateU]
-    gate = gatetype(rand(numparams(gatetype))...)
-    for i in 1:nq
-        push!(c, gate, i)
+@testset "Barriers" begin
+    c = Circuit()
+
+    for n in 1:BARRIERN
+        op = Barrier(n)
+
+        _testdict(op)
+        _pushtotest!(c, op)
     end
+
+    _testcircuit(c)
 end
 
-# parametric 2-qubit gate
-for gatetype in Type[GateCP, GateCRX, GateCRY, GateCRZ, GateCU]
-    gate = gatetype(rand(numparams(gatetype))...)
-    for targets in [(1, 2), (2, 1), (nq - 1, nq), (nq, nq - 1), (1, nq), (nq, 1)]
-        push!(c, gate, targets...)
-    end
-end
+@testset "Composite Operations" begin
+    @testset "Control" begin
+        c = Circuit()
 
-for T in [Float64, ComplexF64]
-    N = 1
-    gate = GateCustom(rand(T, 2^N, 2^N))
-    for i in 1:nq
-        push!(c, gate, i)
-    end
-end
+        for controls in 1:NCONTROLS
+            op = Control(controls, GateX())
 
-for T in [Float64, ComplexF64]
-    N = 2
-    gate = GateCustom(rand(T, 2^N, 2^N))
-    for targets in [(1, 2), (2, 1), (nq - 1, nq), (nq, nq - 1), (1, nq), (nq, 1)]
-        push!(c, gate, targets...)
-    end
-end
-
-json = tojson(c)
-cnew = fromjson(json)
-
-for (g1, g2) in zip(c.instructions, cnew.instructions)
-
-    @test typeof(g1) == typeof(g2)
-
-    op1 = getoperation(g1)
-    op2 = getoperation(g2)
-
-    @test length(getqubits(g1)) == length(getqubits(g2))
-    @test length(getbits(g1)) == length(getbits(g2))
-
-    if op1 isa ParametricGate
-        @test typeof(op1) == typeof(op2)
-        for par in parnames(op1)
-            @test getfield(op1, par) == getfield(op2, par)
+            _testdict(op)
+            _pushtotest!(c, op)
         end
-    elseif op1 isa GateCustom
-        @test numqubits(op1) == numqubits(op2)
-        @test complex(matrix(op1)) == matrix(op2)
-    else
-        @test op1 === op2
+
+        for controls in 1:NCONTROLS
+            op = Control(controls, GateCX())
+
+            _testdict(op)
+            _pushtotest!(c, op)
+        end
+
+        _testcircuit(c)
     end
 
+    @testset "Parallel" begin
+        c = Circuit()
+
+        for repeats in 1:REPEATS
+            op = Parallel(repeats, GateX())
+
+            _testdict(op)
+            _pushtotest!(c, op)
+        end
+
+        for repeats in 1:REPEATS
+            op = Parallel(repeats, GateCX())
+
+            _testdict(op)
+            _pushtotest!(c, op)
+        end
+
+        _testcircuit(c)
+    end
+
+    @testset "IfStatement" begin
+        c = Circuit()
+
+        begin
+            op = IfStatement(GateX(), bs"1")
+
+            _testdict(op)
+            _pushtotest!(c, op)
+        end
+
+        begin
+            op = IfStatement(GateX(), bs"110")
+
+            _testdict(op)
+            _pushtotest!(c, op)
+        end
+
+        begin
+            op = IfStatement(GateCX(), bs"001")
+
+            _testdict(op)
+            _pushtotest!(c, op)
+        end
+
+        _testcircuit(c)
+    end
+
+    @testset "Combined" begin
+        op = Control(2, Parallel(3, Control(GateX())))
+
+        _testdict(op)
+        _testcircuit(op)
+    end
+end
+
+@testset "Custom gates" begin
+    c = Circuit()
+
+    # Complex
+    for N in 1:CUSTOMN
+        op = GateCustom(randunitary(2^N))
+
+        _testdict(op)
+        _pushtotest!(c, op)
+    end
+
+    _testcircuit(c)
 end

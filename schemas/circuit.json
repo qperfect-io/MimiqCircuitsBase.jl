@@ -61,8 +61,21 @@
                             "CCX",
                             "CSWAP",
                             "Custom",
-                            "Barrier"
+                            "Barrier",
+                            "Reset",
+                            "Measure",
+                            "IfStatement",
+                            "Control",
+                            "Parallel"
                         ]
+                    },
+                    "N": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "M": {
+                        "type": "integer",
+                        "minimum": 1
                     },
                     "qtargets": {
                         "type": "array",
@@ -82,11 +95,28 @@
                         "uniqueItems": true
                     },
                     "params": {
+                        "type": "object"
+                    },
+                    "U": {
                         "type": "array"
+                    },
+                    "op": {
+                        "type": "object"
+                    },
+                    "controls": {
+                        "type": "integer"
+                    },
+                    "resets": {
+                        "type": "integer"
+                    },
+                    "value": {
+                        "type": "string"
                     }
                 },
                 "required": [
                     "name",
+                    "N",
+                    "M",
                     "qtargets",
                     "ctargets"
                 ]

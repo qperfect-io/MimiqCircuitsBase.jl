@@ -31,8 +31,8 @@
 \begin{pmatrix}
     1 & 0 & 0 & 0 \\
     0 & 1 & 0 & 0 \\
-    0 & 0 & \cos\frac{\theta}{2} & -i\sin\\frac{\theta}{2} \\
-    0 & 0 & -i\sin\frac{\theta}{2} & \cos\frac{\theta}{2}e^{i\phi}
+    0 & 0 & \cos\frac{\theta}{2} & -ie^{-i\phi}\sin\\frac{\theta}{2} \\
+    0 & 0 & -ie^{i\phi}\sin\frac{\theta}{2} & \cos\frac{\theta}{2}
 \end{pmatrix}
 ```
 

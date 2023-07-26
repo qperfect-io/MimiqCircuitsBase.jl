@@ -19,7 +19,7 @@
 
 Two qubit Controlled-X gate (or CNOT).
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \operatorname{CX} =
@@ -33,7 +33,7 @@ Two qubit Controlled-X gate (or CNOT).
 
 By convention we refer to the first qubit as the control qubit and the second qubit as the target.
 
-# Examples
+## Examples
 
 ```jldoctest
 julia> matrix(GateCX())
@@ -62,7 +62,7 @@ opname(::Type{GateCX}) = "CX"
 
 Two qubit Controlled-Y gate.
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \operatorname{CY} = \begin{pmatrix}
@@ -75,7 +75,7 @@ Two qubit Controlled-Y gate.
 
 By convention we refer to the first qubit as the control qubit and the second qubit as the target.
 
-# Examples
+## Examples
 
 ```jldoctest
 julia> matrix(GateCY())
@@ -103,7 +103,7 @@ opname(::Type{GateCY}) = "CY"
 
 Two qubit Controlled-Z gate.
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \operatorname{CZ} = \begin{pmatrix}
@@ -116,7 +116,7 @@ Two qubit Controlled-Z gate.
 
 By convention we refer to the first qubit as the control qubit and the second qubit as the target.
 
-# Examples
+## Examples
 ```jldoctest
 julia> matrix(GateCZ())
 4×4 Matrix{Float64}:
@@ -143,7 +143,7 @@ opname(::Type{GateCZ}) = "CZ"
 
 Two qubit Controlled-Hadamard gate.
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \operatorname{CH} = \begin{pmatrix}
@@ -156,7 +156,7 @@ Two qubit Controlled-Hadamard gate.
 
 By convention we refer to the first qubit as the control qubit and the second qubit as the target.
 
-# Examples
+## Examples
 
 ```jldoctest
 julia> matrix(GateCH())
@@ -186,7 +186,7 @@ Two qubit SWAP gate.
 
 See also [`GateISWAP`](@ref)
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \operatorname{SWAP} = \frac{1}{\sqrt{2}}
@@ -198,7 +198,7 @@ See also [`GateISWAP`](@ref)
 \end{pmatrix}
 ```
 
-# Examples
+## Examples
 
 ```jldoctest
 julia> matrix(GateSWAP())
@@ -228,7 +228,7 @@ Two qubit ISWAP gate.
 
 See also [`GateISWAPDG`](@ref), [`GateSWAP`](@ref).
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \operatorname{ISWAP} = \frac{1}{\sqrt{2}}
@@ -240,7 +240,7 @@ See also [`GateISWAPDG`](@ref), [`GateSWAP`](@ref).
 \end{pmatrix}
 ```
 
-# Examples
+## Examples
 
 ```jldoctest
 julia> matrix(GateISWAP())
@@ -270,7 +270,7 @@ Two qubit ISWAP-dagger gate (conjugate transpose of ISWAP)
 
 See also [`GateISWAP`](@ref), [`GateSWAP`](@ref)
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \operatorname{ISWAP}^\dagger = \frac{1}{\sqrt{2}}
@@ -282,7 +282,7 @@ See also [`GateISWAP`](@ref), [`GateSWAP`](@ref)
 \end{pmatrix}
 ```
 
-# Examples
+## Examples
 
 ```jldoctest
 julia> matrix(GateISWAPDG())
@@ -311,7 +311,7 @@ opname(::Type{GateISWAPDG}) = "ISWAPDG"
 
 Two qubit Controlled-S gate.
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \begin{pmatrix}
@@ -322,7 +322,7 @@ Two qubit Controlled-S gate.
 \end{pmatrix}
 ```
 
-# Examples
+## Examples
 
 ```jldoctest
 julia> matrix(GateCS())
@@ -350,7 +350,7 @@ opname(::Type{GateCS}) = "CS"
 
 Two qubit CS-dagger gate.
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \begin{pmatrix}
@@ -361,7 +361,7 @@ Two qubit CS-dagger gate.
 \end{pmatrix}
 ```
 
-# Examples
+## Examples
 
 ```jldoctest
 julia> matrix(GateCSDG())
@@ -389,7 +389,7 @@ opname(::Type{GateCSDG}) = "CSDG"
 
 Two qubit Controlled-SX gate. (Control on second qubit)
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \begin{pmatrix}
@@ -400,7 +400,7 @@ Two qubit Controlled-SX gate. (Control on second qubit)
 \end{pmatrix}
 ```
 
-# Examples
+## Examples
 
 ```jldoctest
 julia> matrix(GateCSX())
@@ -428,7 +428,7 @@ opname(::Type{GateCSX}) = "CSX"
 
 Two qubit CSX-dagger gate. (Control on second qubit)
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \begin{pmatrix}
@@ -439,7 +439,7 @@ Two qubit CSX-dagger gate. (Control on second qubit)
 \end{pmatrix}
 ```
 
-# Examples
+## Examples
 
 ```jldoctest
 julia> matrix(GateCSXDG())
@@ -467,7 +467,7 @@ opname(::Type{GateCSXDG}) = "CSXDG"
 
 Two qubit ECR echo gate.
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \begin{pmatrix}
@@ -478,7 +478,7 @@ Two qubit ECR echo gate.
 \end{pmatrix}
 ```
 
-# Examples
+## Examples
 
 ```jldoctest
 julia> matrix(GateCSX())
@@ -507,7 +507,7 @@ opname(::Type{GateECR}) = "ECR"
 
 Two qubit double-CNOT (Control on first qubit and then second) OR DCX gate.
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \begin{pmatrix}
@@ -518,7 +518,7 @@ Two qubit double-CNOT (Control on first qubit and then second) OR DCX gate.
 \end{pmatrix}
 ```
 
-# Examples
+## Examples
 
 ```jldoctest
 julia> matrix(GateDCX())
@@ -547,7 +547,7 @@ opname(::Type{GateDCX}) = "DCX"
 Two qubit DCX-dagger gate.
 
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \begin{pmatrix}
@@ -558,7 +558,7 @@ Two qubit DCX-dagger gate.
 \end{pmatrix}
 ```
 
-# Examples
+## Examples
 
 ```jldoctest
 julia> matrix(GateDCXDG())

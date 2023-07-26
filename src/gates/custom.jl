@@ -78,7 +78,7 @@ struct GateCustom{N,T<:Number} <: Gate{N}
             error("Wrong matrix dimension for a $N qubit gate")
         end
 
-        if !(U * adjoint(U) ≈ Matrix(I, M, M))
+        if !isapprox(U * adjoint(U), Matrix(I, M, M), rtol=1e-7)
             @warn "Custom gate matrix U is not unitary." U
         end
 

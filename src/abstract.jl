@@ -64,26 +64,37 @@ Returns the name of the given operation in a human readable format.
 """
 function opname end
 
-
 """
-    abstract type Operation
+    abstract type Operation{N,M}
+
+## Parameters
+
+* `N`: number of qubits the operation applies on.
+* `M`: number of bits the operation applies on.
 
 ## Methods
 
 * [`opname`](@ref)
 * [`inverse`](@ref)
 """
-abstract type Operation end
+abstract type Operation{N,M} end
 
 opname(::Type{Operation}) = ""
 opname(::T) where {T<:Operation} = opname(T)
 
+numqubits(::Type{<:Operation{N,M}}) where {N,M} = N
+numqubits(::Operation{N,M}) where {N,M} = N
+numbits(::Type{<:Operation{N,M}}) where {N,M} = M
+numbits(::Operation{N,M}) where {N,M} = M
+hilbertspacedim(N::Integer) = 1 << N
+hilbertspacedim(::Operation{N,M}) where {N,M} = 1 << N
+
 """
-    abstract type Gate{N} <: Operation
+    abstract type Gate{N} <: Operation{N}
 
 Supertype for all the `N`-qubit gates.
 
-# Methods
+## Methods
 
 * [`inverse`](@ref)
 * [`numqubits`](@ref)
@@ -91,21 +102,14 @@ Supertype for all the `N`-qubit gates.
 * [`hilbertspacedim`](@ref)
 * [`matrix`](@ref)
 """
-abstract type Gate{N} <: Operation end
-
-numqubits(::Type{<:Gate{N}}) where {N} = N
-numqubits(::Gate{N}) where {N} = N
-numbits(::Type{<:Gate{N}}) where {N} = 0
-numbits(::Gate{N}) where {N} = 0
-hilbertspacedim(N::Integer) = 1 << N
-hilbertspacedim(::Gate{N}) where {N} = 1 << N
+abstract type Gate{N} <: Operation{N,0} end
 
 """
     abstract type ParametricGate{N}
 
 Supertype for all the parametric `N`-qubit gates.
 
-# Methods
+## Methods
 
 * [`inverse`](@ref)
 * [`numqubits`](@ref)
@@ -140,7 +144,6 @@ parnames(::T) where {T<:Gate} = parnames(T)
 
 parnames(::Type{T}) where {T<:Gate} = ()
 
-
 opname(::Type{Gate}) = ""
 
 matrix(g::ParametricGate) = g.U
@@ -152,7 +155,7 @@ end
 function Base.show(io::IO, gate::ParametricGate)
     compact = get(io, :compact, false)
     print(io, opname(gate), "(")
-    join(io, map(x -> "$x=" * _shortenfloat_pi(getproperty(gate, x)), parnames(gate)), compact ? "," : ", ")
+    join(io, map(x -> "$x=" * string(getproperty(gate, x)), parnames(gate)), compact ? "," : ", ")
     print(io, ")")
 end
 

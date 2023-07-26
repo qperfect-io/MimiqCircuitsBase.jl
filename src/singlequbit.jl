@@ -19,7 +19,7 @@
 
 Single qubit Pauli-X gate.
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \operatorname X =
@@ -29,7 +29,7 @@ Single qubit Pauli-X gate.
 \end{pmatrix}
 ```
 
-# Examples
+## Examples
 
 ```jldoctest
 julia> matrix(GateX())
@@ -55,7 +55,7 @@ opname(::Type{GateX}) = "X"
 
 Single qubit Pauli-Y gate.
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \operatorname Y =
@@ -65,7 +65,7 @@ Single qubit Pauli-Y gate.
 \end{pmatrix}
 ```
 
-# Examples
+## Examples
 
 ```jldoctest
 julia> matrix(GateY())
@@ -91,7 +91,7 @@ opname(::Type{GateY}) = "Y"
 
 Single qubit Pauli-Z gate.
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \operatorname Z =
@@ -101,7 +101,7 @@ Single qubit Pauli-Z gate.
 \end{pmatrix}
 ```
 
-# Examples
+## Examples
 
 ```jldoctest
 julia> matrix(GateZ())
@@ -127,7 +127,7 @@ opname(::Type{GateZ}) = "Z"
 
 Single qubit Hadamard gate.
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \operatorname H = \frac{1}{\sqrt{2}}
@@ -137,7 +137,7 @@ Single qubit Hadamard gate.
 \end{pmatrix}
 ```
 
-# Examples
+## Examples
 
 ```jldoctest
 julia> matrix(GateH())
@@ -165,7 +165,7 @@ Single qubit S gate (or Phase gate).
 
 See also [`GateSDG`](@ref)
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \operatorname S =
@@ -175,7 +175,7 @@ See also [`GateSDG`](@ref)
 \end{pmatrix}
 ```
 
-# Examples
+## Examples
 
 ```jldoctest
 julia> matrix(GateS())
@@ -203,7 +203,7 @@ Single qubit S-dagger gate (conjugate transpose of the S gate).
 
 See also [`GateS`](@ref)
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \operatorname S^\dagger =
@@ -213,7 +213,7 @@ See also [`GateS`](@ref)
 \end{pmatrix}
 ```
 
-# Examples
+## Examples
 
 ```jldoctest
 julia> matrix(GateSDG())
@@ -241,7 +241,7 @@ Single qubit T gate.
 
 See also [`GateTDG`](@ref)
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \operatorname T =
@@ -251,7 +251,7 @@ See also [`GateTDG`](@ref)
 \end{pmatrix}
 ```
 
-# Examples
+## Examples
 
 ```jldoctest
 julia> matrix(GateT())
@@ -279,7 +279,7 @@ Single qubit T-dagger gate (conjugate transpose of the T gate).
 
 See also [`GateT`](@ref)
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \operatorname T^\dagger =
@@ -289,7 +289,7 @@ See also [`GateT`](@ref)
 \end{pmatrix}
 ```
 
-# Examples
+## Examples
 
 ```jldoctest
 julia> matrix(GateTDG())
@@ -317,7 +317,7 @@ Single qubit √X gate.
 
 See also [`GateSXDG`](@ref), [`GateX`](@ref)
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \sqrt{\operatorname{X}} = \frac{1}{2}
@@ -327,7 +327,7 @@ See also [`GateSXDG`](@ref), [`GateX`](@ref)
 \end{pmatrix}
 ```
 
-# Examples
+## Examples
 
 ```jldoctest
 julia> matrix(GateSX())
@@ -355,7 +355,7 @@ Single qubit √X-dagger gate (conjugate transpose of the √X gate)
 
 See also [`GateSX`](@ref), [`GateX`](@ref)
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \sqrt{\operatorname{X}}^\dagger = \frac{1}{2}
@@ -365,7 +365,7 @@ See also [`GateSX`](@ref), [`GateX`](@ref)
 \end{pmatrix}
 ```
 
-# Examples
+## Examples
 
 ```jldoctest
 julia> matrix(GateSXDG())
@@ -391,7 +391,7 @@ opname(::Type{GateSXDG}) = "SXDG"
 
 Single qubit Identity gate
 
-# Matrix Representation
+## Matrix Representation
 
 ```math
 \operatorname{I} =
@@ -401,7 +401,7 @@ Single qubit Identity gate
 \end{pmatrix}
 ```
 
-# Examples
+## Examples
 
 ```jldoctest
 julia> matrix(GateID())

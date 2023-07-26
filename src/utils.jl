@@ -58,18 +58,3 @@ function _decomplex(x::Real)
     return float(x)
 end
 
-function _shortenfloat(x::AbstractFloat; sigdigits::Integer=4)
-    xs = trunc(x, sigdigits=sigdigits)
-
-    if xs != x
-        return "$(xs)..."
-    end
-
-    return string(x)
-end
-
-function _shortenfloat_pi(x::AbstractFloat; kwargs...)
-    s = sign(x)
-    pipart = s >= 0 ? "π⋅" : "-π⋅"
-    pipart * _shortenfloat(abs(x) / π; kwargs...)
-end

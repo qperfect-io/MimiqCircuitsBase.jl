@@ -94,7 +94,7 @@ end
 
 Element of a quantum circuit, representing a `N`-qubit gate applied to `N` targets
 
-# Parameters
+## Parameters
 
 * `gate::T` actual gate represented
 * `qtargets::NTuple{N, Int64}` indices specifying the quantum bits on which the
@@ -102,33 +102,30 @@ Element of a quantum circuit, representing a `N`-qubit gate applied to `N` targe
 * `ctargets::NTuple{N, Int64}` indices specifying the classical bits on which
   the instruction is applied
 """
-struct Instruction{N,M,T<:Operation}
+struct Instruction{N,M,T<:Operation{N,M}}
     op::T
     qtargets::NTuple{N,Int64}
     ctargets::NTuple{M,Int64}
 
-    function Instruction(op::T, qtargets::NTuple{N,<:Integer}, ctargets::NTuple{M,<:Integer}) where {N,M,T<:Operation}
-        _checktargets(qtargets, N, "qubit")
-        _checktargets(ctargets, M, "bit")
+    function Instruction(op::T, qtargets::NTuple{N,<:Integer}, ctargets::NTuple{M,<:Integer}; checks=true) where {N,M,T<:Operation{N,M}}
+        if checks
+            _checktargets(qtargets, N, "qubit")
+            _checktargets(ctargets, M, "bit")
+        end
 
         new{N,M,T}(op, qtargets, ctargets)
     end
 end
 
-function Instruction(gate::T, qtargets::Vararg{Integer,N}) where {N,T<:Gate{N}}
-    Instruction(gate, qtargets, ())
-end
+function Instruction(op::Operation{N,M}, targets::Vararg{Integer,L}; kwargs...) where {N,M,L}
+    if N + M != L
+        throw(ArgumentError("Wrong number of targets: given $L total for $N qubits $M bits operation"))
+    end
 
-function Instruction(::Gate{N}, ::Vararg{Integer,M}) where {M,N}
-    throw(ArgumentError("Wrong number of targets: given $M for $N-qubit gate"))
-end
+    qtargets = targets[1:N]
+    ctargets = targets[end-M+1:end]
 
-function Instruction(b::Barrier, qtargets::Vararg{Integer})
-    Instruction(b, qtargets, ())
-end
-
-function Instruction(::Type{Barrier}, qtargets::Vararg{Integer})
-    Instruction(Barrier(), qtargets, ())
+    Instruction(op, qtargets, ctargets; kwargs...)
 end
 
 numqubits(::Type{Instruction{N,M}}) where {N,M} = N
@@ -142,9 +139,6 @@ getqubits(g::Instruction) = g.qtargets
 
 getbit(g::Instruction, i) = g.ctargets[i]
 getbits(g::Instruction) = g.ctargets
-
-@deprecate gettarget getqubit
-@deprecate gettargets getqubits
 
 """
     getoperation(getoperation)
@@ -160,14 +154,15 @@ inverse(c::Instruction) = Instruction(inverse(getoperation(c)), getqubits(c)...)
 function Base.show(io::IO, g::Instruction)
     compact = get(io, :compact, false)
 
-    if compact
-        print(io, getoperation(g), "@")
-        join(io, map(x -> "q$x", getqubits(g)), ",")
-        join(io, map(x -> "c$x", getbits(g)), ",")
-    else
-        print(io, getoperation(g), " @ ")
-        join(io, map(x -> "q$x", getqubits(g)), ", ")
-        join(io, map(x -> "c$x", getbits(g)), ", ")
+    print(io, getoperation(g))
+    if numbits(g) > 0 || numqubits(g) > 0
+        space = compact ? "" : " "
+        print(io, "$space@$space")
+        join(io, map(x -> "q$x", getqubits(g)), ",$space")
+        if numbits(g) != 0 && numqubits(g) != 0
+            print(",$space")
+        end
+        join(io, map(x -> "c$x", getbits(g)), ",$space")
     end
 end
 

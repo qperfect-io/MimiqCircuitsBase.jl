@@ -138,7 +138,7 @@ end
 
 Compose a circuit by reading its definition from a simple QASM 2.0 file.
 
-# Caveats
+## Caveats
 
 * This is not a complete parser of QASM file
 * Circuit is assumed to be composed of only standard gates
@@ -163,7 +163,7 @@ function from_qasm(io::IO; verbose=true)
     n1 = 0
     n2 = 0
 
-    circuit = Circuit(nq)
+    circuit = Circuit()
 
     while !eof(io)
         line = readline(io)

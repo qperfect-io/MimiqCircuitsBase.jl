@@ -1,7 +1,9 @@
 using MimiqCircuitsBase
 using Test
 
-filelist = String["test.jl", "json.jl", "bitstates.jl"]
+include("utils.jl")
+
+filelist = String["gates.jl", "instruction.jl", "circuit.jl", "json.jl", "bitstates.jl"]
 
 @testset "MimiqCircuitsBase.jl" begin
     @testset "$filename" for filename in filelist

@@ -39,6 +39,34 @@ export matrix
 export numparams, parnames
 include("abstract.jl")
 
+# instructions apply quantum operations to specific qubits
+# and classical bits
+export Instruction
+export Operation
+export getqubit, getqubits
+export getbit, getbits
+export gettarget, gettargets
+export getoperation
+include("instruction.jl")
+
+# circuits and circuit-embedded gates
+export Circuit
+include("circuit.jl")
+
+# functions for circuits
+export depth
+include("circuit_function.jl")
+
+# Bit states (states with defined values of the qubits) 
+export BitState
+export nonzeros
+export bitstate_to_integer
+export bitstate_to_index
+export @bs_str
+export bits
+export to01
+include("bitstates.jl")
+
 # single-qubit simple gates
 export GateX, GateY, GateZ, GateH, GateS, GateSDG, GateT, GateTDG, GateSX, GateSXDG, GateID
 include("singlequbit.jl")
@@ -86,22 +114,20 @@ include("gates/custom.jl")
 export Barrier
 include("barrier.jl")
 
-# instructions apply quantum operations to specific qubits
-# and classical bits
-export Instruction
-export getqubit, getqubits
-export getbit, getbits
-export gettarget, gettargets
-export getoperation
-include("instruction.jl")
+export Reset
+include("reset.jl")
 
-# circuits and circuit-embedded gates
-export Circuit
-include("circuit.jl")
+export Measure
+include("measure.jl")
 
-# functions for circuits
-export depth
-include("circuit_function.jl")
+export IfStatement
+include("ifstatement.jl")
+
+export Control
+include("control.jl")
+
+export Parallel
+include("parallel.jl")
 
 # bimap of gates and their names
 include("bimap.jl")
@@ -113,16 +139,6 @@ include("openqasm.jl")
 # JSON serialization
 export tojson, fromjson
 include("json.jl")
-
-# Bit states (states with defined values of the qubits) 
-export BitState
-export nonzeros
-export bitstate_to_integer
-export bitstate_to_index
-export @bs_str
-export bits
-export to01
-include("bitstates.jl")
 
 end # module Circuits
 

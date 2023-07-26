@@ -14,19 +14,26 @@
 # limitations under the License.
 #
 
-OPERATION_TYPES = [
-    GateX, GateY, GateZ, GateH, GateS, GateSDG,
-    GateT, GateTDG, GateSX, GateSXDG, GateID,
-    GateP, GateRX, GateRY, GateRZ, GateR,
-    GateU1, GateU2, GateU2DG, GateU3, GateU,
-    GateCX, GateCY, GateCZ, GateCH, GateSWAP,
-    GateISWAP, GateISWAPDG, GateCP, GateCRX, GateCRY,
-    GateCRZ, GateCU, GateCCX, GateCSWAP, GateCR, GateRZZ,
-    GateRXX, GateRYY, GateXXplusYY, GateXXminusYY, GateCSX,
-    GateCSXDG, GateCS, GateCSDG, GateECR, GateDCX, GateDCXDG,
-    Measure, Reset
-]
+"""
+    struct Parallel{N,M,L,T<:Operation{M,0}} <: Operation{L,0} end
+"""
+struct Parallel{N,M,L,T<:Operation{M,0}} <: Operation{L,0}
+    op::T
 
-const OPERATIONS = let
-    BiMap(OPERATION_TYPES, opname.(OPERATION_TYPES))
+    function Parallel(repeats::Integer, op::Operation{N,0}) where {N}
+        new{repeats,N,repeats * N,Operation{N,0}}(op)
+    end
+end
+
+inverse(p::Parallel{N}) where {N} = Parallel(N, inverse(p.op))
+
+opname(::Type{<:Parallel}) = "Parallel"
+
+function Base.show(io::IO, p::Parallel{N}) where {N}
+    print(io, opname(Parallel), "(", N, ", ", p.op, ")")
+end
+
+function matrix(p::Parallel{N}) where {N}
+    mat = matrix(p.op)
+    return kron([mat for _ in 1:N]...)
 end

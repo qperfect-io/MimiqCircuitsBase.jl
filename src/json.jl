@@ -16,89 +16,143 @@
 
 """
     tojson(circuit)
+    tojson(instruction)
+    tojson(operation)
 
-Returns a JSON string representing the given circuit.
+Returns a JSON string representing the given object
 """
 function tojson end
 
 """
-    fromjson(str)
-    fromjson(parsed_json_dict)
+    todict(circuit)
+    todict(instruction)
+    todict(operation)
+"""
+function todict end
 
-Returns a circuit from a JSON string or parsed JSON.
+"""
+    fromjson(object, str)
+
+Parse the JSON string given to the given object type.
 """
 function fromjson end
 
-function tojson(c::Circuit)
-    instructions = []
+"""
+    fromdict(object, dict)
 
-    for g in c
-        op = getoperation(g)
-        dict = Dict(
-            "name" => opname(op),
-            "qtargets" => collect(getqubits(g)),
-            "ctargets" => collect(getbits(g)),
-        )
-        if op isa ParametricGate
-            dict["params"] = map(x -> getfield(op, x), collect(parnames(op)))
-        end
-        if op isa GateCustom
-            N = numqubits(op)
-            dict["matrix"] = reshape(complex(matrix(op)), 2^(2 * N))
-            dict["numqubits"] = N
-        end
-        push!(instructions, dict)
-    end
-    data = Dict("instructions" => instructions)
+Returns the given object from the serialized JSON dictionary.
+"""
+function fromdict end
 
-    if !isnothing(validate(CIRCUIT_SCHEMA, data))
-        @warn "Validation of JSON Schema failed" validate(CIRCUIT_SCHEMA, data)
-        error("Invalid json circuit format.")
+todict(op::Operation{N,M}) where {N,M} = Dict(:name => opname(op), :N => N, :M => M)
+todict(op::ParametricGate{N}) where {N} = Dict(:name => opname(op), :N => N, :M => 0, :params => Dict(map(p -> p => getfield(op, p), parnames(op))...))
+todict(op::GateCustom{N,<:Real}) where {N} = Dict(:name => opname(op), :N => N, :M => numbits(op), :U => todict.(reshape(matrix(op), hilbertspacedim(op)^2)), :iscomplex => false)
+todict(op::GateCustom{N,<:Complex}) where {N} = Dict(:name => opname(op), :N => N, :M => numbits(op), :U => todict.(reshape(matrix(op), hilbertspacedim(op)^2)), :iscomplex => true)
+todict(op::Parallel{N}) where {N} = Dict(:name => opname(op), :N => numqubits(op), :M => numbits(op), :repeats => N, :op => todict(op.op))
+todict(op::Control{N}) where {N} = Dict(:name => opname(op), :N => numqubits(op), :M => numbits(op), :controls => N, :op => todict(op.op))
+todict(op::IfStatement) = Dict(:name => opname(op), :N => numqubits(op), :M => numbits(op), :value => todict(op.val), :op => todict(op.op))
+todict(x::Complex) = Dict(:re => real(x), :im => imag(x))
+todict(x::Real) = x
+todict(x::BitState) = string(x)
+
+todict(inst::Instruction) = Dict(:op => todict(getoperation(inst)), :qtargets => collect(getqubits(inst)), :ctargets => collect(getbits(inst)))
+todict(c::Circuit) = Dict(:instructions => todict.(c.instructions))
+
+function fromdict(::Type{Operation}, obj::Dict{Symbol,<:Any})
+    name = obj[:name]
+
+    if name == opname(Barrier)
+        fromdict(Barrier, obj)
+    elseif name == opname(Control)
+        fromdict(Control, obj)
+    elseif name == opname(Parallel)
+        fromdict(Parallel, obj)
+    elseif name == opname(IfStatement)
+        fromdict(IfStatement, obj)
+    elseif name == opname(GateCustom)
+        fromdict(GateCustom, obj)
+    else
+        optype = BiMaps.getright(OPERATIONS, name, nothing)
+        if isnothing(optype)
+            error("Cannot convert operation $name from JSON: not implemented.")
+        end
+
+        fromdict(optype, obj)
     end
-    JSON.json(data)
 end
 
-fromjson(s::AbstractString) = fromjson(JSON.parse(s))
+function fromdict(T::Type{<:Operation{N,M}}, ::Dict{Symbol,<:Any}) where {N,M}
+    T()
+end
 
-function fromjson(data::Dict)
-    if !isnothing(validate(CIRCUIT_SCHEMA, data))
-        @warn "Validation of JSON Schema failed" validate(CIRCUIT_SCHEMA, data)
-        error("Invalid json circuit format.")
-    end
+function fromdict(T::Type{<:ParametricGate{N}}, obj::Dict{Symbol,<:Any}) where {N}
+    pn = parnames(T)
+    p = obj[:params]
+    T(map(x -> p[x], pn)...)
+end
 
-    instructions = data["instructions"]
+function fromdict(T::Type{<:Complex}, obj::Dict{Symbol,<:Any})
+    T(obj[:re], obj[:im])
+end
 
+function fromdict(T::Type{<:Complex}, obj)
+    T(obj)
+end
+
+function fromdict(T::Type{<:Real}, obj)
+    T(obj)
+end
+
+function fromdict(T::Type{GateCustom}, obj::Dict{Symbol,<:Any})
+    N = obj[:N]
+    G = obj[:iscomplex] ? ComplexF64 : Float64
+    U = reshape(fromdict.(G, obj[:U]), (2^N, 2^N))
+    T(U)
+end
+
+function fromdict(::Type{Barrier}, obj::Dict{Symbol,<:Any})
+    return Barrier(obj[:N])
+end
+
+function fromdict(::Type{Control}, obj::Dict{Symbol,<:Any})
+    op = fromdict(Operation, obj[:op])
+    controls = obj[:controls]
+    return Control(controls, op)
+end
+
+function fromdict(::Type{Parallel}, obj::Dict{Symbol,<:Any})
+    op = fromdict(Operation, obj[:op])
+    repeats = obj[:repeats]
+    return Parallel(repeats, op)
+end
+
+function fromdict(::Type{IfStatement}, obj::Dict{Symbol,<:Any})
+    op = fromdict(Operation, obj[:op])
+    val = fromdict(BitState, obj[:value])
+    return IfStatement(op, val)
+end
+
+function fromdict(::Type{<:Instruction}, obj::Dict{Symbol,<:Any})
+    op = fromdict(Operation, obj[:op])
+    qtargets = tuple(obj[:qtargets]...)
+    ctargets = tuple(obj[:ctargets]...)
+    return Instruction(op, qtargets, ctargets)
+end
+
+function fromdict(::Type{Circuit}, obj::Dict{Symbol,<:Any})
     c = Circuit()
 
-    for g in instructions
-        optype = BiMaps.getright(OPERATIONS, g["name"], nothing)
-
-        # since we validated the schema, this should never happen
-        if isnothing(optype)
-            if g["name"] == "Custom"
-                optype = GateCustom
-            else
-                gn = g["name"]
-                error("Erro in JSON. No such operation as \"$gn\"")
-            end
-        end
-
-        qtargets = tuple(g["qtargets"]...)
-        ctargets = tuple(g["ctargets"]...)
-        if optype <: ParametricGate
-            pars = g["params"]
-            op = optype(pars...)
-            push!(c, Instruction(op, qtargets, ctargets))
-        elseif optype <: GateCustom
-            hdim = 2^length(qtargets)
-            U = reshape(map(d -> d["re"] + im * d["im"], g["matrix"]), (hdim, hdim))
-            op = optype(_decomplex.(U))
-            push!(c, Instruction(op, qtargets, ctargets))
-        else
-            push!(c, Instruction(optype(), qtargets, ctargets))
-        end
+    for i in obj[:instructions]
+        push!(c, fromdict(Instruction, i))
     end
 
-    c
+    return c
 end
+
+function fromdict(T::Type{BitState}, obj::String)
+    parse(T, obj)
+end
+
+fromjson(::Type{T}, str::AbstractString) where {T} = fromdict(T, JSON.parse(str; dicttype=Dict{Symbol,Any}))
+tojson(c) = JSON.json(todict(c))
 

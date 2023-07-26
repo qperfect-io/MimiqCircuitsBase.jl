@@ -182,9 +182,6 @@ function numqubits(bs::BitState)
     return length(bs.bits)
 end
 
-Base.getindex(bs::BitState, i) = bs.bits[i]
-
-Base.setindex!(bs::BitState, i, val) = setindex!(bs.bits, i, val)
 
 """
     nonzeros(bitstate)
@@ -192,22 +189,6 @@ Base.setindex!(bs::BitState, i, val) = setindex!(bs.bits, i, val)
 Return the indices of the non-zero qubits in a bit state.
 """
 nonzeros(bs::BitState) = findall(x -> x, bs.bits)
-
-Base.length(bs::BitState) = length(bs.bits)
-
-Base.iterate(bs::BitState) = iterate(bs.bits)
-
-Base.iterate(bs::BitState, state) = iterate(bs.bits, state)
-
-Base.isempty(bs::BitState) = isempty(bs.bits)
-
-Base.trues(::Type{BitState}, nq::Integer) = BitState(trues(nq))
-
-Base.ones(::Type{BitState}, nq::Integer) = trues(BitState, nq)
-
-Base.falses(::Type{BitState}, nq::Integer) = BitState(falses(nq))
-
-Base.zeros(::Type{BitState}, nq::Integer) = falses(BitState, nq)
 
 function Base.show(io::IO, bs::BitState)
     compact = get(io, :compact, false)
@@ -269,7 +250,7 @@ Base.string(bs::BitState) = "bs" * join(map(x -> x ? '1' : '0', bs.bits))
 Converts a BitState into a string of 0 and 1 characters.
 Optionally endianess can be specified, which can be either `:big` or `:little`.
 
-# Examples
+## Examples
 
 ```jldoctests
 julia> to01(bs"10011")
@@ -316,7 +297,7 @@ Base.hash(bs::BitState) = hash(bs.bits)
 
 Convert a string into a bit state.
 
-## Example usage
+## Examples
 
 ```jldoctests
 julia> bs"101011"
@@ -335,4 +316,23 @@ end
 Get the underlying bit array of a bit state.
 """
 bits(bs::BitState) = bs.bits
+
+# Base overrides
+Base.length(bs::BitState) = length(bs.bits)
+Base.keys(bs::BitState) = keys(bs.bits)
+Base.size(bs::BitState) = size(bs.bits)
+Base.eachindex(bs::BitState) = eachindex(bs.bits)
+Base.firstindex(bs::BitState) = firstindex(bs.bits)
+Base.lastindex(bs::BitState) = lastindex(bs.bits)
+Base.axes(bs::BitState, d) = axes(bs.bits, d)
+Base.getindex(bs::BitState, i::Integer) = bs.bits[i]
+Base.getindex(bs::BitState, i) = BitState(bs.bits[i])
+Base.setindex!(bs::BitState, i, val) = setindex!(bs.bits, i, val)
+Base.iterate(bs::BitState) = iterate(bs.bits)
+Base.iterate(bs::BitState, state) = iterate(bs.bits, state)
+Base.isempty(bs::BitState) = isempty(bs.bits)
+Base.trues(::Type{BitState}, nq::Integer) = BitState(trues(nq))
+Base.ones(::Type{BitState}, nq::Integer) = trues(BitState, nq)
+Base.falses(::Type{BitState}, nq::Integer) = BitState(falses(nq))
+Base.zeros(::Type{BitState}, nq::Integer) = falses(BitState, nq)
 
