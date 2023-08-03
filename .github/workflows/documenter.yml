@@ -11,7 +11,16 @@ jobs:
       contents: write
     name: Documentation
     if: github.repository == 'qperfect-io/MimiqCircuitsBase.jl'
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        julia-version:
+          - '1' # latest stable
+        julia-arch:
+          - x64
+        os:
+          - ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
 
