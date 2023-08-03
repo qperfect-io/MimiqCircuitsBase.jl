@@ -28,16 +28,8 @@ measurement for that qubit in a classical register.
 
 To just apply the measurement on qubit `1` and discard the result, do:
 ```jldoctest
-julia> push!(Circuit(), Measure(), 1)
-2-qubit circuit with 1 gates:
-└── Measure @ q1
-```
-
-In order to store the result on the 2nd bit, call:
-
-```jldoctest
-julia> push!(Circuit(), Measure(), 1 => 2)
-2-qubit circuit with 1 gates:
+julia> push!(Circuit(), Measure(), 1,1)
+1-qubit circuit with 1 instructions:
 └── Measure @ q1, c1
 ```
 

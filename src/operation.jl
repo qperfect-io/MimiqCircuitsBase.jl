@@ -41,13 +41,6 @@ Hilbert space dimension for the given operation.
 function hilbertspacedim end
 
 """
-    matrix(gate)
-
-Return the matrix associated to the specified quantum gate.
-"""
-function matrix end
-
-"""
     inverse(circuit)
     inverse(instruction)
     inverse(operation)
@@ -89,73 +82,7 @@ numbits(::Operation{N,M}) where {N,M} = M
 hilbertspacedim(N::Integer) = 1 << N
 hilbertspacedim(::Operation{N,M}) where {N,M} = 1 << N
 
-"""
-    abstract type Gate{N} <: Operation{N}
-
-Supertype for all the `N`-qubit gates.
-
-## Methods
-
-* [`inverse`](@ref)
-* [`numqubits`](@ref)
-* [`opname`](@ref)
-* [`hilbertspacedim`](@ref)
-* [`matrix`](@ref)
-"""
-abstract type Gate{N} <: Operation{N,0} end
-
-"""
-    abstract type ParametricGate{N}
-
-Supertype for all the parametric `N`-qubit gates.
-
-## Methods
-
-* [`inverse`](@ref)
-* [`numqubits`](@ref)
-* [`opname`](@ref)
-* [`hilbertspacedim`](@ref)
-* [`matrix`](@ref)
-* [`numparams`](@ref)
-* [`parnames`](@ref)
-"""
-abstract type ParametricGate{N} <: Gate{N} end
-
-"""
-    numparams(gate)
-
-Number of parameters for the given parametric gate. Zero for non parametric
-gates.
-"""
-function numparams end
-
-numparams(::T) where {T<:Gate} = numparams(T)
-
-numparams(::Type{T}) where {T<:Gate} = 0
-
-"""
-    parnames(gate)
-
-Name of the parameters allowed for the given gate
-"""
-function parnames end
-
-parnames(::T) where {T<:Gate} = parnames(T)
-
-parnames(::Type{T}) where {T<:Gate} = ()
-
-opname(::Type{Gate}) = ""
-
-matrix(g::ParametricGate) = g.U
-
 function Base.show(io::IO, gate::Operation)
     print(io, opname(gate))
-end
-
-function Base.show(io::IO, gate::ParametricGate)
-    compact = get(io, :compact, false)
-    print(io, opname(gate), "(")
-    join(io, map(x -> "$x=" * string(getproperty(gate, x)), parnames(gate)), compact ? "," : ", ")
-    print(io, ")")
 end
 

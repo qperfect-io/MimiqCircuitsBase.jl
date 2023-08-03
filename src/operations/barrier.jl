@@ -25,15 +25,15 @@ from being applied across it.
 
 ```jldoctest
 julia> push!(Circuit(), Barrier(), 1)
-2-qubit circuit with 1 gates:
+1-qubit circuit with 1 instructions:
 └── Barrier @ q1
 
-julia> push!(Circuit(), Barrier(), 1:4...)
-2-qubit circuit with 1 gates:
+julia> push!(Circuit(), Barrier(4), 1:4...)
+4-qubit circuit with 1 instructions:
 └── Barrier @ q1, q2, q3, q4
 
 julia> push!(Circuit(), Barrier(), 1:4)
-2-qubit circuit with 1 gates:
+4-qubit circuit with 4 instructions:
 ├── Barrier @ q1
 ├── Barrier @ q2
 ├── Barrier @ q3

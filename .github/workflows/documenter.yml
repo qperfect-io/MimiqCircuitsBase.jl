@@ -1,24 +1,17 @@
-name: Test
-
-on: 
+name: Documenter
+on:
   push:
-    branches:
-      - main
-      - devel
+    branches: [main]
+    tags: [v*-public]
   pull_request:
 
 jobs:
-  test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        julia-version:
-          - '1' # latest stable
-        julia-arch:
-          - x64
-        os:
-          - ubuntu-latest
-
+  Documenter:
+    permissions:
+      contents: write
+    name: Documentation
+    if: github.repository == 'qperfect-io/MimiqCircuitsBase.jl'
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
@@ -34,4 +27,6 @@ jobs:
 
       - uses: julia-actions/julia-buildpkg@v1
 
-      - uses: julia-actions/julia-runtest@v1
+      - uses: julia-actions/julia-docdeploy@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

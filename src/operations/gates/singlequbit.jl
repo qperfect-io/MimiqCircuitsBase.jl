@@ -38,7 +38,7 @@ julia> matrix(GateX())
  1.0  -0.0
 
 julia> push!(Circuit(), GateX(), 1)
-1-qubit circuit with 1 gates:
+1-qubit circuit with 1 instructions:
 └── X @ q1
 ```
 """
@@ -74,7 +74,7 @@ julia> matrix(GateY())
  0.0+1.0im  -0.0+0.0im
 
 julia> push!(Circuit(), GateY(), 1)
-1-qubit circuit with 1 gates:
+1-qubit circuit with 1 instructions:
 └── Y @ q1
 ```
 """
@@ -110,7 +110,7 @@ julia> matrix(GateZ())
  0.0  -1.0
 
 julia> push!(Circuit(), GateZ(), 1)
-1-qubit circuit with 1 gates:
+1-qubit circuit with 1 instructions:
 └── Z @ q1
 ```
 """
@@ -146,7 +146,7 @@ julia> matrix(GateH())
  0.707107  -0.707107
 
 julia> push!(Circuit(), GateH(), 1)
-1-qubit circuit with 1 gates:
+1-qubit circuit with 1 instructions:
 └── H @ q1
 ```
 """
@@ -184,7 +184,7 @@ julia> matrix(GateS())
  0.0+0.0im  0.0+1.0im
 
 julia> push!(Circuit(), GateS(), 1)
-1-qubit circuit with 1 gates:
+1-qubit circuit with 1 instructions:
 └── S @ q1
 ```
 """
@@ -222,7 +222,7 @@ julia> matrix(GateSDG())
  0.0+0.0im  0.0-1.0im
 
 julia> push!(Circuit(), GateSDG(), 1)
-1-qubit circuit with 1 gates:
+1-qubit circuit with 1 instructions:
 └── SDG @ q1
 ```
 """
@@ -260,7 +260,7 @@ julia> matrix(GateT())
  0.0+0.0im  0.707107+0.707107im
 
 julia> push!(Circuit(), GateT(), 1)
-1-qubit circuit with 1 gates:
+1-qubit circuit with 1 instructions:
 └── T @ q1
 ```
 """
@@ -298,7 +298,7 @@ julia> matrix(GateTDG())
  0.0+0.0im  0.707107-0.707107im
 
 julia> push!(Circuit(), GateTDG(), 1)
-1-qubit circuit with 1 gates:
+1-qubit circuit with 1 instructions:
 └── TDG @ q1
 ```
 """
@@ -336,7 +336,7 @@ julia> matrix(GateSX())
  0.5-0.5im  0.5+0.5im
 
 julia> push!(Circuit(), GateSX(), 1)
-1-qubit circuit with 1 gates:
+1-qubit circuit with 1 instructions:
 └── SX @ q1
 ```
 """
@@ -374,7 +374,7 @@ julia> matrix(GateSXDG())
  0.5+0.5im  0.5-0.5im
 
 julia> push!(Circuit(), GateSXDG(), 1)
-1-qubit circuit with 1 gates:
+1-qubit circuit with 1 instructions:
 └── SXDG @ q1
 ```
 """
@@ -410,7 +410,7 @@ julia> matrix(GateID())
  0.0   1.0
 
 julia> push!(Circuit(), GateID(), 1)
-1-qubit circuit with 1 gates:
+1-qubit circuit with 1 instructions:
 └── ID @ q1
 ```
 """

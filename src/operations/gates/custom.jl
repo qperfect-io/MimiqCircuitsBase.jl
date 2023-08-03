@@ -61,7 +61,7 @@ julia> g = GateCustom([1 0; 0 1])
 Custom([1.0 0.0; 0.0 1.0])
 
 julia> push!(Circuit(), g, 1)
-1-qubit circuit with 1 gates:
+1-qubit circuit with 1 instructions:
 └── Custom([1.0 0.0; 0.0 1.0]) @ q1
 ```
 """

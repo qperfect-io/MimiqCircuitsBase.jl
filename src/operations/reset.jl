@@ -24,7 +24,7 @@ state.
 
 ```jldoctest
 julia> push!(Circuit(), Reset(), 1)
-2-qubit circuit with 1 gates:
+1-qubit circuit with 1 instructions:
 └── Reset @ q1
 ```
 

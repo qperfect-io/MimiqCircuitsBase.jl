@@ -45,7 +45,7 @@ julia> matrix(GateCX())
 
 
 julia> push!(Circuit(), GateCX(), 1, 2)
-2-qubit circuit with 1 gates:
+2-qubit circuit with 1 instructions:
 └── CX @ q1, q2
 ```
 """
@@ -86,7 +86,7 @@ julia> matrix(GateCY())
  0.0+0.0im  0.0+0.0im  0.0+1.0im  -0.0+0.0im
 
 julia> push!(Circuit(), GateCY(), 1, 2)
-2-qubit circuit with 1 gates:
+2-qubit circuit with 1 instructions:
 └── CY @ q1, q2
 ```
 """
@@ -126,7 +126,7 @@ julia> matrix(GateCZ())
  0.0  0.0  0.0  -1.0
 
 julia> push!(Circuit(), GateCZ(), 1, 2)
-2-qubit circuit with 1 gates:
+2-qubit circuit with 1 instructions:
 └── CZ @ q1, q2
 ```
 """
@@ -167,7 +167,7 @@ julia> matrix(GateCH())
  0.0  0.0  0.707107  -0.707107
 
 julia> push!(Circuit(), GateCH(), 1, 2)
-2-qubit circuit with 1 gates:
+2-qubit circuit with 1 instructions:
 └── CH @ q1, q2
 ```
 """
@@ -209,7 +209,7 @@ julia> matrix(GateSWAP())
  0.0  0.0  0.0  1.0
 
 julia> push!(Circuit(), GateSWAP(), 1, 2)
-2-qubit circuit with 1 gates:
+2-qubit circuit with 1 instructions:
 └── SWAP @ q1, q2
 ```
 """
@@ -251,7 +251,7 @@ julia> matrix(GateISWAP())
  0.0+0.0im  0.0+0.0im  0.0+0.0im  1.0+0.0im
 
 julia> push!(Circuit(), GateISWAP(), 1, 2)
-2-qubit circuit with 1 gates:
+2-qubit circuit with 1 instructions:
 └── ISWAP @ q1, q2
 ```
 """
@@ -293,7 +293,7 @@ julia> matrix(GateISWAPDG())
  0.0+0.0im  0.0+0.0im  0.0+0.0im  1.0+0.0im
 
 julia> push!(Circuit(), GateISWAPDG(), 1, 2)
-2-qubit circuit with 1 gates:
+2-qubit circuit with 1 instructions:
 └── ISWAPDG @ q1, q2
 ```
 """
@@ -333,7 +333,7 @@ julia> matrix(GateCS())
  0.0+0.0im  0.0+0.0im  0.0+0.0im  0.0+1.0im
 
 julia> push!(Circuit(), GateCS(), 1, 2)
-2-qubit circuit with 1 gates:
+2-qubit circuit with 1 instructions:
 └── CS @ q1, q2
 ```
 """
@@ -372,7 +372,7 @@ julia> matrix(GateCSDG())
  0.0+0.0im  0.0+0.0im  0.0+0.0im  0.0-1.0im
 
 julia> push!(Circuit(), GateCSDG(), 1, 2)
-2-qubit circuit with 1 gates:
+2-qubit circuit with 1 instructions:
 └── CSDG @ q1, q2
 ```
 """
@@ -411,7 +411,7 @@ julia> matrix(GateCSX())
  0.0+0.0im  0.5-0.5im  0.0+0.0im  0.5+0.5im
 
 julia> push!(Circuit(), GateCSX(), 1, 2)
-2-qubit circuit with 1 gates:
+2-qubit circuit with 1 instructions:
 └── CSX @ q1, q2
 ```
 """
@@ -450,7 +450,7 @@ julia> matrix(GateCSXDG())
  0.0+0.0im  0.5+0.5im  0.0+0.0im  0.5-0.5im
 
 julia> push!(Circuit(), GateCSXDG(), 1, 2)
-2-qubit circuit with 1 gates:
+2-qubit circuit with 1 instructions:
 └── CSXDG @ q1, q2
 ```
 """
@@ -489,7 +489,7 @@ julia> matrix(GateCSX())
  0.0+0.0im  0.5-0.5im  0.0+0.0im  0.5+0.5im
 
 julia> push!(Circuit(), GateCSX(), 1, 2)
-2-qubit circuit with 1 gates:
+2-qubit circuit with 1 instructions:
 └── CSX @ q1, q2
 ```
 """
@@ -529,7 +529,7 @@ julia> matrix(GateDCX())
  0.0  0.0  1.0  0.0
 
 julia> push!(Circuit(), GateDCX(), 1, 2)
-2-qubit circuit with 1 gates:
+2-qubit circuit with 1 instructions:
 └── DCX @ q1, q2
 ```
 """
@@ -569,7 +569,7 @@ julia> matrix(GateDCXDG())
  0.0  1.0  0.0  0.0
 
 julia> push!(Circuit(), GateDCXDG(), 1, 2)
-2-qubit circuit with 1 gates:
+2-qubit circuit with 1 instructions:
 └── DCXDG @ q1, q2
 ```
 """

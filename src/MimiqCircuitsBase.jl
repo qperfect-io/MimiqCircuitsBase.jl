@@ -28,24 +28,20 @@ const CIRCUIT_SCHEMA = Schema(JSON.parsefile(joinpath(@__DIR__, "..", "schemas",
 include("utils.jl")
 include("matrices.jl")
 
-# abstract gate types
-export Gate
+# abstract operations
 export ParametricGate
+export Operation
 export opname
 export inverse
 export hilbertspacedim
 export numbits, numqubits
-export matrix
-export numparams, parnames
-include("abstract.jl")
+include("operation.jl")
 
 # instructions apply quantum operations to specific qubits
 # and classical bits
 export Instruction
-export Operation
 export getqubit, getqubits
 export getbit, getbits
-export gettarget, gettargets
 export getoperation
 include("instruction.jl")
 
@@ -55,7 +51,7 @@ include("circuit.jl")
 
 # functions for circuits
 export depth
-include("circuit_function.jl")
+include("circuit_extras.jl")
 
 # Bit states (states with defined values of the qubits) 
 export BitState
@@ -67,74 +63,102 @@ export bits
 export to01
 include("bitstates.jl")
 
+# abstract gates and parametric gates
+export Gate
+export matrix
+export ParametricGate
+export parnames
+export numparams
+include("operations/gate.jl")
+
 # single-qubit simple gates
-export GateX, GateY, GateZ, GateH, GateS, GateSDG, GateT, GateTDG, GateSX, GateSXDG, GateID
-include("singlequbit.jl")
+export GateX
+export GateY
+export GateZ
+export GateH
+export GateS
+export GateSDG
+export GateT
+export GateTDG
+export GateSX
+export GateSXDG
+export GateID
+include("operations/gates/singlequbit.jl")
 
 # single-qubit parametric gates
-export GateP, GateRX, GateRY, GateRZ, GateR, GateU1, GateU2, GateU2DG, GateU3, GateU
-include("gates/gatep.jl")
-include("gates/gaterx.jl")
-include("gates/gatery.jl")
-include("gates/gaterz.jl")
-include("gates/gater.jl")
-include("gates/gateu1.jl")
-include("gates/gateu2.jl")
-include("gates/gateu2dg.jl")
-include("gates/gateu3.jl")
-include("gates/gateu.jl")
+export GateP
+export GateRX
+export GateRY
+export GateRZ
+export GateR
+export GateU1
+export GateU2
+export GateU2DG
+export GateU3
+export GateU
+include("operations/gates/singlequbitpar.jl")
 
 # two-qubit simple gates
-export GateCX, GateCY, GateCZ, GateCH, GateSWAP, GateISWAP, GateISWAPDG, GateCS, GateCSDG, GateCSX, GateCSXDG, GateECR, GateDCX, GateDCXDG
-include("twoqubit.jl")
+export GateCX
+export GateCY
+export GateCZ
+export GateCH
+export GateSWAP
+export GateISWAP
+export GateISWAPDG
+export GateCS
+export GateCSDG
+export GateCSX
+export GateCSXDG
+export GateECR
+export GateDCX
+export GateDCXDG
+include("operations/gates/twoqubit.jl")
 
 # two-qubit parametric gates
-export GateCP, GateCRX, GateCRY, GateCRZ, GateCU, GateCR, GateRXX, GateRZZ, GateRYY, GateXXplusYY, GateXXminusYY
-include("gates/gatecp.jl")
-include("gates/gatecrx.jl")
-include("gates/gatecry.jl")
-include("gates/gatecrz.jl")
-include("gates/gatecu.jl")
-include("gates/gatecr.jl")
-include("gates/gaterxx.jl")
-include("gates/gaterzz.jl")
-include("gates/gateryy.jl")
-include("gates/gatexxplusyy.jl")
-include("gates/gatexxminusyy.jl")
+export GateCP
+export GateCRX
+export GateCRY
+export GateCRZ
+export GateCU
+export GateCR
+export GateRXX
+export GateRZZ
+export GateRYY
+export GateXXplusYY
+export GateXXminusYY
+include("operations/gates/twoqubitpar.jl")
 
 # multi-qubit simple gates
-export GateCCX, GateCSWAP
-include("multiqubit.jl")
+export GateCCX
+export GateCSWAP
+include("operations/gates/multiqubit.jl")
 
 # custom gates
 export GateCustom
-include("gates/custom.jl")
+include("operations/gates/custom.jl")
 
 # other non-gate type instructions
 export Barrier
-include("barrier.jl")
+include("operations/barrier.jl")
 
 export Reset
-include("reset.jl")
+include("operations/reset.jl")
 
 export Measure
-include("measure.jl")
+include("operations/measure.jl")
 
 export IfStatement
-include("ifstatement.jl")
+include("operations/ifstatement.jl")
 
 export Control
-include("control.jl")
+include("operations/control.jl")
 
 export Parallel
-include("parallel.jl")
+include("operations/parallel.jl")
 
 # bimap of gates and their names
 include("bimap.jl")
-
-# OpenQASM parsers
-export openqasmid, from_qasm
-include("openqasm.jl")
 
 # JSON serialization
 export tojson, fromjson

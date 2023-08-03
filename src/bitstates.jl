@@ -71,7 +71,7 @@ julia> c = Circuit()
 empty circuit
 
 julia> push!(c, GateX(), 8)
-8-qubit circuit with 1 gates:
+8-qubit circuit with 1 instructions:
 └── X @ q8
 
 julia> BitState(c, [1,3,5,8])

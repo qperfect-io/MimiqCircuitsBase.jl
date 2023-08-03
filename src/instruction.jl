@@ -15,26 +15,6 @@
 #
 
 """
-    gettarget(instruction, i)
-
-Returns the i-th target qubit of an instruction.
-
-!!!warn
-    Deprecated in favor of [`getqubit`](@ref) and [`getbit`](@ref)
-"""
-function gettarget end
-
-"""
-    gettargets(instruction)
-
-Returns all the quantum qubits to which the instruction is applied.
-
-!!!warn
-    Deprecated in favor of [`getqubits`](@ref) and [`getbits`](@ref)
-"""
-function gettargets end
-
-"""
     getqubit(instruction, i)
 
 Returns the i-th target qubit of an instruction.
@@ -69,7 +49,6 @@ Returns all the classical bits to which the instruction is applied.
 See also [`getbit`](@ref), [`getqubits`](@ref), [`getqubit`](@ref),
 """
 function getbits end
-
 
 function _checktargets(targets, N, type="qubit")
     L = length(targets)
@@ -141,9 +120,9 @@ getbit(g::Instruction, i) = g.ctargets[i]
 getbits(g::Instruction) = g.ctargets
 
 """
-    getoperation(getoperation)
+    getoperation(instruction)
 
-Returns the quantum operation associated to the given gate instruction.
+Returns the quantum operation associated to the given instruction.
 """
 getoperation(g::Instruction) = g.op
 
@@ -153,18 +132,14 @@ inverse(c::Instruction) = Instruction(inverse(getoperation(c)), getqubits(c)...)
 
 function Base.show(io::IO, g::Instruction)
     compact = get(io, :compact, false)
-
     print(io, getoperation(g))
     if numbits(g) > 0 || numqubits(g) > 0
         space = compact ? "" : " "
         print(io, "$space@$space")
         join(io, map(x -> "q$x", getqubits(g)), ",$space")
         if numbits(g) != 0 && numqubits(g) != 0
-            print(",$space")
+            print(io, ",$space")
         end
         join(io, map(x -> "c$x", getbits(g)), ",$space")
     end
 end
-
-matrix(g::Instruction{N,0,<:Gate{N}}) where {N} = matrix(getoperation(g))
-
