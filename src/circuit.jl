@@ -21,31 +21,86 @@ Representation of a quantum circuit as a vector of gates applied to the qubits.
 
 ## Parameters
 
-* `gates::Vector{Instruction}` vector of quantum instructions (see [`Instruction`](@ref))
+* `gates::Vector{Instruction}` vector of quantum instructions (see
+[`Instruction`](@ref))
 
-## Example iteration
+## Examples
+
+### Adding operations to a circuit
+
+Operation can be added one by one to a circuit with the
+`push!(circuit, operation, targets...)` function
+
+```@repl
+c = Circuit()
+push!(c, GateH(), 1)
+push!(c, GateCX(), 1, 2)
+push!(c, GateRX(π / 4), 1)
+push!(c, Barrier, 1, 3)
+push!(c, Measure(), 1, 1)
+```
+
+Targets are not restricted to be single values, but also vectors.
+In this case a single `push!` will add multiple operations.
+The behaviour is similar to `Iterators.product`. For example:
+
+```julia
+push!(c, GateCX(), 1, 2:4)
+```
+
+is equivalent to
 
 ```
-circuit = Circuit()
-# add gates to circuit
-
-for (; operation, targets) in circuit
-    # do something with the gate and its targets
-    # e.g.
+for targets in Iterators.product(1, 2:4)
+    push!(c, GateCX(), targets...)
 end
 ```
-(here the iteration parameters should be called `operation` and `targets` to
-proper destructure a `Instruction`)
 
-## Gate types
-* Single qubit gates (basic): [`GateX`](@ref), [`GateY`](@ref), [`GateZ`](@ref), [`GateH`](@ref), [`GateS`](@ref), [`GateSDG`](@ref), [`GateT`](@ref), [`GateTDG`](@ref), [`GateSX`](@ref), [`GateSXDG`](@ref), [`GateID`](@ref)
-* Single qubit gates (parametric): [`GateRX`](@ref), [`GateRY`](@ref), [`GateRZ`](@ref), [`GateP`](@ref), [`GateR`](@ref), [`GateU`](@ref)
-* Two qubit gates (basic): [`GateCX`](@ref), [`GateCY`](@ref), [`GateCZ`](@ref), [`GateCH`](@ref), [`GateSWAP`](@ref), [`GateISWAP`](@ref), [`GateISWAPDG`](@ref)
-* Two qubit gates (parametric): [`GateCP`](@ref), [`GateCRX`](@ref), [`GateCRY`](@ref), [`GateCRZ`](@ref), [`GateCU`](@ref)
-* Custom gate (currently only for 1 and 2 qubit gates): [`GateCustom`](@ref)
+For example
 
-## Special operations
-* [`Barrier`](@ref), [`Reset`](@ref), [`Measure`](@ref)
+```@repl
+c = Circuit()
+push!(c, GateH(),1:3)
+push!(c,GateCX(),1:3,4:6)
+```
+
+Some operations behave a bit differently. See also: [`Barrier`](@ref) and [`Measure`](@ref)
+
+## Available operations
+
+### Gates
+
+#### Single qubit gates
+
+[`GateX`](@ref) [`GateY`](@ref) [`GateZ`](@ref) [`GateH`](@ref) [`GateS`](@ref) [`GateSDG`](@ref) [`GateT`](@ref) [`GateTDG`](@ref) [`GateSX`](@ref) [`GateSXDG`](@ref) [`GateID`](@ref)
+
+#### Single qubit gates (parametric)
+
+[`GateRX`](@ref) [`GateRY`](@ref) [`GateRZ`](@ref) [`GateP`](@ref) [`GateR`](@ref) [`GateU`](@ref)
+
+#### Two qubit gates
+
+[`GateCX`](@ref) [`GateCY`](@ref) [`GateCZ`](@ref) [`GateCH`](@ref) [`GateSWAP`](@ref) [`GateISWAP`](@ref), [`GateISWAPDG`](@ref)
+
+#### Two qubit gates (parametric)
+
+[`GateCP`](@ref) [`GateCRX`](@ref) [`GateCRY`](@ref) [`GateCRZ`](@ref) [`GateCU`](@ref)
+
+#### Other
+
+[`GateCustom`](@ref)
+
+### No-ops
+
+[`Barrier`](@ref)
+
+### Non-unitary operations
+
+[`Reset`](@ref) [`Measure`](@ref)
+
+## Composite operations
+
+[`Control`](@ref) [`Parallel`](@ref) [`IfStatement`](@ref)
 """
 struct Circuit
     instructions::Vector{Instruction}
