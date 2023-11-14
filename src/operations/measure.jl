@@ -15,43 +15,41 @@
 #
 
 @doc raw"""
-    struct Measure <: Operation{1}
+    Measure()
 
 Single qubit measurement operation in the computational basis
 
-This operation is non-reversible
+The operation projects the quantum states and stores the result of such
+measurement is stored in a classical register.
 
-# Examples
+!!! warn
+    `Measure` is non-reversible.
 
-Measure project the qubit state and optionally store the result of the
-measurement for that qubit in a classical register.
+See also [`Operation`](@ref), [`Reset`](@ref).
 
-To just apply the measurement on qubit `1` and discard the result, do:
-```jldoctest
-julia> push!(Circuit(), Measure(), 1,1)
+## Examples
+
+```jldoctests
+julia> Measure()
+Measure
+
+julia> c = push!(Circuit(), Measure, 1, 1)
 1-qubit circuit with 1 instructions:
 └── Measure @ q1, c1
-```
 
+julia> push!(c, Measure(), 3, 4)
+3-qubit circuit with 2 instructions:
+├── Measure @ q1, c1
+└── Measure @ q3, c4
+```
 """
 struct Measure <: Operation{1,1} end
 
-inverse(::Measure) = error("Cannot invert Measurements")
-
 opname(::Type{<:Measure}) = "Measure"
+
+inverse(::Measure) = error("Cannot invert measurements")
 
 function Base.show(io::IO, ::Measure)
     print(io, opname(Measure))
 end
 
-# Convenience functions for adding Measure.
-# Since Measure are singleton types we can allow to use e.g.
-# push!(c, Measure, 1, 1)
-# to avoid writing 2 parentheses more.
-function Instruction(::Type{Measure}, qtarget, ctarget; kwargs...)
-    Instruction(Measure(), (qtarget,), (ctarget,); kwargs...)
-end
-
-Base.insert!(c::Circuit, i::Integer, ::Type{Measure}, args...) = insert!(c, i, Measure(), args...)
-
-Base.push!(c::Circuit, ::Type{Measure}, args...) = push!(c, Measure(), args...)

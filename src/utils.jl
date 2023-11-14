@@ -58,3 +58,61 @@ function _decomplex(x::Real)
     return float(x)
 end
 
+function _power_3potent(obj, invobj, idobj, pwr)
+    m = pwr % 3
+    if m == 0
+        return idobj
+    elseif m == 1
+        return obj
+    elseif m == 2
+        return invobj
+    else
+        return Power(obj, pwr)
+    end
+end
+
+function _power_nilpotent(obj, idobj, pwr)
+    m = pwr % 2
+    if m == 0
+        return idobj
+    elseif m == 1
+        return obj
+    else
+        return Power(obj, pwr)
+    end
+end
+
+# defines the name for an aliased operation see for example GateS, that is shown
+# as "GateS" even if it is an alias for power(GateZ(), 1//2)
+macro definename(T, name)
+    return esc(quote
+        opname(::Type{$T}) = $name
+        isopalias(::Type{$T}) = true
+        Base.show(io::IO, ::$T) = print(io, opname($T))
+    end)
+end
+
+# prints the name of an operation nad wraps it in parentheses if the operation
+# is a wrapper (but not if it is aliased)
+@generated function _print_wrapped_parens(io::IO, op::T) where {T}
+    if iswrapper(T) && !isopalias(T)
+        return :(print(io, '(', op, ')'))
+    else
+        return :(print(io, op))
+    end
+end
+
+function _symbolics_can_convert(x::Num)
+    val = Symbolics.value(x)
+    val isa Num && return false
+    val isa SymbolicUtils.BasicSymbolic{Irrational{:π}} && return true
+    val isa SymbolicUtils.BasicSymbolic{Irrational{:ℯ}} && return true
+    val isa Number && return true
+    return false
+end
+
+_substitute_irrationals(expr) = Symbolics.substitute(expr, Dict(π => Float64(π), ℯ => Float64(ℯ)))
+
+_convert_to_number(x::Num) = Symbolics.value(x)
+
+Base.cispi(x::Num) = cospi(x) + im * sinpi(x)

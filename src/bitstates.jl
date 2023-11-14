@@ -14,34 +14,6 @@
 # limitations under the License.
 #
 
-function _helper_bitarr_to_int(arr, ::Type{T}) where {T<:Integer}
-    res = zero(T)
-    v = one(T)
-    for i in eachindex(arr)
-        res += v * arr[i]
-        v <<= 1
-    end
-    return res
-end
-
-function bitarr_to_int(arr, ::Type{T}) where {T<:Integer}
-    # take into account the sign bit (since we just want positive numbers)
-    sbit = T <: Unsigned ? 0 : 1
-    if length(arr) > sizeof(T) * 8 - sbit
-        error("Input array is too long")
-    end
-
-    _helper_bitarr_to_int(arr, T)
-end
-
-function bitarr_to_int(arr, ::Type{T}) where {T<:BigInt}
-    _helper_bitarr_to_int(arr, T)
-end
-
-function int_to_bitarr(x::Integer, pad)
-    BitVector(digits(x, base=2, pad=pad))
-end
-
 """
     struct BitState
 
@@ -182,7 +154,6 @@ function numqubits(bs::BitState)
     return length(bs.bits)
 end
 
-
 """
     nonzeros(bitstate)
 
@@ -191,52 +162,49 @@ Return the indices of the non-zero qubits in a bit state.
 nonzeros(bs::BitState) = findall(x -> x, bs.bits)
 
 function Base.show(io::IO, bs::BitState)
-    compact = get(io, :compact, false)
+    print(io, string(bs))
+end
 
+function Base.show(io::IO, ::MIME"text/plain", bs::BitState)
     _, cols = displaysize(io)
 
     n = length(bs)
+    nextra = 9
+    nprint = cols - nextra
+    nz = nonzeros(bs)
+    lnz = length(nz)
 
-    if !compact
-        nextra = 9
-        nprint = cols - nextra
-        nz = nonzeros(bs)
-        lnz = length(nz)
+    char = isempty(nz) ? '└' : '├'
 
-        char = isempty(nz) ? '└' : '├'
+    println(io, n, "-qubit BitState with $lnz non-zero qubits:")
+    if nprint < n
+        print(io, "$(char)── |", join(map(x -> x ? '1' : '0', bs.bits)), "…", "⟩")
+    else
+        print(io, "$(char)── |", join(map(x -> x ? '1' : '0', bs.bits)), "⟩")
+    end
 
-        println(io, n, "-qubit BitState with $lnz non-zero qubits:")
-        if nprint < n
-            print(io, "$(char)── |", join(map(x -> x ? '1' : '0', bs.bits)), "…", "⟩")
-        else
-            print(io, "$(char)── |", join(map(x -> x ? '1' : '0', bs.bits)), "⟩")
-        end
+    if !isempty(nz)
+        print(io, "\n└── non-zero qubits: [",)
 
-        if !isempty(nz)
-            print(io, "\n└── non-zero qubits: [",)
+        printed = 22
+        print(io, nz[1])
+        printed += length(string(nz[1]))
 
-            printed = 22
-            print(io, nz[1])
-            printed += length(string(nz[1]))
-
-            for x in nz[2:end]
-                printed += length(string(x)) + 2
-
-                if printed > cols - 4
-                    break
-                end
-
-                print(io, ", ", x)
-            end
+        for x in nz[2:end]
+            printed += length(string(x)) + 2
 
             if printed > cols - 4
-                print(io, ", …")
+                break
             end
 
-            print(io, "]")
+            print(io, ", ", x)
         end
-    else
-        print(io, string(bs))
+
+        if printed > cols - 4
+            print(io, ", …")
+        end
+
+        print(io, "]")
     end
 
     nothing
@@ -283,8 +251,6 @@ function Base.parse(::Type{BitState}, s::AbstractString)
         throw(ArgumentError("Invalid bit state string"))
     end
 end
-
-JSON.lower(bs::BitState) = string(bs)
 
 Base.:(==)(lhs::BitState, rhs::BitState) = lhs.bits == rhs.bits
 

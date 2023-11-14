@@ -1,2 +1,5 @@
 Manifest.toml
 test/Manifest.toml
+benchmark/Manifest.toml
+benchmark/*.md
+benchmark/*.json

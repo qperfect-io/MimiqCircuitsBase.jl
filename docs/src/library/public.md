@@ -12,12 +12,20 @@ Private = false
 Pages   = ["MimiqCircuitsBase.jl"]
 ```
 
+## General functions
+
+```@autodocs
+Modules = [MimiqCircuitsBase]
+Private = false
+Pages   = ["abstract.jl", "docstrings.jl", "evaluate.jl"]
+```
+
 ## Quantum Circuits and Instructions
 
 ```@autodocs
 Modules = [MimiqCircuitsBase]
 Private = false
-Pages   = ["instruction.jl", "circuit.jl", "circuit_extras.jl"]
+Pages   = ["instruction.jl", "circuit.jl", "circuit_extras.jl", "circuit_macro.jl"]
 ```
 
 ## Operations
@@ -28,6 +36,14 @@ Private = false
 Pages   = ["operation.jl"]
 ```
 
+### Decompositions
+
+```@autodocs
+Modules = [MimiqCircuitsBase]
+Private = false
+Pages   = ["decompose.jl"]
+```
+
 ### Gates
 
 ```@autodocs
@@ -36,28 +52,60 @@ Private = false
 Pages   = ["gate.jl"]
 ```
 
-#### Single qubit gates
+#### Wrappers
 
 ```@autodocs
 Modules = [MimiqCircuitsBase]
 Private = false
-Pages   = ["singlequbit.jl", "singlequbitpar.jl"]
+Pages   = [
+    "operations/control.jl",
+    "operations/inverse.jl",
+    "operations/power.jl",
+    "operations/parallel.jl",
+    "operations/ifstatement.jl",
+]
 ```
 
-#### Two-qubit gates
+#### Global phase
 
 ```@autodocs
 Modules = [MimiqCircuitsBase]
 Private = false
-Pages   = ["twoqubit.jl", "twoqubitpar.jl"]
+Pages   = ["operations/gphase.jl"]
 ```
 
-#### Multi-qubit
+#### Standard Gates
 
 ```@autodocs
 Modules = [MimiqCircuitsBase]
 Private = false
-Pages   = ["multiqubit.jl"]
+Pages   = [
+    "operations/gates/standard/u.jl",
+    "operations/gates/standard/phase.jl",
+    "operations/gates/standard/deprecated.jl",
+    "operations/gates/standard/pauli.jl",
+    "operations/gates/standard/hadamard.jl",
+    "operations/gates/standard/id.jl",
+    "operations/gates/standard/s.jl",
+    "operations/gates/standard/t.jl",
+    "operations/gates/standard/sx.jl",
+    "operations/gates/standard/rotations.jl",
+    "operations/gates/standard/swap.jl",
+    "operations/gates/standard/iswap.jl",
+    "operations/gates/standard/cpauli.jl",
+    "operations/gates/standard/chadamard.jl",
+    "operations/gates/standard/cs.jl",
+    "operations/gates/standard/csx.jl",
+    "operations/gates/standard/cu.jl",
+    "operations/gates/standard/cphase.jl",
+    "operations/gates/standard/crotations.jl",
+    "operations/gates/standard/ecr.jl",
+    "operations/gates/standard/dcx.jl",
+    "operations/gates/standard/interactions.jl",
+    "operations/gates/standard/cswap.jl",
+    "operations/gates/standard/cnx.jl",
+    "operations/gates/standard/cnp.jl",
+]
 ```
 
 #### Custom gates
@@ -66,6 +114,29 @@ Pages   = ["multiqubit.jl"]
 Modules = [MimiqCircuitsBase]
 Private = false
 Pages   = ["custom.jl"]
+```
+
+#### Composite gates
+
+```@autodocs
+Modules = [MimiqCircuitsBase]
+Private = false
+Pages   = [
+    "operations/special/qft.jl",
+    "operations/special/multiplymodn.jl",
+    "operations/special/multiplytimestwoandadd.jl",
+    "operations/special/addmodn.jl",
+    "operations/special/phiadd.jl",
+    "operations/special/multiply.jl",
+]
+```
+
+### Gate definitions
+
+```@autodocs
+Modules = [MimiqCircuitsBase]
+Private = false
+Pages   = ["gatedecl.jl"]
 ```
 
 ### Non-unitary operations
@@ -82,14 +153,6 @@ Pages   = ["reset.jl", "measure.jl"]
 Modules = [MimiqCircuitsBase]
 Private = false
 Pages   = ["barrier.jl"]
-```
-
-### Composite operations
-
-```@autodocs
-Modules = [MimiqCircuitsBase]
-Private = false
-Pages   = ["ifstatement.jl", "control.jl", "parallel.jl"]
 ```
 
 ## Bit States

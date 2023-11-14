@@ -1,13 +1,22 @@
 name = "MimiqCircuitsBase"
 uuid = "3a95eabf-73f4-453e-aae8-8a11a27ac032"
 authors = ["Guido Masella <guido.masella@gmail.com>"]
-version = "0.3.4"
+version = "0.4.9"
 
 [deps]
 BiMaps = "02e1a8d2-c0bf-449f-9d6e-85b4cfc6bdab"
-JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
-JSONSchema = "7d188eb4-7ad8-530c-ae41-71a32a6d4692"
+CodecZlib = "944b1d66-785c-5afd-91f1-9de20f533193"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+ProtoBuf = "3349acd9-ac6a-5e09-bcdb-63829b23a429"
+Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
+SymbolicUtils = "d1185830-fcd6-423d-90d6-eec64667417b"
+Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
+
+[weakdeps]
+Quantikz = "b0d11df0-eea3-4d79-b4a5-421488cbf74b"
+
+[extensions]
+MimiqCircuitsBaseQuantikzExt = "Quantikz"
 
 [compat]
 julia = "1.6"

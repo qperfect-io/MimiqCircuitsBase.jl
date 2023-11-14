@@ -15,121 +15,125 @@
 #
 
 """
-    struct Circuit
+    Circuit([instructions])
 
-Representation of a quantum circuit as a vector of gates applied to the qubits.
+Representation of a quantum circuit as a vector of instructions applied to the qubits.
 
-## Parameters
+The circuit can be initialized with an optional vector of instructions.
 
-* `gates::Vector{Instruction}` vector of quantum instructions (see
-[`Instruction`](@ref))
+See [`OPERATIONS`](@ref), [`GATES`](@ref), or [`GENERALIZED`](@ref) for the list
+of operations to add to circuits.
 
 ## Examples
-
-### Adding operations to a circuit
 
 Operation can be added one by one to a circuit with the
 `push!(circuit, operation, targets...)` function
 
-```@repl
-c = Circuit()
-push!(c, GateH(), 1)
-push!(c, GateCX(), 1, 2)
-push!(c, GateRX(π / 4), 1)
-push!(c, Barrier, 1, 3)
-push!(c, Measure(), 1, 1)
+```jldoctests
+julia> c = Circuit()
+empty circuit
+
+
+julia> push!(c, GateH(), 1)
+1-qubit circuit with 1 instructions:
+└── H @ q1
+
+julia> push!(c, GateCX(), 1, 2)
+2-qubit circuit with 2 instructions:
+├── H @ q1
+└── CX @ q1, q2
+
+julia> push!(c, GateRX(π / 4), 1)
+2-qubit circuit with 3 instructions:
+├── H @ q1
+├── CX @ q1, q2
+└── RX(π/4) @ q1
+
+julia> push!(c, Barrier, 1, 3)
+3-qubit circuit with 4 instructions:
+├── H @ q1
+├── CX @ q1, q2
+├── RX(π/4) @ q1
+└── Barrier @ q1, q3
+
+julia> push!(c, Measure(), 1, 1)
+3-qubit circuit with 5 instructions:
+├── H @ q1
+├── CX @ q1, q2
+├── RX(π/4) @ q1
+├── Barrier @ q1, q3
+└── Measure @ q1, c1
+
 ```
 
 Targets are not restricted to be single values, but also vectors.
 In this case a single `push!` will add multiple operations.
-The behaviour is similar to `Iterators.product`. For example:
 
-```julia
-push!(c, GateCX(), 1, 2:4)
+```jldoctests
+julia> push!(Circuit(), GateCCX(), 1, 2:4, 4:10)
+6-qubit circuit with 3 instructions:
+├── C₂X @ q1, q2, q4
+├── C₂X @ q1, q3, q5
+└── C₂X @ q1, q4, q6
 ```
 
 is equivalent to
 
 ```
-for targets in Iterators.product(1, 2:4)
-    push!(c, GateCX(), targets...)
+for (i, j) in zip(2:4, 4:10)
+    push!(c, GateCX(), 1, i)
 end
 ```
 
-For example
-
-```@repl
-c = Circuit()
-push!(c, GateH(),1:3)
-push!(c,GateCX(),1:3,4:6)
-```
+Notice how the range `4:10` is not fully used, since `2:4` is shorter.
 
 Some operations behave a bit differently. See also: [`Barrier`](@ref) and [`Measure`](@ref)
 
-## Available operations
+## Display
 
-### Gates
+To display a a LaTeX representation of the circuit, we can just use Quantikz.jl
 
-#### Single qubit gates
+```julia
+using Quantikz
+c = Circuit()
+...
+displaycircuit(c)
+```
 
-[`GateX`](@ref) [`GateY`](@ref) [`GateZ`](@ref) [`GateH`](@ref) [`GateS`](@ref) [`GateSDG`](@ref) [`GateT`](@ref) [`GateTDG`](@ref) [`GateSX`](@ref) [`GateSXDG`](@ref) [`GateID`](@ref)
+or
 
-#### Single qubit gates (parametric)
-
-[`GateRX`](@ref) [`GateRY`](@ref) [`GateRZ`](@ref) [`GateP`](@ref) [`GateR`](@ref) [`GateU`](@ref)
-
-#### Two qubit gates
-
-[`GateCX`](@ref) [`GateCY`](@ref) [`GateCZ`](@ref) [`GateCH`](@ref) [`GateSWAP`](@ref) [`GateISWAP`](@ref), [`GateISWAPDG`](@ref)
-
-#### Two qubit gates (parametric)
-
-[`GateCP`](@ref) [`GateCRX`](@ref) [`GateCRY`](@ref) [`GateCRZ`](@ref) [`GateCU`](@ref)
-
-#### Other
-
-[`GateCustom`](@ref)
-
-### No-ops
-
-[`Barrier`](@ref)
-
-### Non-unitary operations
-
-[`Reset`](@ref) [`Measure`](@ref)
-
-## Composite operations
-
-[`Control`](@ref) [`Parallel`](@ref) [`IfStatement`](@ref)
+```julia
+savecircuit(c, "circuit.pdf")
+```
 """
 struct Circuit
-    instructions::Vector{Instruction}
+    _instructions::Vector{Instruction}
 end
 
 Circuit() = Circuit(Instruction[])
 
-Base.iterate(c::Circuit) = iterate(c.instructions)
-Base.iterate(c::Circuit, state) = iterate(c.instructions, state)
-Base.firstindex(c::Circuit) = firstindex(c.instructions)
-Base.lastindex(c::Circuit) = lastindex(c.instructions)
-Base.length(c::Circuit) = length(c.instructions)
-Base.isempty(c::Circuit) = isempty(c.instructions)
-Base.getindex(c::Circuit, i::Integer) = getindex(c.instructions, i)
-Base.getindex(c::Circuit, i) = Circuit(getindex(c.instructions, i))
+Base.iterate(c::Circuit) = iterate(c._instructions)
+Base.iterate(c::Circuit, state) = iterate(c._instructions, state)
+Base.firstindex(c::Circuit) = firstindex(c._instructions)
+Base.lastindex(c::Circuit) = lastindex(c._instructions)
+Base.length(c::Circuit) = length(c._instructions)
+Base.isempty(c::Circuit) = isempty(c._instructions)
+Base.getindex(c::Circuit, i::Integer) = getindex(c._instructions, i)
+Base.getindex(c::Circuit, i) = Circuit(getindex(c._instructions, i))
 Base.eltype(::Circuit) = Instruction
 
 function Base.push!(c::Circuit, g::Instruction)
-    push!(c.instructions, g)
+    push!(c._instructions, g)
     return c
 end
 
-function Base.append!(c::Circuit, c2::Circuit)
-    append!(c.instructions, c2.instructions)
+function Base.append!(c::Circuit, other::Circuit)
+    append!(c._instructions, other._instructions)
     return c
 end
 
-function Base.insert!(c::Circuit, index::Integer, g::Instruction)
-    insert!(c.instructions, index, g)
+function Base.insert!(c::Circuit, index, g::Instruction)
+    insert!(c._instructions, index, g)
     return c
 end
 
@@ -144,11 +148,11 @@ function _checkpushtargets(targets, N, type="qubit")
         throw(ArgumentError("Target $(type)s must be positive and >=1"))
     end
 
-    for i in 1:N
-        for j in (i+1):N
-            if !isdisjoint(targets[i], targets[j])
-                throw(ArgumentError("Target $(type)s must be different"))
-            end
+    # PERF: this is a double pass the qubit/bit targets, but it is probably
+    # the only way of doing it.
+    for tgs in shortestzip(targets...)
+        if length(unique(tgs)) != length(tgs)
+            throw(ArgumentError("Target $(type)s must be the different"))
         end
     end
 
@@ -166,7 +170,7 @@ function Base.push!(c::Circuit, g::Operation{N,M}, targets::Vararg{Any,L}) where
     _checkpushtargets(targets[1:N], N, "qubit")
     _checkpushtargets(targets[end-M+1:end], M, "bit")
 
-    for tgs in Iterators.product(targets...)
+    for tgs in shortestzip(targets...)
         qts = tgs[1:N]
         cts = tgs[end-M+1:end]
         push!(c, Instruction(g, qts..., cts...; checks=false))
@@ -174,6 +178,20 @@ function Base.push!(c::Circuit, g::Operation{N,M}, targets::Vararg{Any,L}) where
 
     return c
 end
+
+# If the we are trying to push a type, then probably we would like to call
+# its constructor before, since the type is dependent on the targets.
+# A call could result to multiple instructions (e.g. passing registers instead of )
+function Base.push!(c::Circuit, ::Type{T}, targets...) where {T<:Operation}
+    if numparams(T) == 0
+        push!(c, T(), targets...)
+    else
+        push!(c, T(Instruction, targets...))
+    end
+end
+
+# same for a function
+Base.push!(c::Circuit, f::Function, targets...) = push!(c, f(targets...))
 
 function Base.insert!(c::Circuit, i::Integer, g::Operation{N,M}, targets::Vararg{Integer,L}) where {N,M,L}
     if N + M != L
@@ -183,10 +201,24 @@ function Base.insert!(c::Circuit, i::Integer, g::Operation{N,M}, targets::Vararg
     insert!(c, i, Instruction(g, targets[1:N], targets[end-M+1:end]))
 end
 
-function numqubits(c::Circuit)
-    isempty(c) && return 0
-    return maximum(Iterators.map(g -> maximum(getqubits(g), init=0), c))
+# same as for push!
+function Base.insert!(c::Circuit, i::Integer, ::Type{T}, targets...) where {T<:Operation}
+    if numparams(T) == 0
+        insert!(c, i, T(), targets...)
+    else
+        insert!(c, i, T(Instruction, targets...))
+    end
 end
+
+# same as for push!
+Base.insert!(c::Circuit, i::Integer, f::Function, targets...) = insert!(c, i, f(targets...))
+
+function numqubits(insts::Vector{<:Instruction})
+    isempty(insts) && return 0
+    return maximum(Iterators.map(g -> maximum(getqubits(g), init=0), insts))
+end
+
+numqubits(c::Circuit) = numqubits(c._instructions)
 
 function numbits(c::Circuit)
     isempty(c) && return 0
@@ -194,7 +226,7 @@ function numbits(c::Circuit)
 end
 
 function inverse(c::Circuit)
-    gates = map(inverse, reverse(c.instructions))
+    gates = map(inverse, reverse(c._instructions))
     return Circuit(gates)
 end
 
@@ -208,24 +240,24 @@ function Base.show(io::IO, c::Circuit)
         if rows - 4 <= 0
             print(io, "└── ...")
         elseif rows - 4 >= n
-            for g in c.instructions[1:end-1]
+            for g in c._instructions[1:end-1]
                 println(io, "├── ", g)
             end
-            print(io, "└── ", c.instructions[end])
+            print(io, "└── ", c._instructions[end])
         else
             chunksize = div(rows - 6, 2)
 
-            for g in c.instructions[1:chunksize]
+            for g in c._instructions[1:chunksize]
                 println(io, "├── ", g)
             end
 
             println(io, "⋮   ⋮")
 
-            for g in c.instructions[end-chunksize:end-1]
+            for g in c._instructions[end-chunksize:end-1]
                 println(io, "├── ", g)
             end
 
-            print(io, "└── ", c.instructions[end])
+            print(io, "└── ", c._instructions[end])
         end
     else
         if isempty(c)
@@ -237,4 +269,5 @@ function Base.show(io::IO, c::Circuit)
 
     nothing
 end
+
 

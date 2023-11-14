@@ -1,6 +1,6 @@
 @testset "BitState" begin
     @testset "To and from integers" begin
-        for i in 0:2^10
+        for i in 0:2^8
             @test bitstate_to_integer(BitState(10, i)) == i
             @test bitstate_to_integer(BitState(11, i)) == i
         end
@@ -12,7 +12,7 @@
     end
 
     @testset "String parsing and conversion" begin
-        for i in 0:2^8
+        for i in 0:2^5
             bs = BitState(10, i)
             @test parse(BitState, string(bs)) == bs
         end

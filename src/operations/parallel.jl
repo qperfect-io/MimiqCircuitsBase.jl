@@ -15,25 +15,125 @@
 #
 
 """
-    struct Parallel{N,M,L,T<:Operation{M,0}} <: Operation{L,0} end
+    Parallel(repeats, operation)
+
+Wrapper that applies the same operation on multiple qubits.
+
+If the operation is a `N`-qubit operation, then the resulting operation is
+applied over `N * repeats` qubits.
+
+## Examples
+
+```jldoctests; setup = :(@variables λ)
+julia> Parallel(5, GateX())
+Parallel(5, X)
+
+julia> Parallel(3, GateRX(λ))
+Parallel(3, RX(λ))
+
+julia> Parallel(2, Parallel(3, GateX()))
+Parallel(2, Parallel(3, X))
+
+```
+
+## Decomposition
+
+A parallel is decomposed into a sequence of operation, one for each group of qubits.
+
+```jldoctests
+julia> decompose(Parallel(2, GateX()))
+2-qubit circuit with 2 instructions:
+├── X @ q1
+└── X @ q2
+
+julia> decompose(Parallel(3, GateSWAP()))
+6-qubit circuit with 3 instructions:
+├── SWAP @ q1, q4
+├── SWAP @ q2, q5
+└── SWAP @ q3, q6
+```
 """
-struct Parallel{N,M,L,T<:Operation{M,0}} <: Operation{L,0}
+struct Parallel{N,M,L,T<:AbstractGate{M}} <: AbstractGate{L}
     op::T
 
-    function Parallel(repeats::Integer, op::Operation{N,0}) where {N}
-        new{repeats,N,repeats * N,Operation{N,0}}(op)
+    function Parallel{N,M,L,T}(args...) where {N,M,L,T<:AbstractGate{M}}
+        @assert N isa Integer
+        @assert M isa Integer
+        @assert L isa Integer
+        @assert N > 0
+        @assert M > 0
+        @assert N * M == L
+        new{N,M,L,T}(T(args...))
+    end
+
+    function Parallel(repeats::Integer, op::T) where {N,T<:AbstractGate{N}}
+        if repeats < 1
+            throw(ArgumentError("Invalid number of repetitions, must be > 1."))
+        end
+
+        new{repeats,N,repeats * N,T}(op)
     end
 end
 
-inverse(p::Parallel{N}) where {N} = Parallel(N, inverse(p.op))
-
 opname(::Type{<:Parallel}) = "Parallel"
 
-function Base.show(io::IO, p::Parallel{N}) where {N}
-    print(io, opname(Parallel), "(", N, ", ", p.op, ")")
+iswrapper(::Type{<:Parallel}) = true
+
+getoperation(p::Parallel) = p.op
+
+parnames(::Type{Parallel{N,M,L,T}}) where {N,M,L,T} = parnames(T)
+
+qregsizes(::Parallel{N,M}) where {N,M} = ntuple(x -> M, N)
+
+getparam(p::Parallel, name) = getparam(getoperation(p), name)
+
+# parallel and inverse commute.
+# we always prefer parallel to be applied last
+inverse(p::Parallel{N}) where {N} = Parallel(N, inverse(p.op))
+
+# parallel and power commute.
+# we always prefer parallel to be applied last
+_power(p::Parallel{N}, n::Integer) where {N} = Parallel(n * N, _power(p.op, n))
+
+"""
+    numrepeats(paralleloperation)
+
+Get the number of repetitions of a parallel operation.
+
+See also [`Parallel`](@ref).
+## Examples
+
+```jldoctests
+julia> numrepeats(Parallel(5, GateX()))
+5
+
+julia> numrepeats(Parallel(3, GateSWAP()))
+3
+
+```
+"""
+function numrepeats end
+
+numrepeats(::Type{<:Parallel{N}}) where {N} = N
+
+numrepeats(::T) where {T<:Parallel} = numrepeats(T)
+
+function Base.show(io::IO, p::Parallel)
+    print(io, opname(p), "(", numrepeats(p), ", ", getoperation(p), ")")
 end
 
-function matrix(p::Parallel{N}) where {N}
-    mat = matrix(p.op)
+@generated function _matrix(::Type{Parallel{N,M,L,T}}) where {N,M,L,T}
+    mat = _matrix(T)
     return kron([mat for _ in 1:N]...)
+end
+
+function _matrix(::Type{Parallel{N,M,L,T}}, args...) where {N,M,L,T}
+    mat = _matrix(T, args...)
+    return kron([mat for _ in 1:N]...)
+end
+
+function decompose!(circ::Circuit, p::Parallel, qtargets, _)
+    op = getoperation(p)
+    targets = reshape(qtargets, (numrepeats(p), numqubits(op)))
+    push!(circ, getoperation(p), eachcol(targets)...)
 end

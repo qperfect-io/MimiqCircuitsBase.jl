@@ -15,23 +15,32 @@
 #
 
 @doc raw"""
-    struct Reset <: Operation{1}
+    Reset()
 
 Quantum operation that resets the status of one qubit to the ``\ket{0}``
 state.
 
-# Examples
+See also [`Operation`](@ref), [`Measure`](@ref).
 
-```jldoctest
-julia> push!(Circuit(), Reset(), 1)
+## Examples
+
+```jldoctests
+julia> Reset()
+Reset
+
+julia> c = push!(Circuit(), Reset, 1)
 1-qubit circuit with 1 instructions:
 └── Reset @ q1
-```
 
+julia> push!(c, Reset(), 3)
+3-qubit circuit with 2 instructions:
+├── Reset @ q1
+└── Reset @ q3
+```
 """
 struct Reset <: Operation{1,0} end
 
-inverse(::Reset) = error("Cannot invert Measurements")
+inverse(::Reset) = error("Cannot invert Reset operations")
 
 opname(::Type{<:Reset}) = "Reset"
 
@@ -39,14 +48,3 @@ function Base.show(io::IO, ::Reset)
     print(io, opname(Reset))
 end
 
-# Convenience functions for adding Reset.
-# Since Reset are singleton types we can allow to use e.g.
-# push!(c, Reset, 1, 1)
-# to avoid writing 2 parentheses more.
-function Instruction(::Type{Reset}, qtarget; kwargs...)
-    Instruction(Reset(), (qtarget,), (); kwargs...)
-end
-
-Base.insert!(c::Circuit, i::Integer, ::Type{Reset}, args...) = insert!(c, i, Reset(), args...)
-
-Base.push!(c::Circuit, ::Type{Reset}, args...) = push!(c, Reset(), args...)

@@ -5,7 +5,7 @@
 
 
 @doc raw"""
-    struct GateCustom{N,T} <: Gate{N}
+    struct GateCustom{N,T} <: AbstractGate{N}
 
 `N` qubit gate specified by a ``2^N \times 2^N`` matrix with elements of type
 `T`.
@@ -65,43 +65,41 @@ julia> push!(Circuit(), g, 1)
 └── Custom([1.0 0.0; 0.0 1.0]) @ q1
 ```
 """
-struct GateCustom{N,T<:Number} <: Gate{N}
-    U::Matrix{T}
-    a::Union{Float64,ComplexF64}
-    b::Union{Float64,ComplexF64}
-    c::Union{Float64,ComplexF64}
-    d::Union{Float64,ComplexF64}
+struct GateCustom{N} <: AbstractGate{N}
+    U::Matrix{Complex{Num}}
 
-    function GateCustom{N,T}(U::AbstractMatrix{T}) where {N,T}
+    function GateCustom{N}(U) where {N}
+        if N < 1
+            error("Cannot define 0-qubit custom gate")
+        end
+        if N > 2
+            error("Custom gates larger than 2 qubits are not supported")
+        end
+
         M = 1 << N
-        if size(U, 1) != M || size(U, 2) != M
-            error("Wrong matrix dimension for a $N qubit gate")
+        if ndims(U) != 2 || size(U, 1) != M || size(U, 2) != M
+            throw(ArgumentError("Custom matrix should be 2^$(M)×2^$(M)."))
         end
 
-        if !isapprox(U * adjoint(U), Matrix(I, M, M), rtol=1e-7)
-            @warn "Custom gate matrix U is not unitary." U
+        if !isapprox(U * inv(U), Matrix(I, M, M), rtol=1e-8)
+            throw(ArgumentError("Custom matrix not unitary (U⋅inv(U) ≉ I)."))
         end
 
-        return new{N,T}(
-            U,
-            _decomplex(U[1, 1]),
-            _decomplex(U[2, 1]),
-            _decomplex(U[1, 2]),
-            _decomplex(U[2, 2]),
-        )
+        return new{N}(U)
     end
 end
 
-function GateCustom(U::AbstractMatrix{T}) where {T<:Number}
+function GateCustom(U::AbstractMatrix)
     N = size(U, 1) >> 2 + 1
-    GateCustom{N,float(T)}(float.(U))
+    fU = float.(U)
+    GateCustom{N}(fU)
 end
 
 opname(::Type{<:GateCustom}) = "Custom"
 
-inverse(g::GateCustom) = Gate(adjoint(g.U))
+inverse(g::GateCustom) = GateCustom(inv(g.U))
 
-@inline matrix(g::GateCustom) = g.U
+matrix(g::GateCustom) = g.U
 
 function Base.show(io::IO, gate::GateCustom)
     print(io, opname(gate), "(")

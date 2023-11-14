@@ -14,19 +14,25 @@
 # limitations under the License.
 #
 
-OPERATION_TYPES = [
-    GateX, GateY, GateZ, GateH, GateS, GateSDG,
-    GateT, GateTDG, GateSX, GateSXDG, GateID,
-    GateP, GateRX, GateRY, GateRZ, GateR,
-    GateU1, GateU2, GateU2DG, GateU3, GateU,
-    GateCX, GateCY, GateCZ, GateCH, GateSWAP,
-    GateISWAP, GateISWAPDG, GateCP, GateCRX, GateCRY,
-    GateCRZ, GateCU, GateCCX, GateCSWAP, GateCR, GateRZZ,
-    GateRXX, GateRYY, GateXXplusYY, GateXXminusYY, GateCSX,
-    GateCSXDG, GateCS, GateCSDG, GateECR, GateDCX, GateDCXDG,
-    Measure, Reset
-]
+"""
+    isunitary(instruction)
+    isunitary(operation)
 
-const OPERATIONS = let
-    BiMap(OPERATION_TYPES, opname.(OPERATION_TYPES))
-end
+Checks if a given operation is unititary or not.
+
+## See also
+
+[`iswrapper`](@ref)
+"""
+function isunitary end
+
+isunitary(::T) where {T} = isunitary(T)
+
+"""
+    isopalias(typ)
+
+Checks if a given operation type is an alias or not.
+"""
+function isopalias end
+
+isopalias(::Type{T}) where {T} = false

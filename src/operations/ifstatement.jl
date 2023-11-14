@@ -15,32 +15,54 @@
 #
 
 """
-    struct IfStatement{N,M} <: Operation{N,M}
+    IfStatement(numbits, op, num)
+
+Applies the wrapper operation, only if the classical register is equal to `num`.
+
+!!! warn
+    Currentely not supported by the state vector and MPS simulators.
+
+## Examples
+
+`push!(IfStatement(GateX(), 10), 1,1,2,3,4,5)` is the equivalent of OpenQASM 2.0
+
+```
+creg c[5];
+if (c==10) x q[0];
+```
+
+```jldoctest
+julia> IfStatement(10, GateX(), 999)
+If(c == 999) X
+```
 """
-struct IfStatement{N,M} <: Operation{N,M}
-    op::Operation{N,0}
-    val::BitState
+struct IfStatement{N,M,T<:Operation{M,0}} <: Operation{M,N}
+    op::Operation{M,0}
+    val::Num
 
     function IfStatement{N,M}(op, val) where {N,M}
-        if length(val) != M
-            throw(ArgumentError("The length of the BitState must be equal to the number of classical bits"))
-        end
+        new{N,M,T}(op, val)
+    end
 
-        new{N,M}(op, val)
+    function IfStatement(nb::Integer, op::T, val) where {T<:AbstractGate}
+        new{nb,numqubits(op),T}(op, val)
     end
 end
 
-function IfStatement(op::Operation{N,0}, val::BitState) where {N}
-    if length(val) < 1
-        throw(ArgumentError("The value must have at least one classical bit"))
-    end
-    return IfStatement{N,length(val)}(op, val)
-end
-
-inverse(s::IfStatement) = IfStatement(inverse(s.op), s.val)
+# allows the syntax (omits the number of classical bits)
+# push!(circ, IfStatement(GateX(), 10), 1,1,2,3,4,5)
+IfStatement(op::T, val) where {T<:AbstractGate} = (targets...) -> Instruction(IfStatement(length(targets...), op, val), Tuple(targets), ())
 
 opname(::Type{<:IfStatement}) = "If"
 
+inverse(::IfStatement) = error("Cannot inverse an IfStatement.")
+
+_power(::IfStatement, n) = error("Cannot elevate an IfStatement to any power.")
+
+getoperation(c::IfStatement) = c.op
+
+iswrapper(::Type{<:IfStatement}) = true
+
 function Base.show(io::IO, s::IfStatement)
-    print(io, opname(IfStatement), "(", s.op, ", ", string(s.val), ")")
+    print(io, opname(IfStatement), "(c == ", s.val, ") ", s.op)
 end

@@ -15,38 +15,91 @@
 #
 
 """
+    AbstractInstruction
+
+Abstract super type for all the instrcutions.
+
+An instruction applies one or more operations to a set of qubits and classical
+bits.
+
+## Methods
+
+[`getqubit`](@ref), [`getqubits`](@ref), [`getbits`](@ref), [`getbit`](@ref)
+[`inverse`](@ref), [`opname`](@ref), [`numqubits`](@ref), [`numbits`](@ref)
+
+## See also
+
+[`Instruction`](@ref), [`Operation`](@ref)
+"""
+abstract type AbstractInstruction end
+
+"""
     getqubit(instruction, i)
 
-Returns the i-th target qubit of an instruction.
+`i`-th target qubit of an instruction.
 
-See also [`getqubits`](@ref), [`getbit`](@ref), [`getbits`](@ref),
+## Examples
+
+```@repl
+inst = Instruction(GateCX(), 1, 3)
+getqubit(inst, 2)
+```
+
+## See also
+
+[`getqubits`](@ref), [`getbit`](@ref), [`getbits`](@ref)
 """
 function getqubit end
 
 """
     getqubits(instruction)
 
-Returns all the quantum bits to which the instruction is applied.
+Tuple of quantum bits which the instruction is applied to.
 
-See also [`getqubit`](@ref), [`getbits`](@ref), [`getbit`](@ref),
+```@repl
+inst = Instruction(GateCX(), 1, 3)
+getqubits(inst)
+```
+
+## See also
+
+[`getqubit`](@ref), [`getbits`](@ref), [`getbit`](@ref)
 """
 function getqubits end
 
 """
     getbit(instruction, i)
 
-Returns the i-th target classical bit of an instruction.
+`i`-th target classical bit of an instruction.
 
-See also [`getbits`](@ref), [`getqubit`](@ref), [`getqubits`](@ref),
+## Examples
+
+```@repl
+inst = Instruction(Measure(), 1, 3)
+getbit(inst, 1)
+```
+
+## See also
+
+[`getbits`](@ref), [`getqubit`](@ref), [`getqubits`](@ref),
 """
 function getbit end
 
 """
     getbits(instruction)
 
-Returns all the classical bits to which the instruction is applied.
+Tuple of the classical bits which the instruction is applied to.
 
-See also [`getbit`](@ref), [`getqubits`](@ref), [`getqubit`](@ref),
+## Examples
+
+```@repl
+inst = Instruction(Measure(), 1, 3)
+getbits(inst)
+```
+
+## See also
+
+[`getbit`](@ref), [`getqubits`](@ref), [`getqubit`](@ref)
 """
 function getbits end
 
@@ -69,19 +122,23 @@ function _checktargets(targets, N, type="qubit")
 end
 
 """
-    struct Instruction{N,M,T<:Operation}
+    Instruction(op, qtargets, ctargets) <: AbstractInstruction
 
-Element of a quantum circuit, representing a `N`-qubit gate applied to `N` targets
+Representation of an operation applied to specific qubit and bit targets.
 
-## Parameters
+## Example
 
-* `gate::T` actual gate represented
-* `qtargets::NTuple{N, Int64}` indices specifying the quantum bits on which the
-  instruction is applied
-* `ctargets::NTuple{N, Int64}` indices specifying the classical bits on which
-  the instruction is applied
+```@repl
+Instruction(GateX(), (1,), ())
+Instruction(GateCX(), (1,2), ())
+Instruction(Measure(), (3,), (3,))
+```
+
+## See also
+
+[`AbstractInstruction`](@ref), [`Operation`](@ref)
 """
-struct Instruction{N,M,T<:Operation{N,M}}
+struct Instruction{N,M,T<:Operation{N,M}} <: AbstractInstruction
     op::T
     qtargets::NTuple{N,Int64}
     ctargets::NTuple{M,Int64}
@@ -96,6 +153,22 @@ struct Instruction{N,M,T<:Operation{N,M}}
     end
 end
 
+"""
+    Instruction(op, targets...)
+
+Constructors an instruction from an operation and a list of targets.
+
+By convention, if `op` is an `N`-qubit and `M`-bit operations, then the first
+`N` targets are used as qubits and the last `M` as bits.
+
+## Examples
+
+```@repl
+Instruction(GateX(), 1))
+Instruction(GateCX(), 1,2)
+Instruction(Measure(), 3, 3)
+```
+"""
 function Instruction(op::Operation{N,M}, targets::Vararg{Integer,L}; kwargs...) where {N,M,L}
     if N + M != L
         throw(ArgumentError("Wrong number of targets: given $L total for $N qubits $M bits operation"))
@@ -107,39 +180,110 @@ function Instruction(op::Operation{N,M}, targets::Vararg{Integer,L}; kwargs...) 
     Instruction(op, qtargets, ctargets; kwargs...)
 end
 
+# If the we are trying to push a type, then probably we would like to call
+# its constructor before, since the type is dependent on the targets.
+# A call could result to multiple instructions (e.g. passing registers instead of )
+"""
+    Instruction(Type, targets...)
+
+Constructors an instruction from an operation type and a list of targets.
+
+The constructor calls the `Type(Instruction, targets...)` method, which should
+return an `Instruction`.
+
+## Examples
+
+```@repl
+Instruction(GateX, 1)
+Instruction(GateCX, 1, 2, 3)
+Instruction(QFT, 1:4)
+```
+"""
+Instruction(::Type{T}, targets...) where {T} = T(Instruction, targets...)
+
+# same for a function
+"""
+    Instruction(f::Function, targets...)
+
+Constructors an instruction from function and a list of targets.
+
+The constructor calls the `f(targets...)` method, which should
+return an `Instruction`.
+
+## Examples
+
+```@repl
+Instruction(QFT(), 1:4)
+```
+"""
+Instruction(f::Function, targets...)::Instruction = f(targets...)
+
+isunitary(::Type{Instruction{N,M,T}}) where {N,M,T} = isunitary(T)
+
 numqubits(::Type{Instruction{N,M}}) where {N,M} = N
 numqubits(::Instruction{N,M}) where {N,M} = N
 
 numbits(::Type{Instruction{N,M}}) where {N,M} = M
 numbits(::Instruction{N,M}) where {N,M} = M
 
-getqubit(g::Instruction, i) = g.qtargets[i]
-getqubits(g::Instruction) = g.qtargets
+getqubit(inst::AbstractInstruction, i) = getqubits(inst)[i]
+getqubits(inst::Instruction) = inst.qtargets
 
-getbit(g::Instruction, i) = g.ctargets[i]
-getbits(g::Instruction) = g.ctargets
+getbit(inst::AbstractInstruction, i) = getbits(inst)[i]
+getbits(inst::Instruction) = inst.ctargets
 
-"""
-    getoperation(instruction)
-
-Returns the quantum operation associated to the given instruction.
-"""
 getoperation(g::Instruction) = g.op
 
 opname(g::Instruction) = opname(g.op)
 
 inverse(c::Instruction) = Instruction(inverse(getoperation(c)), getqubits(c)...)
 
-function Base.show(io::IO, g::Instruction)
-    compact = get(io, :compact, false)
-    print(io, getoperation(g))
-    if numbits(g) > 0 || numqubits(g) > 0
-        space = compact ? "" : " "
-        print(io, "$space@$space")
-        join(io, map(x -> "q$x", getqubits(g)), ",$space")
-        if numbits(g) != 0 && numqubits(g) != 0
-            print(io, ",$space")
-        end
-        join(io, map(x -> "c$x", getbits(g)), ",$space")
+function _partition(arr, indices)
+    vec = collect(arr)
+    partitions = [vec[1:indices[1]]]
+    for i in 2:length(indices)
+        push!(partitions, vec[indices[i-1]+1:indices[i]])
+    end
+    return partitions
+end
+
+function _string_with_square(arr, sep)
+    if length(arr) == 1
+        return "$(arr[1])"
+    else
+        return "[$(join(arr, sep))]"
     end
 end
+
+function Base.show(io::IO, g::Instruction)
+    compact = get(io, :compact, false)
+
+    op = getoperation(g)
+
+    print(io, op)
+
+    nq = numqubits(g)
+    nb = numbits(g)
+
+    if nq != 0 || nb != 0
+        space = compact ? "" : " "
+        print(io, "$space@$space")
+
+        # group the qubits
+        if nq != 0
+            ps = _partition(getqubits(g), cumsum(qregsizes(op)))
+            join(io, map(x -> "q" * _string_with_square(x, ","), ps), ",$space")
+        end
+
+        if nq != 0 && nb != 0
+            print(io, ",$space")
+        end
+
+        # group the cbits
+        if nb != 0
+            ps = _partition(getbits(g), cumsum(cregsizes(op)))
+            join(io, map(x -> "c" * _string_with_square(x, ","), ps), ",$space")
+        end
+    end
+end
+

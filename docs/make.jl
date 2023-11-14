@@ -1,4 +1,5 @@
 using Documenter
+using DocumenterCitations
 using MimiqCircuitsBase
 using Dates
 
@@ -16,10 +17,13 @@ pages = Any[
     "Library"=>[
         "Contents" => "library/outline.md",
         "Public" => "library/public.md",
-        "Private" => "library/internals.md",
+        "Internals" => "library/internals.md",
         "Function index" => "library/function_index.md"
-    ]
+    ],
+    "References"=>"references.md"
 ]
+
+bib = CitationBibliography("src/references.bib")
 
 makedocs(;
     sitename="MimiqCircuitsBase.jl",
@@ -28,7 +32,8 @@ makedocs(;
     format=format,
     pages=pages,
     clean=true,
-    checkdocs=:exports
+    checkdocs=:exports,
+    plugins=[bib]
 )
 
 deploydocs(

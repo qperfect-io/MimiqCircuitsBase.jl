@@ -14,42 +14,42 @@
 # limitations under the License.
 #
 
-pmatrix(λ) = ComplexF64[1 0; 0 cis(λ)]
+pmatrix(λ) = [1 0; 0 cis(λ)]
 
-pmatrixpi(λ) = ComplexF64[1 0; 0 cispi(λ)]
+pmatrixpi(λ) = [1 0; 0 cispi(λ)]
 
 gphase(λ) = cis(λ)
 
 gphasepi(λ) = cispi(λ)
 
-function umatrix(θ, ϕ, λ, γ=0.0)::Matrix{ComplexF64}
-    cosθ2 = cos(θ / 2)
-    sinθ2 = sin(θ / 2)
-    ComplexF64[cis(γ)*cosθ2 -cis(λ + γ)*sinθ2; cis(ϕ + γ)*sinθ2 cis(ϕ + λ + γ)*cosθ2]
+function umatrix(θ, ϕ, λ, γ=0.0)
+    return cis(γ) * [
+        1+cis(θ) -im*cis(λ)*(1-cis(θ))
+        im*cis(ϕ)*(1-cis(θ)) cis(ϕ + λ)*(1+cis(θ))
+    ] / 2
 end
 
-function umatrixpi(θ, ϕ, λ, γ=0.0)::Matrix{ComplexF64}
+function umatrixpi(θ, ϕ, λ, γ=0.0)
+    return cispi(γ) * [
+        1+cispi(θ) -im*cispi(λ)*(1-cispi(θ))
+        im*cispi(ϕ)*(1-cispi(θ)) cispi(ϕ + λ)*(1+cispi(θ))
+    ] / 2
+end
+
+# Deprecated functions (see error in OpenQASM3 paper), and correction on
+# https://openqasm.com/language/gates.html#id1
+
+function umatrix_old(θ, ϕ, λ, γ=0.0)
+    cosθ2 = cos(θ / 2)
+    sinθ2 = sin(θ / 2)
+    return [cis(γ)*cosθ2 -cis(λ + γ)*sinθ2; cis(ϕ + γ)*sinθ2 cis(ϕ + λ + γ)*cosθ2]
+end
+
+function umatrixpi_old(θ, ϕ, λ, γ=0.0)
     cosθ2 = cospi(θ / 2)
     sinθ2 = sinpi(θ / 2)
-    ComplexF64[
+    return [
         cispi(γ)*cosθ2 -cispi(λ + γ)*sinθ2
         cispi(ϕ + γ)*sinθ2 cispi(ϕ + λ + γ)*cosθ2
     ]
 end
-
-function rmatrix(θ, ϕ)::Matrix{ComplexF64}
-    cosθ2 = cos(θ / 2)
-    sinθ2 = sin(θ / 2)
-    ComplexF64[cosθ2 -im*cis(-ϕ)*sinθ2; -im*cis(ϕ)*sinθ2 cosθ2]
-end
-
-function rmatrixpi(θ, ϕ)::Matrix{ComplexF64}
-    cosθ2 = cospi(θ / 2)
-    sinθ2 = sinpi(θ / 2)
-    ComplexF64[cosθ2 -im*cispi(-ϕ)*sinθ2; -im*cispi(ϕ)*sinθ2 cosθ2]
-end
-
-
-rxmatrix(θ) = umatrixpi(θ / π, -1 / 2, 1 / 2)
-rymatrix(θ) = umatrixpi(θ / π, 0, 0) |> _decomplex
-rzmatrix(λ) = gphasepi(-λ / π / 2) * umatrixpi(0, 0, λ / π)

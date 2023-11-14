@@ -3,7 +3,15 @@ using Test
 
 include("utils.jl")
 
-filelist = String["gates.jl", "instruction.jl", "circuit.jl", "json.jl", "bitstates.jl"]
+filelist = [
+    "bitstates.jl",
+    "gates.jl",
+    "proto.jl",
+    "instruction.jl",
+    "circuit.jl",
+    "control.jl",
+    "inverse.jl"
+]
 
 @testset "MimiqCircuitsBase.jl" begin
     @testset "$filename" for filename in filelist
