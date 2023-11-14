@@ -105,7 +105,7 @@ function decompose!(circuit::Circuit, inv::Inverse, qtargets, _)
     newcirc = decompose!(Circuit(), inv.op, qtargets, nothing)
 
     for inst in inverse(newcirc)
-        return push!(circuit, inst)
+        push!(circuit, inst)
     end
 
     return circuit

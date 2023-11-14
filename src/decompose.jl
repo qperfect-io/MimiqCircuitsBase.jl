@@ -64,13 +64,7 @@ function decompose!(circuit::Circuit, todecompose::Circuit; kwargs...)
 end
 
 function decompose(circuit::Circuit; kwargs...)
-    decomposed = Circuit()
-
-    for inst in circuit
-        _checkdecompose!(decomposed, inst; kwargs...)
-    end
-
-    return decomposed
+    return decompose!(Circuit(), circuit; kwargs...)
 end
 
 decompose(g::Operation{N,M}) where {N,M} = decompose!(Circuit(), g, 1:N, 1:M)

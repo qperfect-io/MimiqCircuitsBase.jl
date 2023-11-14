@@ -302,3 +302,22 @@ Base.ones(::Type{BitState}, nq::Integer) = trues(BitState, nq)
 Base.falses(::Type{BitState}, nq::Integer) = BitState(falses(nq))
 Base.zeros(::Type{BitState}, nq::Integer) = falses(BitState, nq)
 
+# Bitwise operators
+
+Base.:~(bs::BitState) = BitState(~bs.bits)
+
+Base.:&(lhs::BitState, rhs::BitState) = BitState(lhs.bits & rhs.bits)
+
+Base.:|(lhs::BitState, rhs::BitState) = BitState(lhs.bits | rhs.bits)
+
+Base.:⊻(lhs::BitState, rhs::BitState) = BitState(lhs.bits ⊻ rhs.bits)
+
+Base.:<<(bs::BitState, n::Integer) = BitState(Bool.(circshift(bs.bits, n)))
+
+Base.:>>(bs::BitState, n::Integer) = BitState(Bool.(circshift(bs.bits, -n)))
+
+# concatenation
+
+Base.vcat(lhs::BitState, rhs::BitState) = BitState(vcat(lhs.bits, rhs.bits))
+
+Base.repeat(bs::BitState, args...; kwargs...) = BitState(repeat(bs.bits, args...; kwargs...))
