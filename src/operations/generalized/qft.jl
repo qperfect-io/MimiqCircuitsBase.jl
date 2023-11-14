@@ -15,22 +15,12 @@
 #
 
 @doc raw"""
-<<<<<<< HEAD
-    QFT(n[; norev=false])
-=======
     QFT(n)
->>>>>>> devel
 
 Quantum Fourier transform.
 
 Performs the quantum Fourier transform on a register of `n` qubits.
 
-<<<<<<< HEAD
-Optionally the `reverse` keyword argument can be set to false to avoid reversing
-the order of the qubits at the end of the circuit.
-
-=======
->>>>>>> devel
 The inverse quantum Fourier transform is simply given `inverse(qft)`.
 
 It implements the unitary transformation.
@@ -73,13 +63,8 @@ opname(::Type{<:QFT}) = "QFT"
 
 qregsizes(::QFT{N}) where {N} = (N,)
 
-<<<<<<< HEAD
-function decompose!(circ::Circuit, ::QFT{N,NOREV}, qtargets, _) where {N,NOREV}
-    qreg = NOREV ? qtargets : reverse(qtargets)
-=======
 function decompose!(circ::Circuit, ::QFT{N}, qubits, _) where {N}
     qreg = reverse(qubits)
->>>>>>> devel
 
     push!(circ, GateH(), qreg[1])
 
@@ -94,23 +79,9 @@ function decompose!(circ::Circuit, ::QFT{N}, qubits, _) where {N}
             angle = π / 2.0^(i - j)
             push!(circ, GateCP(angle), qreg[i], qreg[j])
         end
-<<<<<<< HEAD
-=======
 
->>>>>>> devel
         push!(circ, GateH(), qreg[i])
     end
 
     return circ
 end
-<<<<<<< HEAD
-
-function Base.show(io::IO, qft::QFT{N,NOREV}) where {N,NOREV}
-    print(io, opname(qft))
-
-    if NOREV
-        print(io, "(norev)")
-    end
-end
-=======
->>>>>>> devel
