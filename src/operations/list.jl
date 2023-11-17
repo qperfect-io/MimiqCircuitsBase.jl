@@ -147,11 +147,7 @@ For gate definitions and calls, see [`GateDecl`](@ref) and [`GateCall`](@ref)
 
 ## Algorithms or complex gate builders
 
-[`PhaseGradient`](@ref) [`QFT`](@ref), [`IQFT`](@ref),
-[`PhiAdd`](@ref), [`AddModN`](@ref)
-[`Multiply`](@ref), [`MultiplyModN`](@ref),
-[`MultiplyTimesTwoAndAdd`](@ref),
-
+See [`GENERALIZED`](@ref) for a complete list of generalized gates or algorithms.
 """
 const OPERATIONS = nothing
 

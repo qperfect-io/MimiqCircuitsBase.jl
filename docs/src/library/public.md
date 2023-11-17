@@ -71,7 +71,9 @@ Pages   = [
 ```@autodocs
 Modules = [MimiqCircuitsBase]
 Private = false
-Pages   = ["operations/gphase.jl"]
+Pages   = [
+    "operations/gphase.jl"
+]
 ```
 
 #### Standard Gates
@@ -116,18 +118,14 @@ Private = false
 Pages   = ["custom.jl"]
 ```
 
-#### Composite gates
+#### Generalized gates
 
 ```@autodocs
 Modules = [MimiqCircuitsBase]
 Private = false
 Pages   = [
-    "operations/special/qft.jl",
-    "operations/special/multiplymodn.jl",
-    "operations/special/multiplytimestwoandadd.jl",
-    "operations/special/addmodn.jl",
-    "operations/special/phiadd.jl",
-    "operations/special/multiply.jl",
+    "operations/generalized/qft.jl",
+    "operations/generalized/phasegradient.jl",
 ]
 ```
 

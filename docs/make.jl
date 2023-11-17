@@ -16,6 +16,7 @@ pages = Any[
     "Installation Instructions"=>"installation.md",
     "Library"=>[
         "Contents" => "library/outline.md",
+        "List of Operations" => "library/operations.md",
         "Public" => "library/public.md",
         "Internals" => "library/internals.md",
         "Function index" => "library/function_index.md"
@@ -23,7 +24,7 @@ pages = Any[
     "References"=>"references.md"
 ]
 
-bib = CitationBibliography("src/references.bib")
+bib = CitationBibliography(joinpath(@__DIR__, "src/references.bib"))
 
 makedocs(;
     sitename="MimiqCircuitsBase.jl",

@@ -2,13 +2,14 @@
 
 ## Overview
 
-MimiqCircuitsBase provides a framework to build, manipulate, and analyze quantum circuits.
+MimiqCircuitsBase provides a framework to build, manipulate, and analyze quantum
+circuits.
 
 ## Quick Start
 
-This is an example on how to build a GHZ state with MimiqCircuitsBase. It has
-to be noted that this is not the optimal way to do it, but it is used here to
-showcase the syntax of MimiqCircuitsBase.
+This is an example on how to build a GHZ state preparation circuit with
+MimiqCircuitsBase. It has to be noted that this is not the optimal way to do it,
+but it is used here to showcase the syntax of MimiqCircuitsBase.
 
 ```@meta
 DocTestSetup = quote

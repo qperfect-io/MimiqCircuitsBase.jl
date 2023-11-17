@@ -245,6 +245,7 @@ include("evaluate.jl")
 
 export GATES
 export OPERATIONS
+export GENERALIZED
 include("operations/list.jl")
 
 # simulation results
