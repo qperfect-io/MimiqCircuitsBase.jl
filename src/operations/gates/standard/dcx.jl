@@ -56,8 +56,9 @@ julia> power(GateDCX(), 2), inverse(GateDCX())
 
 ```jldoctest
 julia> decompose(GateDCX())
-2-qubit circuit with 1 instructions:
-└── DCX @ q1, q2
+2-qubit circuit with 2 instructions:
+├── CX @ q1, q2
+└── CX @ q2, q1
 
 ```
 """

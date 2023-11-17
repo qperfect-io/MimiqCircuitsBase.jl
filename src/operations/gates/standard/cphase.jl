@@ -63,8 +63,12 @@ julia> @variables θ
  θ
 
 julia> decompose(GateCP(θ))
-2-qubit circuit with 1 instructions:
-└── CU(0, 0, θ) @ q1, q2
+2-qubit circuit with 5 instructions:
+├── P((1//2)*θ) @ q1
+├── CX @ q1, q2
+├── P((-1//2)*θ) @ q1
+├── CX @ q1, q2
+└── P((1//2)*θ) @ q1
 ```
 """
 const GateCP = typeof(Control(GateP(π)))

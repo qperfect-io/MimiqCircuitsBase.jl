@@ -59,7 +59,9 @@ the wrapped operation.
 
 ```jldoctests
 julia> decompose(Inverse(GateCSX()))
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 3 instructions:
+├── H @ q2
+├── CU1(-1π/2) @ q1, q2
 └── H @ q2
 ```
 """
