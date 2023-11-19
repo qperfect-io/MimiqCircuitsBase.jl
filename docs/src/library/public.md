@@ -153,11 +153,11 @@ Private = false
 Pages   = ["barrier.jl"]
 ```
 
-## Bit States
+## Bit Strings
 
 ```@autodocs
 Modules = [MimiqCircuitsBase]
 Private = false
-Pages   = ["bitstates.jl"]
+Pages   = ["bitstrings.jl"]
 ```
 

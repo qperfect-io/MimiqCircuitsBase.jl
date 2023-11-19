@@ -39,9 +39,13 @@ function toproto(bv::BitVector)
     return qcsresults_pb.BitVector(length(bv), bitarr_to_bytes(bv))
 end
 
-function toproto(amplitudes::Dict{BitState,ComplexF64})
+function toproto(bv::BitString)
+    return toproto(bv.bits)
+end
+
+function toproto(amplitudes::Dict{BitString,ComplexF64})
     return map(collect(amplitudes)) do (k, v)
-        qcsresults_pb.AmplitudeEntry(toproto(k.bits), toproto(v))
+        qcsresults_pb.AmplitudeEntry(toproto(k), toproto(v))
     end
 end
 
@@ -67,14 +71,14 @@ function fromproto(v::qcsresults_pb.ComplexDouble)
 end
 
 function fromproto(bv::qcsresults_pb.BitVector)
-    return bytes_to_bitarr(bv.data, bv.len)
+    return BitString(bytes_to_bitarr(bv.data, bv.len))
 end
 
 function fromproto(amplitudes::Vector{qcsresults_pb.AmplitudeEntry})
-    d = Dict{BitState,ComplexF64}()
+    d = Dict{BitString,ComplexF64}()
     for ae in amplitudes
         k, v = ae.key, ae.val
-        d[BitState(fromproto(k))] = fromproto(v)
+        d[fromproto(k)] = fromproto(v)
     end
     return d
 end

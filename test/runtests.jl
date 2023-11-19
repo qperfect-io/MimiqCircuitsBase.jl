@@ -4,7 +4,7 @@ using Test
 include("utils.jl")
 
 filelist = [
-    "bitstates.jl",
+    "bitstrings.jl",
     "gates.jl",
     "proto.jl",
     "instruction.jl",

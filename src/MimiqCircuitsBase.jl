@@ -21,6 +21,7 @@ using LinearAlgebra
 using ProtoBuf
 using Symbolics
 using Reexport
+using Statistics
 
 # documentation of function
 include("docstrings.jl")
@@ -71,15 +72,15 @@ include("circuit.jl")
 export depth
 include("circuit_extras.jl")
 
-# Bit states (states with defined values of the qubits) 
-export BitState
+# Bit strings
+export BitString
 export nonzeros
-export bitstate_to_integer
-export bitstate_to_index
+export bitstring_to_integer
+export bitstring_to_index
 export @bs_str
-export bits
+export tobits
 export to01
-include("bitstates.jl")
+include("bitstrings.jl")
 
 export GPhase
 include("operations/gphase.jl")
@@ -250,6 +251,7 @@ include("operations/list.jl")
 
 # simulation results
 export QCSResults
+export histsamples
 include("qcsresults.jl")
 
 const PROTOFILES = String["circuit", "qcsresults"]
