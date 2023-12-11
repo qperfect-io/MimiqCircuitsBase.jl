@@ -49,12 +49,12 @@ julia> matrix(GateCCP(1.989))
 
 julia> c = push!(Circuit(), GateCCP(λ), 1, 2, 3)
 3-qubit circuit with 1 instructions:
-└── C₂P(λ) @ q1, q2, q3
+└── C₂P(λ) @ q[1:2], q[3]
 
 julia> push!(c, GateCCP(π/8), 1, 2, 3)
 3-qubit circuit with 2 instructions:
-├── C₂P(λ) @ q1, q2, q3
-└── C₂P(π/8) @ q1, q2, q3
+├── C₂P(λ) @ q[1:2], q[3]
+└── C₂P(π/8) @ q[1:2], q[3]
 
 julia> power(GateCCP(λ), 2), inverse(GateCCP(λ))
 (C₂P(2λ), C₂P(-λ))
@@ -70,11 +70,11 @@ julia> @variables λ
 
 julia> decompose(GateCCP(λ))
 3-qubit circuit with 5 instructions:
-├── CP((1//2)*λ) @ q2, q3
-├── CX @ q1, q2
-├── CP((-1//2)*λ) @ q2, q3
-├── CX @ q1, q2
-└── CP((1//2)*λ) @ q1, q3
+├── CP((1//2)*λ) @ q[2], q[3]
+├── CX @ q[1], q[2]
+├── CP((-1//2)*λ) @ q[2], q[3]
+├── CX @ q[1], q[2]
+└── CP((1//2)*λ) @ q[1], q[3]
 ```
 """
 const GateCCP = typeof(Control(2, GateP(π)))

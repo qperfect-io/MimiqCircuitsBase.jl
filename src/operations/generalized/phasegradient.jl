@@ -26,21 +26,25 @@ proportional to its integer value ``k``:
 \sum{k=0}^{n-1} \mathrm{e}^{i \frac{2 \pi}{N} k} \ket{k}\bra{k}
 ```
 """
-struct PhaseGradient{N} <: AbstractGate{N} end
+struct PhaseGradient{N} <: AbstractGate{N}
+    function PhaseGradient{N}() where {N}
+        if !(N isa Integer)
+            throw(OperationError(PhaseGradient, "Number of qubits must be an integer."))
+        end
+
+        if N < 1
+            throw(OperationError(PhaseGradient, "Number of qubits must be ≥ 1."))
+        end
+
+        new{N}()
+    end
+end
 
 function PhaseGradient(numqubits::Int)
     PhaseGradient{numqubits}()
 end
 
-# constructor to allow the syntax
-# push!(circuit, PhaseGate, register)
-function PhaseGradient(::Type{Instruction}, reg)
-    g = PhaseGradient(length(reg))
-    return Instruction(g, Tuple(reg), ())
-end
-
-# constructor to allow the syntax
-PhaseGradient() = reg -> Instruction(PhaseGradient(length(reg)), Tuple(reg), ())
+PhaseGradient() = LazyExpr(PhaseGradient, LazyArg())
 
 opname(::Type{<:PhaseGradient}) = "PhaseGradient"
 

@@ -24,6 +24,17 @@ Controlled-``\operatorname{R}_X(\theta)`` gate.
 
 See also [`Control`](@ref), [`GateRX`](@ref).
 
+## Matrix representation
+
+```math
+\operatorname{CRX}(\theta) = \begin{pmatrix}
+            1 & 0 & 0 & 0 \\
+            0 & 1 & 0 & 0 \\
+            0 & 0 & \cos\frac{\theta}{2} & -i\sin\frac{\theta}{2} \\
+            0 & 0 & -i\sin\frac{\theta}{2} & \cos\frac{\theta}{2}
+        \end{pmatrix}
+```
+
 ## Examples
 
 ```jldoctests
@@ -43,12 +54,12 @@ julia> matrix(GateCRX(1.989))
 
 julia> c = push!(Circuit(), GateCRX(θ), 1, 2)
 2-qubit circuit with 1 instructions:
-└── CRX(θ) @ q1, q2
+└── CRX(θ) @ q[1], q[2]
 
 julia> push!(c, GateCRX(π/8), 1, 2)
 2-qubit circuit with 2 instructions:
-├── CRX(θ) @ q1, q2
-└── CRX(π/8) @ q1, q2
+├── CRX(θ) @ q[1], q[2]
+└── CRX(π/8) @ q[1], q[2]
 
 julia> power(GateCRX(θ), 2), inverse(GateCRX(θ))
 (CRX(2θ), CRX(-θ))
@@ -60,11 +71,11 @@ julia> power(GateCRX(θ), 2), inverse(GateCRX(θ))
 ```jldoctests; setup = :(@variables θ)
 julia> decompose(GateCRX(θ))
 2-qubit circuit with 5 instructions:
-├── P(π/2) @ q2
-├── CX @ q1, q2
-├── U((-1//2)*θ, 0, 0) @ q2
-├── CX @ q1, q2
-└── U((1//2)*θ, -1π/2, 0) @ q2
+├── P(π/2) @ q[2]
+├── CX @ q[1], q[2]
+├── U((-1//2)*θ, 0, 0) @ q[2]
+├── CX @ q[1], q[2]
+└── U((1//2)*θ, -1π/2, 0) @ q[2]
 
 ```
 """
@@ -91,6 +102,17 @@ Controlled-``\operatorname{R}_Y(\theta)`` gate.
 
 See also [`Control`](@ref), [`GateRY`](@ref).
 
+## Matrix representation
+
+```math
+\operatorname{CRY}(\theta) = \begin{pmatrix}
+            1 & 0 & 0 & 0 \\
+            0 & 1 & 0 & 0 \\
+            0 & 0 & \cos\frac{\theta}{2} & -\sin\frac{\theta}{2} \\
+            0 & 0 &  \sin\frac{\theta}{2} & \cos\frac{\theta}{2}
+        \end{pmatrix}
+```
+
 ## Examples
 
 ```jldoctests
@@ -110,12 +132,12 @@ julia> matrix(GateCRY(1.989))
 
 julia> c = push!(Circuit(), GateCRY(θ), 1, 2)
 2-qubit circuit with 1 instructions:
-└── CRY(θ) @ q1, q2
+└── CRY(θ) @ q[1], q[2]
 
 julia> push!(c, GateCRY(π/8), 1, 2)
 2-qubit circuit with 2 instructions:
-├── CRY(θ) @ q1, q2
-└── CRY(π/8) @ q1, q2
+├── CRY(θ) @ q[1], q[2]
+└── CRY(π/8) @ q[1], q[2]
 
 julia> power(GateCRY(θ), 2), inverse(GateCRY(θ))
 (CRY(2θ), CRY(-θ))
@@ -127,10 +149,10 @@ julia> power(GateCRY(θ), 2), inverse(GateCRY(θ))
 ```jldoctests; setup = :(@variables θ)
 julia> decompose(GateCRY(θ))
 2-qubit circuit with 4 instructions:
-├── RY((1//2)*θ) @ q2
-├── CX @ q1, q2
-├── RY((-1//2)*θ) @ q2
-└── CX @ q1, q2
+├── RY((1//2)*θ) @ q[2]
+├── CX @ q[1], q[2]
+├── RY((-1//2)*θ) @ q[2]
+└── CX @ q[1], q[2]
 
 ```
 """
@@ -156,6 +178,17 @@ Controlled-``\operatorname{R}_Z(\theta)`` gate.
 
 See also [`Control`](@ref), [`GateRZ`](@ref).
 
+## Matrix representation
+
+```math
+    \operatorname{CRZ}(\theta) = \begin{pmatrix}
+            1 & 0 & 0 & 0 \\
+            0 & 1 & 0 & 0 \\
+            0 & 0 & e^{-i\frac{\lambda}{2}} & 0 \\
+            0 & 0 & 0 & e^{i\frac{\lambda}{2}}
+        \end{pmatrix}
+```
+
 ## Examples
 
 ```jldoctests
@@ -175,12 +208,12 @@ julia> matrix(GateCRZ(1.989))
 
 julia> c = push!(Circuit(), GateCRZ(θ), 1, 2)
 2-qubit circuit with 1 instructions:
-└── CRZ(θ) @ q1, q2
+└── CRZ(θ) @ q[1], q[2]
 
 julia> push!(c, GateCRZ(π/8), 1, 2)
 2-qubit circuit with 2 instructions:
-├── CRZ(θ) @ q1, q2
-└── CRZ(π/8) @ q1, q2
+├── CRZ(θ) @ q[1], q[2]
+└── CRZ(π/8) @ q[1], q[2]
 
 julia> power(GateCRZ(θ), 2), inverse(GateCRZ(θ))
 (CRZ(2θ), CRZ(-θ))
@@ -192,10 +225,10 @@ julia> power(GateCRZ(θ), 2), inverse(GateCRZ(θ))
 ```jldoctests; setup = :(@variables θ)
 julia> decompose(GateCRZ(θ))
 2-qubit circuit with 4 instructions:
-├── RZ((1//2)*θ) @ q2
-├── CX @ q1, q2
-├── RZ((-1//2)*θ) @ q2
-└── CX @ q1, q2
+├── RZ((1//2)*θ) @ q[2]
+├── CX @ q[1], q[2]
+├── RZ((-1//2)*θ) @ q[2]
+└── CX @ q[1], q[2]
 
 ```
 """

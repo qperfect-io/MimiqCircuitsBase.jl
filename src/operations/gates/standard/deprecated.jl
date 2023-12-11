@@ -48,12 +48,12 @@ julia> matrix(GateU1(0.519))
 
 julia> c = push!(Circuit(), GateU1(λ), 1)
 1-qubit circuit with 1 instructions:
-└── U1(λ) @ q1
+└── U1(λ) @ q[1]
 
 julia> push!(c, GateU1(π/2), 2)
 2-qubit circuit with 2 instructions:
-├── U1(λ) @ q1
-└── U1(π/2) @ q2
+├── U1(λ) @ q[1]
+└── U1(π/2) @ q[2]
 
 julia> power(GateU1(λ), 2), inverse(GateU1(λ))
 (U1(λ)^2, U1(-λ))
@@ -65,7 +65,7 @@ julia> power(GateU1(λ), 2), inverse(GateU1(λ))
 ```jldoctests; setup = :(@variables λ)
 julia> decompose(GateU1(λ))
 1-qubit circuit with 1 instructions:
-└── U(0, 0, λ) @ q1
+└── U(0, 0, λ) @ q[1]
 
 ```
 """
@@ -93,11 +93,9 @@ Single qubit rotation `\operatorname{U2}(\phi, \lambda)` about the X+Z axis.
 ## Matrix representation
 
 ```math
-\operatorname{U2}(\lambda) =
-\frac{1}{\sqrt{2}}
-\begin{pmatrix}
-    1 & \mathrm{e}^{-i\lambda} \\
-    \mathrm{e}^{i\phi} & e^{i(\phi+\lambda)}
+\operatorname{U2}(\phi,\lambda) = \frac{1}{\sqrt{2}}e^{-(\phi+\lambda)/2}\begin{pmatrix}
+1 & -e^{i\lambda} \\
+e^{i\phi} & e^{i(\phi+\lambda)}
 \end{pmatrix}
 ```
 
@@ -119,12 +117,12 @@ julia> matrix(GateU2(2.023, 0.5))
 
 julia> c = push!(Circuit(), GateU2(ϕ, λ), 1)
 1-qubit circuit with 1 instructions:
-└── U2(ϕ, λ) @ q1
+└── U2(ϕ, λ) @ q[1]
 
 julia> push!(c, GateU2(π/2, π/4), 2)
 2-qubit circuit with 2 instructions:
-├── U2(ϕ, λ) @ q1
-└── U2(π/2, π/4) @ q2
+├── U2(ϕ, λ) @ q[1]
+└── U2(π/2, π/4) @ q[2]
 
 julia> power(GateU2(ϕ, λ), 2), inverse(GateU2(ϕ, λ))
 (U2(ϕ, λ)^2, U2(-3.141592653589793 - λ, π - ϕ))
@@ -136,8 +134,8 @@ julia> power(GateU2(ϕ, λ), 2), inverse(GateU2(ϕ, λ))
 ```jldoctests; setup = :(@variables ϕ λ)
 julia> decompose(GateU2(ϕ, λ))
 1-qubit circuit with 2 instructions:
-├── GPhase((1//2)*(-1.5707963267948966 - λ - ϕ)) @ q1
-└── U(π/2, ϕ, λ) @ q1
+├── GPhase((1//2)*(-1.5707963267948966 - λ - ϕ)) @ q[1]
+└── U(π/2, ϕ, λ) @ q[1]
 
 ```
 """
@@ -154,7 +152,7 @@ _matrix(::Type{GateU2}, ϕ, λ) = gphasepi(-(ϕ / π + λ / π + 1 / 2) / 2) * u
 
 function decompose!(circ::Circuit, g::GateU2, qtargets, _)
     q = qtargets[1]
-    push!(circ, GPhase(-(g.ϕ + g.λ + π / 2) / 2), q)
+    push!(circ, GPhase(1, -(g.ϕ + g.λ + π / 2) / 2), q)
     push!(circ, GateU(π / 2, g.ϕ, g.λ), q)
     return circ
 end
@@ -170,8 +168,11 @@ from it only by a global phase of ``\frac{\phi + \lambda + \theta}{2}``.
 ## Matrix representation
 
 ```math
-\operatorname{U3}(\theta, \phi, \lambda) =
-\mathrm{e}^{-i \frac{\phi + \lambda + \theta}{2}} \cdot \operatorname{U}(\theta, \phi, \lambda)
+\operatorname{U3}(\theta,\phi,\lambda) = \frac{1}{2}e^{-i(\phi + \lambda + \theta)/2}
+        \begin{pmatrix}
+        1 + e^{i\theta} & -i e^{i\lambda}(1 - e^{i\theta}) \\
+        i e^{i\phi}(1 - e^{i\theta}) & e^{i(\phi + \lambda)}(1 + e^{i\theta})
+        \end{pmatrix}
 ```
 
 ## Examples
@@ -193,12 +194,12 @@ julia> matrix(GateU3(2.023, 0.5, 0.1))
 
 julia> c = push!(Circuit(), GateU3(θ, ϕ, λ), 1)
 1-qubit circuit with 1 instructions:
-└── U3(θ, ϕ, λ) @ q1
+└── U3(θ, ϕ, λ) @ q[1]
 
 julia> push!(c, GateU3(π/8, π/2, π/4), 2)
 2-qubit circuit with 2 instructions:
-├── U3(θ, ϕ, λ) @ q1
-└── U3(π/8, π/2, π/4) @ q2
+├── U3(θ, ϕ, λ) @ q[1]
+└── U3(π/8, π/2, π/4) @ q[2]
 
 julia> power(GateU3(θ, ϕ, λ), 2), inverse(GateU3(θ, ϕ, λ))
 (U3(θ, ϕ, λ)^2, U3(-θ, -λ, -ϕ))
@@ -210,8 +211,8 @@ julia> power(GateU3(θ, ϕ, λ), 2), inverse(GateU3(θ, ϕ, λ))
 ```jldoctests; setup = :(@variables θ ϕ λ)
 julia> decompose(GateU3(θ, ϕ, λ))
 1-qubit circuit with 2 instructions:
-├── GPhase((1//2)*(-θ - λ - ϕ)) @ q1
-└── U(θ, ϕ, λ) @ q1
+├── GPhase((1//2)*(-θ - λ - ϕ)) @ q[1]
+└── U(θ, ϕ, λ) @ q[1]
 
 ```
 """
@@ -231,7 +232,7 @@ _matrix(::Type{GateU3}, θ, ϕ, λ) = gphasepi(-(ϕ / π + λ / π + θ / π) / 
 
 function decompose!(circ::Circuit, g::GateU3, qtargets, _)
     q = qtargets[1]
-    push!(circ, GPhase(-(g.ϕ + g.λ + g.θ) / 2), q)
+    push!(circ, GPhase(1, -(g.ϕ + g.λ + g.θ) / 2), q)
     push!(circ, GateU(g.θ, g.ϕ, g.λ), q)
     return circ
 end

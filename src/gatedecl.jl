@@ -6,15 +6,25 @@ Define a new gate of given name, arguments and instructions.
 ### Examples
 
 A simple gate declaration, via the `@gatedecl` macro:
-```@repl
-decl = @gatedecl ansatz(θ) = begin
-    insts = Instruction[]
-    push!(insts, Instruction(GateX(), 1))
-    push!(insts, Instruction(GateRX(θ), 2))
-    return insts
-end
-@variables λ;
-decompose(decl(λ))
+```jldoctests
+julia> decl = @gatedecl ansatz(θ) = begin
+           insts = Instruction[]
+           push!(insts, Instruction(GateX(), 1))
+           push!(insts, Instruction(GateRX(θ), 2))
+           return insts
+       end
+gate ansatz(θ) =
+├── X @ q[1]
+└── RX(θ) @ q[2]
+
+julia> @variables λ;
+
+
+julia> decompose(decl(λ))
+2-qubit circuit with 2 instructions:
+├── X @ q[1]
+└── RX(λ) @ q[2]
+
 ```
 
 ## See also
@@ -35,7 +45,12 @@ struct GateDecl{N,M}
             throw(ArgumentError("GateDecl instructions cannot be empty."))
         end
 
-        nq = numqubits(instructions)
+        unique_qubits = Set{Symbol}()
+        for inst in instructions
+            unique_qubits = union(unique_qubits, getqubits(inst))
+        end
+
+        nq = length(unique_qubits)
         np = length(args)
 
         new{nq,np}(name, args, instructions)
@@ -102,15 +117,21 @@ arguments.
 
 ## Examples
 
-```@repl
-decl = @gatedecl ansatz(θ) = begin
-    insts = Instruction[]
-    push!(insts, Instruction(GateX(), 1))
-    push!(insts, Instruction(GateRX(θ), 2))
-    return insts
-end;
-@variables λ;
-decl(λ)
+```jldoctests
+julia> decl = @gatedecl ansatz(θ) = begin
+           insts = Instruction[]
+           push!(insts, Instruction(GateX(), 1))
+           push!(insts, Instruction(GateRX(θ), 2))
+           return insts
+       end;
+
+
+julia> @variables λ;
+
+
+julia> decl(λ)
+ansatz(λ)
+
 ```
 
 ## See also

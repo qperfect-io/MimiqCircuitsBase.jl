@@ -81,8 +81,8 @@ struct GateCustom{N} <: AbstractGate{N}
             throw(ArgumentError("Custom matrix should be 2^$(M)×2^$(M)."))
         end
 
-        if !isapprox(U * inv(U), Matrix(I, M, M), rtol=1e-8)
-            throw(ArgumentError("Custom matrix not unitary (U⋅inv(U) ≉ I)."))
+        if !isapprox(U * adjoint(U), Matrix(I, M, M), rtol=1e-8)
+            throw(ArgumentError("Custom matrix not unitary (U⋅adjoint(U) ≉ I)."))
         end
 
         return new{N}(U)

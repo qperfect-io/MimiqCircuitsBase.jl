@@ -40,9 +40,13 @@ abstract type AbstractInstruction end
 
 ## Examples
 
-```@repl
-inst = Instruction(GateCX(), 1, 3)
-getqubit(inst, 2)
+```jldoctests
+julia> inst = Instruction(GateCX(), 1, 3)
+CX @ q[1], q[3]
+
+julia> getqubit(inst, 2)
+3
+
 ```
 
 ## See also
@@ -56,9 +60,13 @@ function getqubit end
 
 Tuple of quantum bits which the instruction is applied to.
 
-```@repl
-inst = Instruction(GateCX(), 1, 3)
-getqubits(inst)
+```jldoctests
+julia> inst = Instruction(GateCX(), 1, 3)
+CX @ q[1], q[3]
+
+julia> getqubits(inst)
+(1, 3)
+
 ```
 
 ## See also
@@ -74,9 +82,13 @@ function getqubits end
 
 ## Examples
 
-```@repl
-inst = Instruction(Measure(), 1, 3)
-getbit(inst, 1)
+```jldoctests
+julia> inst = Instruction(Measure(), 1, 3)
+Measure @ q[1], c[3]
+
+julia> getbit(inst, 1)
+3
+
 ```
 
 ## See also
@@ -92,9 +104,13 @@ Tuple of the classical bits which the instruction is applied to.
 
 ## Examples
 
-```@repl
-inst = Instruction(Measure(), 1, 3)
-getbits(inst)
+```jldoctests
+julia> inst = Instruction(Measure(), 1, 3)
+Measure @ q[1], c[3]
+
+julia> getbits(inst)
+(3,)
+
 ```
 
 ## See also
@@ -128,10 +144,16 @@ Representation of an operation applied to specific qubit and bit targets.
 
 ## Example
 
-```@repl
-Instruction(GateX(), (1,), ())
-Instruction(GateCX(), (1,2), ())
-Instruction(Measure(), (3,), (3,))
+```jldoctests
+julia> Instruction(GateX(), (1,), ())
+X @ q[1]
+
+julia> Instruction(GateCX(), (1,2), ())
+CX @ q[1], q[2]
+
+julia> Instruction(Measure(), (3,), (3,))
+Measure @ q[3], c[3]
+
 ```
 
 ## See also
@@ -163,10 +185,16 @@ By convention, if `op` is an `N`-qubit and `M`-bit operations, then the first
 
 ## Examples
 
-```@repl
-Instruction(GateX(), 1))
-Instruction(GateCX(), 1,2)
-Instruction(Measure(), 3, 3)
+```jldoctests
+julia> Instruction(GateX(), 1)
+X @ q[1]
+
+julia> Instruction(GateCX(), 1,2)
+CX @ q[1], q[2]
+
+julia> Instruction(Measure(), 3, 3)
+Measure @ q[3], c[3]
+
 ```
 """
 function Instruction(op::Operation{N,M}, targets::Vararg{Integer,L}; kwargs...) where {N,M,L}
@@ -179,44 +207,6 @@ function Instruction(op::Operation{N,M}, targets::Vararg{Integer,L}; kwargs...) 
 
     Instruction(op, qtargets, ctargets; kwargs...)
 end
-
-# If the we are trying to push a type, then probably we would like to call
-# its constructor before, since the type is dependent on the targets.
-# A call could result to multiple instructions (e.g. passing registers instead of )
-"""
-    Instruction(Type, targets...)
-
-Constructors an instruction from an operation type and a list of targets.
-
-The constructor calls the `Type(Instruction, targets...)` method, which should
-return an `Instruction`.
-
-## Examples
-
-```@repl
-Instruction(GateX, 1)
-Instruction(GateCX, 1, 2, 3)
-Instruction(QFT, 1:4)
-```
-"""
-Instruction(::Type{T}, targets...) where {T} = T(Instruction, targets...)
-
-# same for a function
-"""
-    Instruction(f::Function, targets...)
-
-Constructors an instruction from function and a list of targets.
-
-The constructor calls the `f(targets...)` method, which should
-return an `Instruction`.
-
-## Examples
-
-```@repl
-Instruction(QFT(), 1:4)
-```
-"""
-Instruction(f::Function, targets...)::Instruction = f(targets...)
 
 isunitary(::Type{Instruction{N,M,T}}) where {N,M,T} = isunitary(T)
 
@@ -247,12 +237,38 @@ function _partition(arr, indices)
     return partitions
 end
 
-function _string_with_square(arr, sep)
-    if length(arr) == 1
-        return "$(arr[1])"
-    else
-        return "[$(join(arr, sep))]"
+_string_with_square(arr, sep) = return "[$(join(arr, sep))]"
+
+function _findunitrange(arr)
+    if length(arr) < 2
+        return arr
     end
+
+    narr = []
+    rangestart = arr[1]
+    rangestop = arr[1]
+
+    for v in arr[2:end]
+        if v == rangestop + 1
+            rangestop = v
+        elseif rangestart == rangestop
+            push!(narr, rangestart)
+            rangestart = v
+            rangestop = v
+        else
+            push!(narr, rangestart:rangestop)
+            rangestart = v
+            rangestop = v
+        end
+    end
+
+    if rangestart == rangestop
+        push!(narr, rangestart)
+    else
+        push!(narr, rangestart:rangestop)
+    end
+
+    return narr
 end
 
 function Base.show(io::IO, g::Instruction)
@@ -272,7 +288,7 @@ function Base.show(io::IO, g::Instruction)
         # group the qubits
         if nq != 0
             ps = _partition(getqubits(g), cumsum(qregsizes(op)))
-            join(io, map(x -> "q" * _string_with_square(x, ","), ps), ",$space")
+            join(io, map(x -> "q" * _string_with_square(_findunitrange(x), ","), ps), ",$space")
         end
 
         if nq != 0 && nb != 0
@@ -282,7 +298,7 @@ function Base.show(io::IO, g::Instruction)
         # group the cbits
         if nb != 0
             ps = _partition(getbits(g), cumsum(cregsizes(op)))
-            join(io, map(x -> "c" * _string_with_square(x, ","), ps), ",$space")
+            join(io, map(x -> "c" * _string_with_square(_findunitrange(x), ","), ps), ",$space")
         end
     end
 end

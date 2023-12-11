@@ -57,12 +57,12 @@ julia> matrix(GateRXX(θ))
 
 julia> c = push!(Circuit(), GateRXX(θ), 1, 2)
 2-qubit circuit with 1 instructions:
-└── RXX(θ) @ q1, q2
+└── RXX(θ) @ q[1:2]
 
 julia> push!(c, GateRXX(π/2), 1, 2)
 2-qubit circuit with 2 instructions:
-├── RXX(θ) @ q1, q2
-└── RXX(π/2) @ q1, q2
+├── RXX(θ) @ q[1:2]
+└── RXX(π/2) @ q[1:2]
 
 ```
 
@@ -71,13 +71,13 @@ julia> push!(c, GateRXX(π/2), 1, 2)
 ```jldoctests; setup = :(@variables θ)
 julia> decompose(GateRXX(θ))
 2-qubit circuit with 7 instructions:
-├── H @ q1
-├── H @ q2
-├── CX @ q1, q2
-├── RZ(θ) @ q2
-├── CX @ q1, q2
-├── H @ q2
-└── H @ q1
+├── H @ q[1]
+├── H @ q[2]
+├── CX @ q[1], q[2]
+├── RZ(θ) @ q[2]
+├── CX @ q[1], q[2]
+├── H @ q[2]
+└── H @ q[1]
 
 ```
 """
@@ -154,12 +154,12 @@ julia> matrix(GateRYY(θ))
 
 julia> c = push!(Circuit(), GateRYY(θ), 1, 2)
 2-qubit circuit with 1 instructions:
-└── RYY(θ) @ q1, q2
+└── RYY(θ) @ q[1:2]
 
 julia> push!(c, GateRYY(π/2), 1, 2)
 2-qubit circuit with 2 instructions:
-├── RYY(θ) @ q1, q2
-└── RYY(π/2) @ q1, q2
+├── RYY(θ) @ q[1:2]
+└── RYY(π/2) @ q[1:2]
 
 ```
 
@@ -168,13 +168,13 @@ julia> push!(c, GateRYY(π/2), 1, 2)
 ```jldoctests; setup = :(@variables θ)
 julia> decompose(GateRYY(θ))
 2-qubit circuit with 7 instructions:
-├── RX(π/2) @ q1
-├── RX(π/2) @ q2
-├── CX @ q1, q2
-├── RZ(θ) @ q2
-├── CX @ q1, q2
-├── RX(-1π/2) @ q1
-└── RX(-1π/2) @ q2
+├── RX(π/2) @ q[1]
+├── RX(π/2) @ q[2]
+├── CX @ q[1], q[2]
+├── RZ(θ) @ q[2]
+├── CX @ q[1], q[2]
+├── RX(-1π/2) @ q[1]
+└── RX(-1π/2) @ q[2]
 
 ```
 """
@@ -250,12 +250,12 @@ julia> matrix(GateRZZ(θ))
 
 julia> c = push!(Circuit(), GateRZZ(θ), 1, 2)
 2-qubit circuit with 1 instructions:
-└── RZZ(θ) @ q1, q2
+└── RZZ(θ) @ q[1:2]
 
 julia> push!(c, GateRZZ(π/2), 1, 2)
 2-qubit circuit with 2 instructions:
-├── RZZ(θ) @ q1, q2
-└── RZZ(π/2) @ q1, q2
+├── RZZ(θ) @ q[1:2]
+└── RZZ(π/2) @ q[1:2]
 
 ```
 
@@ -264,9 +264,9 @@ julia> push!(c, GateRZZ(π/2), 1, 2)
 ```jldoctests; setup = :(@variables θ)
 julia> decompose(GateRZZ(θ))
 2-qubit circuit with 3 instructions:
-├── CX @ q1, q2
-├── RZ(θ) @ q2
-└── CX @ q1, q2
+├── CX @ q[1], q[2]
+├── RZ(θ) @ q[2]
+└── CX @ q[1], q[2]
 
 ```
 """
@@ -309,13 +309,12 @@ See also [`GateRXX`](@ref), [`GateRYY`](@ref), [`GateRZZ`](@ref),
 ## Matrix representation
 
 ```math
-\operatorname{R}_{ZX}(\theta) =
-\begin{pmatrix}
-    \cos{\left(\frac{\theta{}/2}\right)} & -i\{\left(\frac{\theta{}/2}\right)} & 0 & 0 \\
-    -i\{\left(\frac{\theta{}/2}\right)} & \cos{\left(\frac{\theta{}/2}\right)} & i\{\left(\frac{\theta{}/2}\right)} & 0 \\
-    0 & 0 & \cos{\left(\frac{\theta{}/2}\right)} & \cos{\left(\frac{\theta{}/2}\right)} \\
-    0 & 0 & i\{\left(\frac{\theta{}/2}\right)} & 0
-\end{pmatrix}
+\operatorname{RZX}(\theta) =\begin{pmatrix}
+            \cos(\frac{\theta}{2}) & -i\sin(\frac{\theta}{2}) & 0 & 0 \\
+            -i\sin(\frac{\theta}{2}) & \cos(\frac{\theta}{2}) & 0 & 0 \\
+            0 & 0 & \cos(\frac{\theta}{2}) & i\sin(\frac{\theta}{2}) \\
+            0 & 0 & i\sin(\frac{\theta}{2}) & \cos(\frac{\theta}{2})
+        \end{pmatrix}
 ```
 
 ## Examples
@@ -337,12 +336,12 @@ julia> matrix(GateRZX(θ))
 
 julia> c = push!(Circuit(), GateRZX(θ), 1, 2)
 2-qubit circuit with 1 instructions:
-└── RZX(θ) @ q1, q2
+└── RZX(θ) @ q[1:2]
 
 julia> push!(c, GateRZX(π/2), 1, 2)
 2-qubit circuit with 2 instructions:
-├── RZX(θ) @ q1, q2
-└── RZX(π/2) @ q1, q2
+├── RZX(θ) @ q[1:2]
+└── RZX(π/2) @ q[1:2]
 
 ```
 
@@ -351,11 +350,11 @@ julia> push!(c, GateRZX(π/2), 1, 2)
 ```jldoctests; setup = :(@variables θ)
 julia> decompose(GateRZX(θ))
 2-qubit circuit with 5 instructions:
-├── H @ q2
-├── CX @ q1, q2
-├── RZ(θ) @ q2
-├── CX @ q1, q2
-└── H @ q2
+├── H @ q[2]
+├── CX @ q[1], q[2]
+├── RZ(θ) @ q[2]
+├── CX @ q[1], q[2]
+└── H @ q[2]
 
 ```
 """
@@ -402,8 +401,8 @@ See also [`GateRXX`](@ref), [`GateRYY`](@ref), [`GateRZZ`](@ref),
 \operatorname{(XX+YY)}(\theta, \beta) =
 \begin{pmatrix}
     1 & 0 & 0 & 0 \\
-    0 & \cos(\frac{\theta}{2}) & -i\sin(\frac{\theta}{2})e^{i\beta} & 0 \\
-    0 & -i\sin(\\frac{theta}{2})e^{-i\beta} & \cos(\frac{\theta}{2}) & 0 \\
+    0 & \cos(\frac{\theta}{2}) & -i\sin(\frac{\theta}{2})e^{-i\beta} & 0 \\
+    0 & -i\sin(\frac{\theta}{2})e^{i\beta} & \cos(\frac{\theta}{2}) & 0 \\
     0 & 0 & 0 & 1
 \end{pmatrix}
 ```
@@ -421,19 +420,19 @@ XXplusYY(θ, β)
 
 julia> matrix(GateXXplusYY(θ, β))
 4×4 Matrix{Complex{Symbolics.Num}}:
- 1                                 0                  …  0
- 0                     cos((1//2)*θ)                     0
- 0  sin(-β)*sin((1//2)*θ) - im*cos(-β)*sin((1//2)*θ)     0
- 0                                 0                     1
+ 1                       0                          …  0
+ 0           cos((1//2)*θ)                             0
+ 0  sin(β)*sin((1//2)*θ) - im*cos(β)*sin((1//2)*θ)     0
+ 0                       0                             1
 
 julia> c = push!(Circuit(), GateXXplusYY(θ, β), 1, 2)
 2-qubit circuit with 1 instructions:
-└── XXplusYY(θ, β) @ q1, q2
+└── XXplusYY(θ, β) @ q[1:2]
 
 julia> push!(c, GateXXplusYY(π/2, 0), 1, 2)
 2-qubit circuit with 2 instructions:
-├── XXplusYY(θ, β) @ q1, q2
-└── XXplusYY(π/2, 0) @ q1, q2
+├── XXplusYY(θ, β) @ q[1:2]
+└── XXplusYY(π/2, 0) @ q[1:2]
 
 ```
 
@@ -442,20 +441,20 @@ julia> push!(c, GateXXplusYY(π/2, 0), 1, 2)
 ```jldoctests; stup = :(@variables θ β)
 julia> decompose(GateXXplusYY(θ, β))
 2-qubit circuit with 14 instructions:
-├── RZ(β) @ q1
-├── RZ(-1π/2) @ q2
-├── SX @ q2
-├── RZ(π/2) @ q2
-├── S @ q1
-├── CX @ q2, q1
-├── RY((-1//2)*θ) @ q2
-├── RY((-1//2)*θ) @ q1
-├── CX @ q2, q1
-├── S† @ q1
-├── RZ(-1π/2) @ q2
-├── SX† @ q2
-├── RZ(π/2) @ q2
-└── RZ(-β) @ q1
+├── RZ(β) @ q[1]
+├── RZ(-1π/2) @ q[2]
+├── SX @ q[2]
+├── RZ(π/2) @ q[2]
+├── S @ q[1]
+├── CX @ q[2], q[1]
+├── RY((-1//2)*θ) @ q[2]
+├── RY((-1//2)*θ) @ q[1]
+├── CX @ q[2], q[1]
+├── S† @ q[1]
+├── RZ(-1π/2) @ q[2]
+├── SX† @ q[2]
+├── RZ(π/2) @ q[2]
+└── RZ(-β) @ q[1]
 
 ```
 """
@@ -470,8 +469,8 @@ inverse(g::GateXXplusYY) = GateXXplusYY(-g.θ, g.β)
 
 _matrix(::Type{GateXXplusYY}, θ, β) = [
     1 0 0 0
-    0 cos(θ / 2) -im*sin(θ / 2)*cis(β) 0
-    0 -im*sin(θ / 2)*cis(-β) cos(θ / 2) 0
+    0 cos(θ / 2) -im*sin(θ / 2)*cis(-β) 0
+    0 -im*sin(θ / 2)*cis(β) cos(θ / 2) 0
     0 0 0 1
 ]
 
@@ -536,12 +535,12 @@ julia> matrix(GateXXminusYY(θ, β))
 
 julia> c = push!(Circuit(), GateXXminusYY(θ, β), 1, 2)
 2-qubit circuit with 1 instructions:
-└── XXminusYY(θ, β) @ q1, q2
+└── XXminusYY(θ, β) @ q[1:2]
 
 julia> push!(c, GateXXminusYY(π/2, 0.0), 1, 2)
 2-qubit circuit with 2 instructions:
-├── XXminusYY(θ, β) @ q1, q2
-└── XXminusYY(π/2, 0π) @ q1, q2
+├── XXminusYY(θ, β) @ q[1:2]
+└── XXminusYY(π/2, 0π) @ q[1:2]
 
 ```
 
@@ -550,20 +549,20 @@ julia> push!(c, GateXXminusYY(π/2, 0.0), 1, 2)
 ```jldoctests; setup = :(@variables θ β)
 julia> decompose(GateXXminusYY(θ, β))
 2-qubit circuit with 14 instructions:
-├── RZ(-β) @ q2
-├── RZ(-1π/2) @ q1
-├── SX @ q1
-├── RZ(π/2) @ q1
-├── S @ q2
-├── CX @ q1, q2
-├── RY((1//2)*θ) @ q1
-├── RY((-1//2)*θ) @ q2
-├── CX @ q1, q2
-├── S† @ q2
-├── RZ(-1π/2) @ q1
-├── SX† @ q1
-├── RZ(π/2) @ q1
-└── RZ(β) @ q2
+├── RZ(-β) @ q[2]
+├── RZ(-1π/2) @ q[1]
+├── SX @ q[1]
+├── RZ(π/2) @ q[1]
+├── S @ q[2]
+├── CX @ q[1], q[2]
+├── RY((1//2)*θ) @ q[1]
+├── RY((-1//2)*θ) @ q[2]
+├── CX @ q[1], q[2]
+├── S† @ q[2]
+├── RZ(-1π/2) @ q[1]
+├── SX† @ q[1]
+├── RZ(π/2) @ q[1]
+└── RZ(β) @ q[2]
 
 ```
 """

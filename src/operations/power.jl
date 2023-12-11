@@ -59,19 +59,19 @@ If the exponent is an integer, then the gate is decomposed by repeating it.
 ```jldoctests
 julia> decompose(Power(GateH(), 2))
 1-qubit circuit with 2 instructions:
-├── H @ q1
-└── H @ q1
+├── H @ q[1]
+└── H @ q[1]
 
 julia> decompose(Power(GateH(), 1//2))
 1-qubit circuit with 1 instructions:
-└── H^(1//2) @ q1
+└── H^(1//2) @ q[1]
 
 julia> decompose(Power(GateX(), 1//2)) # same as decomposing GateSX
 1-qubit circuit with 4 instructions:
-├── S† @ q1
-├── H @ q1
-├── S† @ q1
-└── GPhase(π/4) @ q1
+├── S† @ q[1]
+├── H @ q[1]
+├── S† @ q[1]
+└── GPhase(π/4) @ q[1]
 ```
 """
 struct Power{P,N,T<:AbstractGate{N}} <: AbstractGate{N}

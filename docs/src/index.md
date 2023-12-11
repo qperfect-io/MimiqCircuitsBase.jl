@@ -17,44 +17,50 @@ DocTestSetup = quote
 end
 ```
 
-```jldoctest
+```@repl
 julia> c = Circuit()
 empty circuit
 
 julia> push!(c, GateH(), 1)
 1-qubit circuit with 1 instructions:
-└── H @ q1
+└── H @ q[1]
 
 julia> push!(c, GateCX(), 1, 2:4)
 4-qubit circuit with 4 instructions:
-├── H @ q1
-├── CX @ q1, q2
-├── CX @ q1, q3
-└── CX @ q1, q4
+├── H @ q[1]
+├── CX @ q[1], q[2]
+├── CX @ q[1], q[3]
+└── CX @ q[1], q[4]
 
-julia> push!(c, Barrier, 1:4...)
-4-qubit circuit with 5 instructions:
-├── H @ q1
-├── CX @ q1, q2
-├── CX @ q1, q3
-├── CX @ q1, q4
-└── Barrier @ q1, q2, q3, q4
+julia> push!(c, Barrier(1), 1:4)
+4-qubit circuit with 8 instructions:
+├── H @ q[1]
+├── CX @ q[1], q[2]
+├── CX @ q[1], q[3]
+├── CX @ q[1], q[4]
+├── Barrier @ q[1]
+├── Barrier @ q[2]
+├── Barrier @ q[3]
+└── Barrier @ q[4]
 
 julia> for i in 1:4
            push!(c, Measure(), i, i)
        end
 
 julia> c
-4-qubit circuit with 9 instructions:
-├── H @ q1
-├── CX @ q1, q2
-├── CX @ q1, q3
-├── CX @ q1, q4
-├── Barrier @ q1, q2, q3, q4
-├── Measure @ q1, c1
-├── Measure @ q2, c2
-├── Measure @ q3, c3
-└── Measure @ q4, c4
+4-qubit circuit with 12 instructions:
+├── H @ q[1]
+├── CX @ q[1], q[2]
+├── CX @ q[1], q[3]
+├── CX @ q[1], q[4]
+├── Barrier @ q[1]
+├── Barrier @ q[2]
+├── Barrier @ q[3]
+├── Barrier @ q[4]
+├── Measure @ q[1], c[1]
+├── Measure @ q[2], c[2]
+├── Measure @ q[3], c[3]
+└── Measure @ q[4], c[4]
 ```
 
 ```@meta

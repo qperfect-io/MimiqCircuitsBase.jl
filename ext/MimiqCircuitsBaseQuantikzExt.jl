@@ -58,7 +58,10 @@ function toquantikz(circ::Circuit)
 end
 
 Quantikz.displaycircuit(circ::Circuit, args...; kwargs...) = displaycircuit(toquantikz(circ), args...; kwargs...)
-
+Quantikz.circuit2table(circ::Circuit, args...; kwargs...) = circuit2table(toquantikz(circ), args...; kwargs...)
+Quantikz.circuit2image(circ::Circuit, args...; kwargs...) = circuit2image(toquantikz(circ), args...; kwargs...)
+Quantikz.circuit2string(circ::Circuit, args...; kwargs...) = circuit2string(toquantikz(circ), args...; kwargs...)
 Quantikz.savecircuit(circ::Circuit, args...; kwargs...) = savecircuit(toquantikz(circ), args...; kwargs...)
+Quantikz.savetex(circ::Circuit, args...; kwargs...) = savetex(toquantikz(circ), args...; kwargs...)
 
 end # module

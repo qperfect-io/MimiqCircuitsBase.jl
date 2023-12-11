@@ -42,7 +42,7 @@ julia> matrix(GateID())
 
 julia> c = push!(Circuit(), GateID(), 1)
 1-qubit circuit with 1 instructions:
-└── ID @ q1
+└── ID @ q[1]
 
 julia> power(GateID(), 2), inverse(GateID())
 (ID, ID)
@@ -54,7 +54,7 @@ julia> power(GateID(), 2), inverse(GateID())
 ```jldoctests
 julia> decompose(GateID())
 1-qubit circuit with 1 instructions:
-└── U(0, 0, 0) @ q1
+└── U(0, 0, 0) @ q[1]
 
 ```
 """
@@ -111,7 +111,7 @@ julia> matrix(GateID2())
 
 julia> c = push!(Circuit(), GateID2(), 1, 2)
 2-qubit circuit with 1 instructions:
-└── CID @ q1, q2
+└── CID @ q[1], q[2]
 
 julia> power(GateID2(), 2), inverse(GateID2())
 (CID, CID)
@@ -123,7 +123,7 @@ julia> power(GateID2(), 2), inverse(GateID2())
 ```jldoctests
 julia> decompose(GateID2())
 2-qubit circuit with 1 instructions:
-└── CU(0, 0, 0) @ q1, q2
+└── CU(0, 0, 0) @ q[1], q[2]
 
 ```
 """

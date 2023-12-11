@@ -43,14 +43,14 @@ A parallel is decomposed into a sequence of operation, one for each group of qub
 ```jldoctests
 julia> decompose(Parallel(2, GateX()))
 2-qubit circuit with 2 instructions:
-├── X @ q1
-└── X @ q2
+├── X @ q[1]
+└── X @ q[2]
 
 julia> decompose(Parallel(3, GateSWAP()))
 6-qubit circuit with 3 instructions:
-├── SWAP @ q1, q4
-├── SWAP @ q2, q5
-└── SWAP @ q3, q6
+├── SWAP @ q[1,4]
+├── SWAP @ q[2,5]
+└── SWAP @ q[3,6]
 ```
 """
 struct Parallel{N,M,L,T<:AbstractGate{M}} <: AbstractGate{L}
@@ -83,7 +83,7 @@ getoperation(p::Parallel) = p.op
 
 parnames(::Type{Parallel{N,M,L,T}}) where {N,M,L,T} = parnames(T)
 
-qregsizes(::Parallel{N,M}) where {N,M} = ntuple(x -> M, N)
+qregsizes(op::Parallel{N}) where {N} = Tuple(repeat(collect(qregsizes(getoperation(op))); outer=N))
 
 getparam(p::Parallel, name) = getparam(getoperation(p), name)
 
@@ -137,3 +137,18 @@ function decompose!(circ::Circuit, p::Parallel, qtargets, _)
     targets = reshape(qtargets, (numrepeats(p), numqubits(op)))
     push!(circ, getoperation(p), eachcol(targets)...)
 end
+
+"""
+    parallel(repeats, operation)
+
+Build a parallel operation.
+
+The resulting operation is applied over `N * repeats` qubits.
+"""
+function parallel end
+
+parallel(numrepeats::Integer, op::Operation{N,0}) where {N} = Parallel(numrepeats, op)
+
+parallel(op::Operation{N,0}) where {N} = LazyExpr(parallel, LazyArg(), op)
+parallel(num_repeats, l::LazyExpr) = LazyExpr(parallel, num_repeats, l)
+parallel(l::LazyExpr) = LazyExpr(parallel, LazyArg(), l)

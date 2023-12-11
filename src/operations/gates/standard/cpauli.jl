@@ -53,7 +53,7 @@ julia> matrix(GateCX())
 
 julia> c = push!(Circuit(), GateCX(), 1, 2)
 2-qubit circuit with 1 instructions:
-└── CX @ q1, q2
+└── CX @ q[1], q[2]
 
 julia> power(GateCX(), 2), inverse(GateCX())
 (CID, CX)
@@ -65,8 +65,8 @@ julia> power(GateCX(), 2), inverse(GateCX())
 ```jldoctests
 julia> decompose(GateCX())
 2-qubit circuit with 2 instructions:
-├── CU(π, 0, π) @ q1, q2
-└── CGPhase(-1π/2) @ q1, q2
+├── CU(π, 0, π) @ q[1], q[2]
+└── CGPhase(-1π/2) @ q[1], q[2]
 
 ```
 """
@@ -110,7 +110,7 @@ julia> matrix(GateCY())
 
 julia> c = push!(Circuit(), GateCY(), 1, 2)
 2-qubit circuit with 1 instructions:
-└── CY @ q1, q2
+└── CY @ q[1], q[2]
 
 julia> power(GateCY(), 2), inverse(GateCY())
 (CID, CY)
@@ -122,9 +122,9 @@ julia> power(GateCY(), 2), inverse(GateCY())
 ```jldoctests
 julia> decompose(GateCY())
 2-qubit circuit with 3 instructions:
-├── S† @ q2
-├── CX @ q1, q2
-└── S @ q2
+├── S† @ q[2]
+├── CX @ q[1], q[2]
+└── S @ q[2]
 
 ```
 """
@@ -175,7 +175,7 @@ julia> matrix(GateCZ())
 
 julia> c = push!(Circuit(), GateCZ(), 1, 2)
 2-qubit circuit with 1 instructions:
-└── CZ @ q1, q2
+└── CZ @ q[1], q[2]
 
 julia> power(GateCZ(), 2), inverse(GateCZ())
 (CID, CZ)
@@ -187,9 +187,9 @@ julia> power(GateCZ(), 2), inverse(GateCZ())
 ```jldoctests
 julia> decompose(GateCZ())
 2-qubit circuit with 3 instructions:
-├── H @ q2
-├── CX @ q1, q2
-└── H @ q2
+├── H @ q[2]
+├── CX @ q[1], q[2]
+└── H @ q[2]
 ```
 """
 const GateCZ = typeof(Control(GateZ()))

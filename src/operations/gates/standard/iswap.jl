@@ -48,12 +48,12 @@ julia> matrix(GateISWAP())
 
 julia> c = push!(Circuit(), GateISWAP(), 1, 2)
 2-qubit circuit with 1 instructions:
-└── ISWAP @ q1, q2
+└── ISWAP @ q[1:2]
 
 julia> push!(c, GateISWAP, 3, 4)
 4-qubit circuit with 2 instructions:
-├── ISWAP @ q1, q2
-└── ISWAP @ q3, q4
+├── ISWAP @ q[1:2]
+└── ISWAP @ q[3:4]
 
 julia> power(GateISWAP(), 2), inverse(GateISWAP())
 (ISWAP^2, ISWAP†)
@@ -65,12 +65,12 @@ julia> power(GateISWAP(), 2), inverse(GateISWAP())
 ```jldoctest
 julia> decompose(GateISWAP())
 2-qubit circuit with 6 instructions:
-├── S @ q1
-├── S @ q2
-├── H @ q1
-├── CX @ q1, q2
-├── CX @ q2, q1
-└── H @ q2
+├── S @ q[1]
+├── S @ q[2]
+├── H @ q[1]
+├── CX @ q[1], q[2]
+├── CX @ q[2], q[1]
+└── H @ q[2]
 
 ```
 """

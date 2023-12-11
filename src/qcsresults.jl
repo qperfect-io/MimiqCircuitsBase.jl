@@ -14,6 +14,23 @@
 # limitations under the License.
 #
 
+"""
+    QCSRresults()
+    QCSRresults(simulator, version, fidelities, avggateerrors, cstates, zstates, amplitudes, timings)
+
+Storage for the results of a quantum circuit simulation.
+
+# Fields
+
+* `simulator`: name of the simulator used,
+* `version`: version of the simulator used,
+* `fidelities`: fidelity estimates,
+* `avggateerrors`: average multiqubit gate errors,
+* `cstates`: classical states content,
+* `zstates`: complex valued states content (not used),
+* `amplitudes`: amplitudes,
+* `timings`: precise timings of the execution.
+"""
 struct QCSResults
     # name of the simulator used
     simulator::Union{Nothing,String}
@@ -60,7 +77,7 @@ end
 
 function Base.show(io::IO, ::MIME"text/plain", r::QCSResults)
     print(io, typeof(r))
-    println(":")
+    println(io, ":")
 
     if !isnothing(r.simulator)
         print(io, "├── simulator: ", r.simulator)
@@ -124,22 +141,25 @@ function Base.show(io::IO, ::MIME"text/plain", r::QCSResults)
 end
 
 function Base.show(io::IO, ::MIME"text/html", r::QCSResults)
-    print(io, "<h3>QCSRresults</h3>")
-    print(io, "<h4>Simulator</h4>")
-    print(io, "<table>")
-    print(io, "<tr><td>", r.simulator, " ", r.version, "</td><tr>")
-    print(io, "</table>")
+    print(io, "<table><tbody>")
 
-    print(io, "<h4>Timings</h4>")
-    print(io, "<table>")
+    print(io, "<tr><td colspan=2 align=\"center\"><strong>QCSRresults</strong></td></tr>")
+
+    print(io, "<tr><td colspan=2></td></tr>")
+
+    print(io, "<tr><td colspan=2 align=\"center\"><strong>Simulator</strong></td></tr>")
+    print(io, "<tr><td colspan=2>", r.simulator, " ", r.version, "</td><tr>")
+
+    print(io, "<tr><td colspan=2></td></tr>")
+
+    print(io, "<tr><td colspan=2 align=\"center\"><strong>Timings</strong></td></tr>")
     for (k, v) in r.timings
         print(io, "<tr><td>", k, " time</td><td>", v, "s</td></tr>")
     end
-    print(io, "</table>")
 
     if !isempty(r.fidelities)
-        print(io, "<h4>Fideilty estimate</h4>")
-        print(io, "<table>")
+        print(io, "<tr><td colspan=2></td></tr>")
+        print(io, "<tr><td colspan=2 align=\"center\"><strong>Fidelity estimate</strong></td></tr>")
         if length(r.fidelities) == 1
             print(io, "<tr><td>Single run value</td><td>", round.(r.fidelities[1]; digits=3), "</td></tr>")
         else
@@ -147,12 +167,11 @@ function Base.show(io::IO, ::MIME"text/html", r::QCSResults)
             print(io, "<tr><td>Median</td><td>", round.(median(r.fidelities); digits=3), "</td></tr>")
             print(io, "<tr><td>Standard Deviation</td><td>", round.(std(r.fidelities); digits=3), "</td></tr>")
         end
-        print(io, "</table>")
     end
 
     if !isempty(r.avggateerrors)
-        print(io, "<h4>Average >=2-qubit gate error estimate</h4>")
-        print(io, "<table>")
+        print(io, "<tr><td colspan=2></td></tr>")
+        print(io, "<tr><td colspan=2 align=\"center\"><strong>Average multiqubit error estimate</strong></td></tr>")
         if length(r.avggateerrors) == 1
             print(io, "<tr><td>Single run value</td><td>", round.(r.avggateerrors[1]; digits=3), "</td></tr>")
         else
@@ -160,34 +179,31 @@ function Base.show(io::IO, ::MIME"text/html", r::QCSResults)
             print(io, "<tr><td>Median</td><td>", round.(median(r.avggateerrors); digits=3), "</td></tr>")
             print(io, "<tr><td>Standard Deviation</td><td>", round.(std(r.avggateerrors); digits=3), "</td></tr>")
         end
-        print(io, "</table>")
     end
 
-    print(io, "<h4>Statistics</h4>")
-    print(io, "<table>")
+    print(io, "<tr><td colspan=2></td></tr>")
+    print(io, "<tr><td colspan=2 align=\"center\"><strong>Statistics</strong></td></tr>")
     print(io, "<tr><td>Number of executions</td><td>", length(r.fidelities), "</td></tr>")
     print(io, "<tr><td>Number of samples</td><td>", length(r.cstates), "</td></tr>")
     print(io, "<tr><td>Number of amplitudes</td><td>", length(r.amplitudes), "</td></tr>")
-    print(io, "</table>")
 
     if !isempty(r.cstates)
-        print(io, "<h4>Samples</h4>")
-        print(io, "<table>")
+        print(io, "<tr><td colspan=2></td></tr>")
+        print(io, "<tr><td colspan=2 align=\"center\"><strong>Samples</strong></td></tr>")
         h = histsamples(r)
-        h = sort(collect(h), by=x -> x[2], rev=true)[1:min(5, length(h))]
+        h = sort(collect(h), by=x -> x[2], rev=true)[1:min(10, length(h))]
         for (k, v) in h
             print(io, "<tr><td>", k, "</td><td>", v, "</td></tr>")
         end
-        print(io, "</table>")
     end
 
     if !isempty(r.amplitudes)
-        print(io, "<h4>Amplitudes</h4>")
-        print(io, "<table>")
+        print(io, "<tr><td colspan=2></td></tr>")
+        print(io, "<tr><td colspan=2 align=\"center\"><strong>Amplitudes</strong></td></tr>")
         for (k, v) in r.amplitudes
             print(io, "<tr><td>", k, "</td><td>", v, "</td></tr>")
         end
-        print(io, "</table>")
     end
 
+    print(io, "</tbody></table>")
 end

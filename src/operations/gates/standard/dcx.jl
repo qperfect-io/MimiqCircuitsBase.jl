@@ -22,7 +22,7 @@ Two qubit double-CNOT (control on first qubit and then second) OR DCX gate.
 ## Matrix representation
 
 ```math
-\begin{pmatrix}
+\operatorname{DCX}= \begin{pmatrix}
     1 & 0 & 0 & 0 \\
     0 & 0 & 0 & 1 \\
     0 & 1 & 0 & 0 \\
@@ -45,7 +45,7 @@ julia> matrix(GateDCX())
 
 julia> c = push!(Circuit(), GateDCX(), 1, 2)
 2-qubit circuit with 1 instructions:
-└── DCX @ q1, q2
+└── DCX @ q[1:2]
 
 julia> power(GateDCX(), 2), inverse(GateDCX())
 (DCX†, DCX†)
@@ -57,8 +57,8 @@ julia> power(GateDCX(), 2), inverse(GateDCX())
 ```jldoctest
 julia> decompose(GateDCX())
 2-qubit circuit with 2 instructions:
-├── CX @ q1, q2
-└── CX @ q2, q1
+├── CX @ q[1], q[2]
+└── CX @ q[2], q[1]
 
 ```
 """

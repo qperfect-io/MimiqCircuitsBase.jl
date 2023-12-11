@@ -43,6 +43,16 @@ julia> matrix(GPhase(2, π/2))
 """
 struct GPhase{N} <: AbstractGate{N}
     λ::Num
+
+    function GPhase{N}(λ) where {N}
+        if !(N isa Integer)
+            throw(OperationError(GPhase, "Number of qubits must be an integer."))
+        end
+        if N < 1
+            throw(OperationError(GPhase, "Number of qubits must be ≥ 1."))
+        end
+        new{N}(λ)
+    end
 end
 
 function GPhase(numqubits, λ)

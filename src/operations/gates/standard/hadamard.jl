@@ -43,12 +43,12 @@ julia> matrix(GateH())
 
 julia> c = push!(Circuit(), GateH(), 1)
 1-qubit circuit with 1 instructions:
-└── H @ q1
+└── H @ q[1]
 
 julia> push!(c, GateH, 1)
 1-qubit circuit with 2 instructions:
-├── H @ q1
-└── H @ q1
+├── H @ q[1]
+└── H @ q[1]
 
 julia> power(GateH(), 2), inverse(GateH())
 (H^2, H)
@@ -60,8 +60,8 @@ julia> power(GateH(), 2), inverse(GateH())
 ```jldoctests
 julia> decompose(GateH())
 1-qubit circuit with 2 instructions:
-├── U(π/2, 0, π) @ q1
-└── GPhase(-1π/4) @ q1
+├── U(π/2, 0, π) @ q[1]
+└── GPhase(-1π/4) @ q[1]
 
 ```
 """
@@ -76,6 +76,6 @@ opname(::Type{GateH}) = "H"
 function decompose!(circ::Circuit, ::GateH, qtargets, _)
     q = qtargets[1]
     push!(circ, GateU(π / 2, 0, π), q)
-    push!(circ, GPhase(-π / 4), q)
+    push!(circ, GPhase(1, -π / 4), q)
     return circ
 end

@@ -60,9 +60,9 @@ the wrapped operation.
 ```jldoctests
 julia> decompose(Inverse(GateCSX()))
 2-qubit circuit with 3 instructions:
-├── H @ q2
-├── CU1(-1π/2) @ q1, q2
-└── H @ q2
+├── H @ q[2]
+├── CU1(-1π/2) @ q[1], q[2]
+└── H @ q[2]
 ```
 """
 struct Inverse{N,T<:AbstractGate{N}} <: AbstractGate{N}

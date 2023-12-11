@@ -45,7 +45,7 @@ julia> matrix(GateCCX())
 
 julia> c = push!(Circuit(), GateCCX(), 1, 2, 3)
 3-qubit circuit with 1 instructions:
-└── C₂X @ q1, q2, q3
+└── C₂X @ q[1:2], q[3]
 
 julia> power(GateCCX(), 2), inverse(GateCCX())
 (C₂ID, C₂X)
@@ -57,21 +57,21 @@ julia> power(GateCCX(), 2), inverse(GateCCX())
 ```jldoctests
 julia> decompose(GateCCX())
 3-qubit circuit with 15 instructions:
-├── H @ q3
-├── CX @ q2, q3
-├── T† @ q3
-├── CX @ q1, q3
-├── T @ q3
-├── CX @ q2, q3
-├── T† @ q3
-├── CX @ q1, q3
-├── T @ q2
-├── T @ q3
-├── H @ q3
-├── CX @ q1, q2
-├── T @ q1
-├── T† @ q2
-└── CX @ q1, q2
+├── H @ q[3]
+├── CX @ q[2], q[3]
+├── T† @ q[3]
+├── CX @ q[1], q[3]
+├── T @ q[3]
+├── CX @ q[2], q[3]
+├── T† @ q[3]
+├── CX @ q[1], q[3]
+├── T @ q[2]
+├── T @ q[3]
+├── H @ q[3]
+├── CX @ q[1], q[2]
+├── T @ q[1]
+├── T† @ q[2]
+└── CX @ q[1], q[2]
 
 ```
 """
@@ -143,7 +143,7 @@ julia> matrix(GateC3X())
 
 julia> c = push!(Circuit(), GateC3X(), 1, 2, 3, 4)
 4-qubit circuit with 1 instructions:
-└── C₃X @ q1, q2, q3, q4
+└── C₃X @ q[1:3], q[4]
 
 julia> power(GateC3X(), 2), inverse(GateC3X())
 (C₃ID, C₃X)
@@ -155,26 +155,26 @@ julia> power(GateC3X(), 2), inverse(GateC3X())
 ```jldoctests
 julia> decompose(GateC3X())
 4-qubit circuit with 31 instructions:
-├── H @ q4
-├── P(π/8) @ q1
-├── P(π/8) @ q2
-├── P(π/8) @ q3
-├── P(π/8) @ q4
-├── CX @ q1, q2
-├── P(-1π/8) @ q2
-├── CX @ q1, q2
-├── CX @ q2, q3
+├── H @ q[4]
+├── P(π/8) @ q[1]
+├── P(π/8) @ q[2]
+├── P(π/8) @ q[3]
+├── P(π/8) @ q[4]
+├── CX @ q[1], q[2]
+├── P(-1π/8) @ q[2]
+├── CX @ q[1], q[2]
+├── CX @ q[2], q[3]
 ⋮   ⋮
-├── CX @ q1, q4
-├── P(π/8) @ q4
-├── CX @ q3, q4
-├── P(-1π/8) @ q4
-├── CX @ q2, q4
-├── P(π/8) @ q4
-├── CX @ q3, q4
-├── P(-1π/8) @ q4
-├── CX @ q1, q4
-└── H @ q4
+├── CX @ q[1], q[4]
+├── P(π/8) @ q[4]
+├── CX @ q[3], q[4]
+├── P(-1π/8) @ q[4]
+├── CX @ q[2], q[4]
+├── P(π/8) @ q[4]
+├── CX @ q[3], q[4]
+├── P(-1π/8) @ q[4]
+├── CX @ q[1], q[4]
+└── H @ q[4]
 
 ```
 """

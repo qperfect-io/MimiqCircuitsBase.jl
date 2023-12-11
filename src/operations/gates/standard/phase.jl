@@ -49,12 +49,12 @@ julia> matrix(GateP(1.989))
 
 julia> c = push!(Circuit(), GateP(λ), 1)
 1-qubit circuit with 1 instructions:
-└── P(λ) @ q1
+└── P(λ) @ q[1]
 
 julia> push!(c, GateP(π/2), 2)
 2-qubit circuit with 2 instructions:
-├── P(λ) @ q1
-└── P(π/2) @ q2
+├── P(λ) @ q[1]
+└── P(π/2) @ q[2]
 
 ```
 
@@ -63,7 +63,7 @@ julia> push!(c, GateP(π/2), 2)
 ```jldoctests; setup = :(@variables λ)
 julia> decompose(GateP(λ))
 1-qubit circuit with 1 instructions:
-└── U(0, 0, λ) @ q1
+└── U(0, 0, λ) @ q[1]
 
 ```
 """

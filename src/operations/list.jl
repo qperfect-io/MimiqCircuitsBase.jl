@@ -164,5 +164,7 @@ the size of each group of qubits they act on
 """
 const GENERALIZED = [
     PhaseGradient,
-    QFT
+    QFT,
+    Diffusion,
+    PolynomialOracle
 ]

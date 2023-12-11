@@ -24,10 +24,10 @@ Two qubit ECR echo gate.
 ```math
 \operatorname{ECR} = \frac{1}{\sqrt{2}}
 \begin{pmatrix}
-    0 & 0 & 1 & i \\
-    0 & 0 & i & 1 \\
-    1 & -i & 0 & 0 \\
-    -i & 1 & 0 & 0
+    0 & 1 & 0 & i \\
+    1 & 0 & -i & 0 \\
+    0 & i & 0 & 1 \\
+    -i & 0 & 1 & 0
 \end{pmatrix}
 ```
 
@@ -39,14 +39,14 @@ ECR
 
 julia> matrix(GateECR())
 4×4 Matrix{ComplexF64}:
-      0.0+0.0im            0.0+0.0im       …       0.0+0.707107im
-      0.0+0.0im            0.0+0.0im          0.707107+0.0im
- 0.707107+0.0im            0.0-0.707107im          0.0+0.0im
-      0.0-0.707107im  0.707107+0.0im               0.0+0.0im
+      0.0+0.0im       0.707107+0.0im       …       0.0+0.707107im
+ 0.707107+0.0im            0.0+0.0im               0.0+0.0im
+      0.0+0.0im            0.0+0.707107im     0.707107+0.0im
+      0.0-0.707107im       0.0+0.0im               0.0+0.0im
 
 julia> c = push!(Circuit(), GateECR(), 1, 2)
 2-qubit circuit with 1 instructions:
-└── ECR @ q1, q2
+└── ECR @ q[1:2]
 
 julia> power(GateECR(), 2), inverse(GateECR())
 (ID, ECR)
@@ -58,9 +58,9 @@ julia> power(GateECR(), 2), inverse(GateECR())
 ```jldoctests
 julia> decompose(GateECR())
 2-qubit circuit with 3 instructions:
-├── RZX(π/4) @ q1, q2
-├── X @ q1
-└── RZX(-1π/4) @ q1, q2
+├── RZX(π/4) @ q[1:2]
+├── X @ q[1]
+└── RZX(-1π/4) @ q[1:2]
 
 ```
 """
@@ -68,7 +68,7 @@ struct GateECR <: AbstractGate{2} end
 
 opname(::Type{GateECR}) = "ECR"
 
-@generated _matrix(::Type{GateECR}) = ComplexF64[0 0 1 im; 0 0 im 1; 1 -im 0 0; -im 1 0 0] ./ sqrt(2)
+@generated _matrix(::Type{GateECR}) = ComplexF64[0 1 0 im; 1 0 -im 0; 0 im 0 1; -im 0 1 0] ./ sqrt(2)
 
 @generated inverse(::GateECR) = GateECR()
 

@@ -52,15 +52,15 @@ Here we give a simple example of a decomposition of a ``C_5T`` gate.
 ```jldoctests
 julia> decompose(Control(3,GateT()))
 4-qubit circuit with 9 instructions:
-├── C(Z^(1//8)) @ q3, q4
-├── C₂X @ q1, q2, q3
-├── C((Z^(1//8))†) @ q3, q4
-├── C₂X @ q1, q2, q3
-├── C(Z^(1//16)) @ q2, q4
-├── CX @ q1, q2
-├── C((Z^(1//16))†) @ q2, q4
-├── CX @ q1, q2
-└── C(Z^(1//16)) @ q1, q4
+├── C(Z^(1//8)) @ q[3], q[4]
+├── C₂X @ q[1:2], q[3]
+├── C((Z^(1//8))†) @ q[3], q[4]
+├── C₂X @ q[1:2], q[3]
+├── C(Z^(1//16)) @ q[2], q[4]
+├── CX @ q[1], q[2]
+├── C((Z^(1//16))†) @ q[2], q[4]
+├── CX @ q[1], q[2]
+└── C(Z^(1//16)) @ q[1], q[4]
 ```
 
 !!! detail
@@ -105,6 +105,37 @@ Build a controlled gate with 1 control.
 """
 Control(op::Operation{N,0}) where {N} = Control(1, op)
 
+"""
+    control([numcontrols], gate)
+
+Build a multicontrolled gate.
+
+The number of controls can be omitted to be lazily evaluated later.
+
+## Examples
+
+Standard examples, with all the arguments spefcified.
+
+```jldoctests
+julia> control(1, GateX())
+CX
+
+julia> control(2, GateX())
+C₂X
+
+julia> control(3, GateCH())
+C₄H
+
+```
+"""
+function control end
+
+control(numcontrols::Integer, op::Operation{N,0}) where {N} = Control(numcontrols, op)
+
+control(op::Operation{N,0}) where {N} = LazyExpr(control, LazyArg(), op)
+control(num_controls, l::LazyExpr) = LazyExpr(control, num_controls, l)
+control(l::LazyExpr) = LazyExpr(control, LazyArg(), l)
+
 getoperation(c::Control) = c.op
 
 iswrapper(::Type{<:Control}) = true
@@ -117,7 +148,7 @@ inverse(c::Control{N}) where {N} = Control(N, inverse(getoperation(c)))
 # we prefer the control modifier to be applied last
 _power(c::Control{N}, pwr) where {N} = Control(N, power(getoperation(c), pwr))
 
-qregsizes(q::Control{N}) where {N} = (ntuple(x->1, N)..., qregsizes(getoperation(q))...)
+qregsizes(op::Control{N,M,L,T}) where {N,M,L,T} = (N, qregsizes(getoperation(op))...)
 
 # numparams is defined by default from parnames
 parnames(::Type{Control{N,M,L,T}}) where {N,M,L,T} = parnames(T)

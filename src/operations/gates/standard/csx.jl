@@ -17,7 +17,7 @@
 @doc raw"""
     GateCSX()
 
-Two qubit Controlled-SX gate. (Control on second qubit)
+    Two qubit Controled-SX gate.
 
 !!! details
     Implemented as an alias to `Control(1, GateSX())`.
@@ -27,11 +27,11 @@ See also [`GateSX`](@ref), [`GateCSXDG`](@ref), [`Control`](@ref).
 ## Matrix representation
 
 ```math
-\begin{pmatrix}
+\operatorname{CSX} =\begin{pmatrix}
     1 & 0 & 0 & 0 \\
-    0 & \frac{1+i}{\sqrt{2}} & 0 & \frac{1-i}{\sqrt{2}} \\
-    0 & 0 & 1 & 0 \\
-    0 & \frac{1-i}{\sqrt{2}} & 0 & \frac{1+i}{\sqrt{2}}
+    0 & 1 & 0 & 0 \\
+    0 & 0 & \frac{1+i}{2} & \frac{1-i}{2} \\
+    0 & 0 & \frac{1-i}{2} & \frac{1+i}{2}
 \end{pmatrix}
 ```
 
@@ -50,7 +50,7 @@ julia> matrix(GateCSX())
 
 julia> c = push!(Circuit(), GateCSX(), 1, 2)
 2-qubit circuit with 1 instructions:
-└── CSX @ q1, q2
+└── CSX @ q[1], q[2]
 
 julia> power(GateCSX(), 2), inverse(GateCSX())
 (CX, C(SX†))
@@ -62,9 +62,9 @@ julia> power(GateCSX(), 2), inverse(GateCSX())
 ```jldoctests
 julia> decompose(GateCSX())
 2-qubit circuit with 3 instructions:
-├── H @ q2
-├── CU1(π/2) @ q1, q2
-└── H @ q2
+├── H @ q[2]
+├── CU1(π/2) @ q[1], q[2]
+└── H @ q[2]
 
 ```
 """
@@ -91,11 +91,11 @@ See also [`GateSX`](@ref), [`GateCSXDG`](@ref), [`Control`](@ref).
 ## Matrix representation
 
 ```math
-\begin{pmatrix}
+\operatorname{CSX}^{\dagger} = \begin{pmatrix}
     1 & 0 & 0 & 0 \\
-    0 & \frac{1-i}{\sqrt{2}} & 0 & \frac{1+i}{\sqrt{2}} \\
-    0 & 0 & 1 & 0 \\
-    0 & \frac{1+i}{\sqrt{2}} & 0 & \frac{1-i}{\sqrt{2}}
+    0 & 1 & 0 & 0
+    0 & 0 & \frac{1-i}{2} & \frac{1+i}{2} \\
+    0 & 0 & \frac{1+i}{2} & \frac{1-i}{2}
 \end{pmatrix}
 ```
 
@@ -114,7 +114,7 @@ julia> matrix(GateCSXDG())
 
 julia> c = push!(Circuit(), GateCSXDG(), 1, 2)
 2-qubit circuit with 1 instructions:
-└── C(SX†) @ q1, q2
+└── C(SX†) @ q[1], q[2]
 
 julia> power(GateCSXDG(), 2), inverse(GateCSXDG())
 (C(SX†^2), CSX)
@@ -126,9 +126,9 @@ julia> power(GateCSXDG(), 2), inverse(GateCSXDG())
 ```jldoctests
 julia> decompose(GateCSXDG())
 2-qubit circuit with 3 instructions:
-├── H @ q2
-├── CU1(-1π/2) @ q1, q2
-└── H @ q2
+├── H @ q[2]
+├── CU1(-1π/2) @ q[1], q[2]
+└── H @ q[2]
 
 ```
 """

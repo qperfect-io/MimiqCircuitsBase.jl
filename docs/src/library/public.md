@@ -126,6 +126,8 @@ Private = false
 Pages   = [
     "operations/generalized/qft.jl",
     "operations/generalized/phasegradient.jl",
+    "operations/generalized/polynomialoracle.jl",
+    "operations/generalized/diffusion.jl",
 ]
 ```
 

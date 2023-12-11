@@ -49,12 +49,12 @@ julia> matrix(GateRX(1.989))
 
 julia> c = push!(Circuit(), GateRX(θ), 1)
 1-qubit circuit with 1 instructions:
-└── RX(θ) @ q1
+└── RX(θ) @ q[1]
 
 julia> push!(c, GateRX(π/2), 2)
 2-qubit circuit with 2 instructions:
-├── RX(θ) @ q1
-└── RX(π/2) @ q2
+├── RX(θ) @ q[1]
+└── RX(π/2) @ q[2]
 
 ```
 
@@ -63,8 +63,8 @@ julia> push!(c, GateRX(π/2), 2)
 ```jldoctests; setup = :(@variables θ)
 julia> decompose(GateRX(θ))
 1-qubit circuit with 2 instructions:
-├── U(θ, -1π/2, π/2) @ q1
-└── GPhase((-1//2)*θ) @ q1
+├── U(θ, -1π/2, π/2) @ q[1]
+└── GPhase((-1//2)*θ) @ q[1]
 
 ```
 """
@@ -83,7 +83,7 @@ _power(g::GateRX, pwr) = GateRX(g.θ * pwr)
 function decompose!(circ::Circuit, g::GateRX, qtargets, _)
     q = qtargets[1]
     push!(circ, GateU(g.θ, -π / 2, π / 2), q)
-    push!(circ, GPhase(-g.θ / 2), q)
+    push!(circ, GPhase(1, -g.θ / 2), q)
     return circ
 end
 
@@ -122,12 +122,12 @@ julia> matrix(GateRY(1.989))
 
 julia> c = push!(Circuit(), GateRY(θ), 1)
 1-qubit circuit with 1 instructions:
-└── RY(θ) @ q1
+└── RY(θ) @ q[1]
 
 julia> push!(c, GateRY(π/2), 2)
 2-qubit circuit with 2 instructions:
-├── RY(θ) @ q1
-└── RY(π/2) @ q2
+├── RY(θ) @ q[1]
+└── RY(π/2) @ q[2]
 
 ```
 
@@ -136,8 +136,8 @@ julia> push!(c, GateRY(π/2), 2)
 ```jldoctests; setup=:(@variables θ)
 julia> decompose(GateRY(θ))
 1-qubit circuit with 2 instructions:
-├── U(θ, 0, 0) @ q1
-└── GPhase((-1//2)*θ) @ q1
+├── U(θ, 0, 0) @ q[1]
+└── GPhase((-1//2)*θ) @ q[1]
 
 ```
 """
@@ -156,7 +156,7 @@ _power(g::GateRY, pwr) = GateRY(g.θ * pwr)
 function decompose!(circ::Circuit, g::GateRY, qtargets, _)
     q = qtargets[1]
     push!(circ, GateU(g.θ, 0, 0), q)
-    push!(circ, GPhase(-g.θ / 2), q)
+    push!(circ, GPhase(1, -g.θ / 2), q)
     return circ
 end
 
@@ -195,12 +195,12 @@ julia> matrix(GateRZ(1.989))
 
 julia> c = push!(Circuit(), GateRZ(θ), 1)
 1-qubit circuit with 1 instructions:
-└── RZ(θ) @ q1
+└── RZ(θ) @ q[1]
 
 julia> push!(c, GateRZ(π/2), 2)
 2-qubit circuit with 2 instructions:
-├── RZ(θ) @ q1
-└── RZ(π/2) @ q2
+├── RZ(θ) @ q[1]
+└── RZ(π/2) @ q[2]
 
 ```
 
@@ -209,8 +209,8 @@ julia> push!(c, GateRZ(π/2), 2)
 ```jldoctests; setup = :(@variables θ)
 julia> decompose(GateRZ(θ))
 1-qubit circuit with 2 instructions:
-├── U(0, 0, θ) @ q1
-└── GPhase((-1//2)*θ) @ q1
+├── U(0, 0, θ) @ q[1]
+└── GPhase((-1//2)*θ) @ q[1]
 
 ```
 """
@@ -229,7 +229,7 @@ _power(g::GateRZ, pwr) = GateRZ(g.λ * pwr)
 function decompose!(circ::Circuit, g::GateRZ, qtargets, _)
     q = qtargets[1]
     push!(circ, GateU(0, 0, g.λ), q)
-    push!(circ, GPhase(-g.λ / 2), q)
+    push!(circ, GPhase(1, -g.λ / 2), q)
     return circ
 end
 
@@ -270,12 +270,12 @@ julia> matrix(GateR(2.023, 1.989))
 
 julia> c = push!(Circuit(), GateR(θ, ϕ), 1)
 1-qubit circuit with 1 instructions:
-└── R(θ, ϕ) @ q1
+└── R(θ, ϕ) @ q[1]
 
 julia> push!(c, GateR(π/2, π/4), 2)
 2-qubit circuit with 2 instructions:
-├── R(θ, ϕ) @ q1
-└── R(π/2, π/4) @ q2
+├── R(θ, ϕ) @ q[1]
+└── R(π/2, π/4) @ q[2]
 
 ```
 
@@ -284,7 +284,7 @@ julia> push!(c, GateR(π/2, π/4), 2)
 ```jldoctests; setup = :(@variables θ ϕ)
 julia> decompose(GateR(θ, ϕ))
 1-qubit circuit with 1 instructions:
-└── U3(θ, -1.5707963267948966 + ϕ, 1.5707963267948966 - ϕ) @ q1
+└── U3(θ, -1.5707963267948966 + ϕ, 1.5707963267948966 - ϕ) @ q[1]
 
 ```
 """

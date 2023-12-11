@@ -14,37 +14,20 @@
 # limitations under the License.
 #
 
-@doc raw"""
-    Reset()
+struct OperationError <: Exception
+    optype::Any
+    msg::String
+end
 
-Quantum operation that resets the status of one qubit to the ``\ket{0}``
-state.
+function showerror(io::IO, e::OperationError)
+    print(io, e.optype, ": ", e.msg)
+end
 
-See also [`Operation`](@ref), [`Measure`](@ref).
+struct UndefinedValue <: Exception
+    n::Num
+end
 
-## Examples
-
-```jldoctests
-julia> Reset()
-Reset
-
-julia> c = push!(Circuit(), Reset, 1)
-1-qubit circuit with 1 instructions:
-└── Reset @ q[1]
-
-julia> push!(c, Reset(), 3)
-3-qubit circuit with 2 instructions:
-├── Reset @ q[1]
-└── Reset @ q[3]
-```
-"""
-struct Reset <: Operation{1,0} end
-
-inverse(::Reset) = error("Cannot invert Reset operations")
-
-opname(::Type{<:Reset}) = "Reset"
-
-function Base.show(io::IO, ::Reset)
-    print(io, opname(Reset))
+function showerror(io::IO, e::UndefinedValue)
+    print(io, "Undefined value $(e.n).")
 end
 

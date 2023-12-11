@@ -51,7 +51,7 @@ julia> matrix(GateCH())
 
 julia> c = push!(Circuit(), GateCH(), 1, 2)
 2-qubit circuit with 1 instructions:
-└── CH @ q1, q2
+└── CH @ q[1], q[2]
 
 julia> power(GateCH(), 2), inverse(GateCH())
 (C(H^2), CH)
@@ -63,13 +63,13 @@ julia> power(GateCH(), 2), inverse(GateCH())
 ```jldoctests
 julia> decompose(GateCH())
 2-qubit circuit with 7 instructions:
-├── S @ q2
-├── H @ q2
-├── T @ q2
-├── CX @ q1, q2
-├── T† @ q2
-├── H @ q2
-└── S† @ q2
+├── S @ q[2]
+├── H @ q[2]
+├── T @ q[2]
+├── CX @ q[1], q[2]
+├── T† @ q[2]
+├── H @ q[2]
+└── S† @ q[2]
 
 ```
 """

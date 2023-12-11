@@ -34,30 +34,33 @@ It implements the unitary transformation.
 ```jldoctests
 julia> c = push!(Circuit(), QFT(10), 1:10...)
 10-qubit circuit with 1 instructions:
-└── QFT @ q[1,2,3,4,5,6,7,8,9,10]
+└── QFT @ q[1:10]
 
 julia> push!(c, inverse(QFT(10)), 1:10...)
 10-qubit circuit with 2 instructions:
-├── QFT @ q[1,2,3,4,5,6,7,8,9,10]
-└── QFT† @ q[1,2,3,4,5,6,7,8,9,10]
+├── QFT @ q[1:10]
+└── QFT† @ q[1:10]
 ```
 """
-struct QFT{N} <: AbstractGate{N} end
+struct QFT{N} <: AbstractGate{N}
+    function QFT{N}() where {N}
+        if !(N isa Integer)
+            throw(OperationError(QFT, "Number of qubits must be an integer."))
+        end
+
+        if N < 1
+            throw(OperationError(QFT, "Number of qubits must be ≥ 1."))
+        end
+
+        new{N}()
+    end
+end
 
 function QFT(numqubits::Int)
     QFT{numqubits}()
 end
 
-# constructor to allow the syntax
-# push!(circuit, QFT, register)
-function QFT(::Type{Instruction}, reg)
-    g = QFT(length(reg))
-    return Instruction(g, Tuple(reg), ())
-end
-
-# constructor to allow the syntax
-# push!(circuit, QFT(), register)
-QFT(; kwargs...) = reg -> Instruction(QFT(length(reg); kwargs...), Tuple(reg), ())
+QFT() = LazyExpr(QFT, LazyArg())
 
 opname(::Type{<:QFT}) = "QFT"
 

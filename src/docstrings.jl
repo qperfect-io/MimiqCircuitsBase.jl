@@ -34,8 +34,8 @@ julia> numqubits(Measure())
 
 julia> c = Circuit(); push!(c, GateX(), 1); push!(c, GateCX(),3,6)
 6-qubit circuit with 2 instructions:
-├── X @ q1
-└── CX @ q3, q6
+├── X @ q[1]
+└── CX @ q[3], q[6]
 
 julia> numqubits(c)
 6
@@ -53,7 +53,7 @@ See also [`numqubits`](@ref).
 
 ## Examples
 
-```@repl
+```jldoctests
 julia> numbits(GateCX())
 0
 
@@ -61,12 +61,12 @@ julia> numbits(Measure())
 1
 
 julia> c = Circuit(); push!(c, Measure(), 1, 1); push!(c, Measure(),1,3)
-6-qubit circuit with 2 instructions:
-├── X @ q1
-└── CX @ q3, q6
+1-qubit circuit with 2 instructions:
+├── Measure @ q[1], c[1]
+└── Measure @ q[1], c[3]
 
 julia> numbits(c)
-6
+3
 ```
 """
 function numbits end

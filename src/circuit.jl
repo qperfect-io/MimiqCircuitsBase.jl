@@ -36,33 +36,33 @@ empty circuit
 
 julia> push!(c, GateH(), 1)
 1-qubit circuit with 1 instructions:
-└── H @ q1
+└── H @ q[1]
 
 julia> push!(c, GateCX(), 1, 2)
 2-qubit circuit with 2 instructions:
-├── H @ q1
-└── CX @ q1, q2
+├── H @ q[1]
+└── CX @ q[1], q[2]
 
 julia> push!(c, GateRX(π / 4), 1)
 2-qubit circuit with 3 instructions:
-├── H @ q1
-├── CX @ q1, q2
-└── RX(π/4) @ q1
+├── H @ q[1]
+├── CX @ q[1], q[2]
+└── RX(π/4) @ q[1]
 
-julia> push!(c, Barrier, 1, 3)
+julia> push!(c, Barrier(2), 1, 3)
 3-qubit circuit with 4 instructions:
-├── H @ q1
-├── CX @ q1, q2
-├── RX(π/4) @ q1
-└── Barrier @ q1, q3
+├── H @ q[1]
+├── CX @ q[1], q[2]
+├── RX(π/4) @ q[1]
+└── Barrier @ q[1,3]
 
 julia> push!(c, Measure(), 1, 1)
 3-qubit circuit with 5 instructions:
-├── H @ q1
-├── CX @ q1, q2
-├── RX(π/4) @ q1
-├── Barrier @ q1, q3
-└── Measure @ q1, c1
+├── H @ q[1]
+├── CX @ q[1], q[2]
+├── RX(π/4) @ q[1]
+├── Barrier @ q[1,3]
+└── Measure @ q[1], c[1]
 
 ```
 
@@ -72,9 +72,9 @@ In this case a single `push!` will add multiple operations.
 ```jldoctests
 julia> push!(Circuit(), GateCCX(), 1, 2:4, 4:10)
 6-qubit circuit with 3 instructions:
-├── C₂X @ q1, q2, q4
-├── C₂X @ q1, q3, q5
-└── C₂X @ q1, q4, q6
+├── C₂X @ q[1:2], q[4]
+├── C₂X @ q[1,3], q[5]
+└── C₂X @ q[1,4], q[6]
 ```
 
 is equivalent to
@@ -86,8 +86,6 @@ end
 ```
 
 Notice how the range `4:10` is not fully used, since `2:4` is shorter.
-
-Some operations behave a bit differently. See also: [`Barrier`](@ref) and [`Measure`](@ref)
 
 ## Display
 
@@ -136,82 +134,6 @@ function Base.insert!(c::Circuit, index, g::Instruction)
     insert!(c._instructions, index, g)
     return c
 end
-
-function _checkpushtargets(targets, N, type="qubit")
-    L = length(targets)
-
-    if length(targets) != N
-        throw(ArgumentError("Wrong number of targets: given $L total for $N-$type operation"))
-    end
-
-    if any(x -> any(y -> y <= 0, x), targets)
-        throw(ArgumentError("Target $(type)s must be positive and >=1"))
-    end
-
-    # PERF: this is a double pass the qubit/bit targets, but it is probably
-    # the only way of doing it.
-    for tgs in shortestzip(targets...)
-        if length(unique(tgs)) != length(tgs)
-            throw(ArgumentError("Target $(type)s must be the different"))
-        end
-    end
-
-    nothing
-end
-
-# allows for `push!(c, GateCX(), [1, 2], 3)` syntax to add `CX @ q1, q3` and
-# `CX @ q2, q3`. Also works for `push!(c, GateX(), 1:4)` for applying H to all
-# of 4 targets.
-function Base.push!(c::Circuit, g::Operation{N,M}, targets::Vararg{Any,L}) where {N,M,L}
-    if N + M != L
-        throw(ArgumentError("Wrong number of targets: given $L total for $N qubits $M bits operation"))
-    end
-
-    _checkpushtargets(targets[1:N], N, "qubit")
-    _checkpushtargets(targets[end-M+1:end], M, "bit")
-
-    for tgs in shortestzip(targets...)
-        qts = tgs[1:N]
-        cts = tgs[end-M+1:end]
-        push!(c, Instruction(g, qts..., cts...; checks=false))
-    end
-
-    return c
-end
-
-# If the we are trying to push a type, then probably we would like to call
-# its constructor before, since the type is dependent on the targets.
-# A call could result to multiple instructions (e.g. passing registers instead of )
-function Base.push!(c::Circuit, ::Type{T}, targets...) where {T<:Operation}
-    if numparams(T) == 0
-        push!(c, T(), targets...)
-    else
-        push!(c, T(Instruction, targets...))
-    end
-end
-
-# same for a function
-Base.push!(c::Circuit, f::Function, targets...) = push!(c, f(targets...))
-
-function Base.insert!(c::Circuit, i::Integer, g::Operation{N,M}, targets::Vararg{Integer,L}) where {N,M,L}
-    if N + M != L
-        throw(ArgumentError("Wrong number of targets: given $L total for $N qubits $M bits operation"))
-    end
-
-    insert!(c, i, Instruction(g, targets[1:N], targets[end-M+1:end]))
-end
-
-# same as for push!
-function Base.insert!(c::Circuit, i::Integer, ::Type{T}, targets...) where {T<:Operation}
-    if numparams(T) == 0
-        insert!(c, i, T(), targets...)
-    else
-        insert!(c, i, T(Instruction, targets...))
-    end
-end
-
-# same as for push!
-Base.insert!(c::Circuit, i::Integer, f::Function, targets...) = insert!(c, i, f(targets...))
 
 function numqubits(insts::Vector{<:Instruction})
     isempty(insts) && return 0
@@ -269,5 +191,4 @@ function Base.show(io::IO, c::Circuit)
 
     nothing
 end
-
 

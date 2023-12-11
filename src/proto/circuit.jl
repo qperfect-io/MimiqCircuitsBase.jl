@@ -240,6 +240,7 @@ end
 const GATEENUMMAP = BiMap(
     Dict(
         GateU => circuit_pb.GateType.GateU,
+        GateUPhase => circuit_pb.GateType.GateUPhase,
         GateID => circuit_pb.GateType.GateID,
         GateX => circuit_pb.GateType.GateX,
         GateY => circuit_pb.GateType.GateY,
@@ -295,6 +296,10 @@ function fromproto(g::circuit_pb.Generalized)
         return PhaseGradient(rs..., params...)
     elseif g.name == "GPhase"
         return GPhase(rs..., params...)
+    elseif g.name == "PolynomialOracle"
+        return PolynomialOracle(rs..., params...)
+    elseif g.name == "Diffusion"
+        return Diffusion(rs..., params...)
     else
         error("Unknown generalized gate: $(g.name)")
     end

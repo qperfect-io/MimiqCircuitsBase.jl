@@ -116,3 +116,18 @@ _substitute_irrationals(expr) = Symbolics.substitute(expr, Dict(π => Float64(π
 _convert_to_number(x::Num) = Symbolics.value(x)
 
 Base.cispi(x::Num) = cospi(x) + im * sinpi(x)
+
+function unwrapvalue(g::Num)
+    v = Symbolics.value(g)
+    if v isa Number
+        return v
+    elseif v isa SymbolicUtils.BasicSymbolic{Irrational{:π}}
+        return π
+    elseif v isa SymbolicUtils.BasicSymbolic{Irrational{:ℯ}}
+        return ℯ
+    else
+        throw(UndefinedValue(g))
+    end
+end
+
+unwrapvalue(g::Real) = g

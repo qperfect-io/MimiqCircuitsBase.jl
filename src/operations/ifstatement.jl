@@ -49,9 +49,7 @@ struct IfStatement{N,M,T<:Operation{M,0}} <: Operation{M,N}
     end
 end
 
-# allows the syntax (omits the number of classical bits)
-# push!(circ, IfStatement(GateX(), 10), 1,1,2,3,4,5)
-IfStatement(op::T, val) where {T<:AbstractGate} = (targets...) -> Instruction(IfStatement(length(targets...), op, val), Tuple(targets), ())
+IfStatement(op::T, val) where {T<:AbstractGate} = LazyExpr(IfStatement, LazyArg(), op, val)
 
 opname(::Type{<:IfStatement}) = "If"
 
@@ -62,6 +60,19 @@ _power(::IfStatement, n) = error("Cannot elevate an IfStatement to any power.")
 getoperation(c::IfStatement) = c.op
 
 iswrapper(::Type{<:IfStatement}) = true
+
+function getunwrappedvalue(g::IfStatement)
+    v = Symbolics.value(g.val)
+    if v isa Number
+        return v
+    elseif v isa SymbolicUtils.BasicSymbolic{Irrational{:π}}
+        return π
+    elseif v isa SymbolicUtils.BasicSymbolic{Irrational{:ℯ}}
+        return ℯ
+    else
+        throw(UndefinedParameterError("val", opname(g)))
+    end
+end
 
 function Base.show(io::IO, s::IfStatement)
     print(io, opname(IfStatement), "(c == ", s.val, ") ", s.op)

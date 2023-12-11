@@ -26,12 +26,12 @@ See also [`GateU3`](@ref), [`GateP`](@ref), [`GateU2`](@ref), [`GateU1`](@ref)
 ## Matrix representation
 
 ```math
-\operatorname{U}(\theta, \phi, \lambda) =
-\frac{1}{2}
-\begin{pmatrix}
-    1+\mathrm{e}^{i\theta} & -i \mathrm{e}^{i\lambda} (1-\mathrm{e}^{i\thata})\\
-    i \mathrm{e}^{i\phi} (1-\mathrm{e}^{i\theta}) & \mathrm{e}^{i(\phi + \lambda)} (1+\mathrm{e}^{i\theta})
-\end{pmatrix}
+\operatorname{U}(\theta, \phi, \lambda) = 
+        \frac{1}{2}
+        \begin{pmatrix}
+        1 + e^{i\theta} & -i e^{i\lambda}(1 - e^{i\theta}) \\
+        i e^{i\phi}(1 - e^{i\theta}) & e^{i(\phi + \lambda)}(1 + e^{i\theta})
+        \end{pmatrix}
 ```
 
 ## Examples
@@ -53,12 +53,12 @@ julia> matrix(GateU(2.023, 0.5, 0.1))
 
 julia> c = push!(Circuit(), GateU(θ, ϕ, λ), 1)
 1-qubit circuit with 1 instructions:
-└── U(θ, ϕ, λ) @ q1
+└── U(θ, ϕ, λ) @ q[1]
 
 julia> push!(c, GateU(π/8, π/2, π/4), 2)
 2-qubit circuit with 2 instructions:
-├── U(θ, ϕ, λ) @ q1
-└── U(π/8, π/2, π/4) @ q2
+├── U(θ, ϕ, λ) @ q[1]
+└── U(π/8, π/2, π/4) @ q[2]
 
 julia> power(GateU(θ, ϕ, λ), 2), inverse(GateU(θ, ϕ, λ))
 (U(θ, ϕ, λ)^2, U(-θ, -λ, -ϕ))
@@ -73,7 +73,7 @@ all other matrices are defined from it.
 ```jldoctests; setup = :(@variables λ θ ϕ)
 julia> decompose(GateU(θ, λ, ϕ))
 1-qubit circuit with 1 instructions:
-└── U(θ, λ, ϕ) @ q1
+└── U(θ, λ, ϕ) @ q[1]
 
 ```
 """
@@ -102,13 +102,10 @@ See also [`GateU`](@ref), [`GPhase`](@ref)
 ## Matrix representation
 
 ```math
-\operatorname{U}(\theta, \phi, \lambda, \gamma) =
-\frac{1}{2}
-\mathrm{e}^{i\gamma}
-\begin{pmatrix}
-    1+\mathrm{e}^{i\theta} & -i \mathrm{e}^{i\lambda} (1-\mathrm{e}^{i\thata})\\
-    i \mathrm{e}^{i\phi} (1-\mathrm{e}^{i\theta}) & \mathrm{e}^{i(\phi + \lambda)} (1+\mathrm{e}^{i\theta})
-\end{pmatrix}
+\operatorname{U}(\theta, \phi, \lambda, \gamma) = \frac{1}{2} e^{i\gamma} \begin{pmatrix}
+        1 + e^{i\theta} & -i e^{i\lambda}(1 - e^{i\theta}) \\
+        i e^{i\phi}(1 - e^{i\theta}) & e^{i(\phi + \lambda)}(1 + e^{i\theta})
+        \end{pmatrix}
 ```
 
 ## Examples
@@ -131,12 +128,12 @@ julia> matrix(GateUPhase(2.023, 0.5, 0.1, 0.2))
 
 julia> c = push!(Circuit(), GateUPhase(θ, ϕ, λ, γ), 1)
 1-qubit circuit with 1 instructions:
-└── U(θ, ϕ, λ, γ) @ q1
+└── U(θ, ϕ, λ, γ) @ q[1]
 
 julia> push!(c, GateUPhase(π/8, π/2, π/4, π/7), 2)
 2-qubit circuit with 2 instructions:
-├── U(θ, ϕ, λ, γ) @ q1
-└── U(π/8, π/2, π/4, π/7) @ q2
+├── U(θ, ϕ, λ, γ) @ q[1]
+└── U(π/8, π/2, π/4, π/7) @ q[2]
 
 julia> power(GateUPhase(θ, ϕ, λ, γ), 2), inverse(GateUPhase(θ, ϕ, λ, γ))
 (U(θ, ϕ, λ, γ)^2, U(-θ, -λ, -ϕ, -γ))
@@ -151,8 +148,8 @@ all other matrices are defined from it.
 ```jldoctests; setup = :(@variables λ θ ϕ γ)
 julia> decompose(GateUPhase(θ, λ, ϕ, γ))
 1-qubit circuit with 2 instructions:
-├── GPhase(γ) @ q1
-└── U(θ, λ, ϕ) @ q1
+├── GPhase(γ) @ q[1]
+└── U(θ, λ, ϕ) @ q[1]
 
 ```
 """

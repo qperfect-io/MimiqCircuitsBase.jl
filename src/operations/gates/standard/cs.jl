@@ -27,7 +27,7 @@ See also [`GateS`](@ref), [`Control`](@ref).
 ## Matrix representation
 
 ```math
-\begin{pmatrix}
+\operatorname{CS} =\begin{pmatrix}
     1 & 0 & 0 & 0 \\
     0 & 1 & 0 & 0 \\
     0 & 0 & 1 & 0 \\
@@ -50,7 +50,7 @@ julia> matrix(GateCS())
 
 julia> c = push!(Circuit(), GateCS(), 1, 2)
 2-qubit circuit with 1 instructions:
-└── CS @ q1, q2
+└── CS @ q[1], q[2]
 
 julia> power(GateCS(), 2), inverse(GateCS())
 (CZ, C(S†))
@@ -62,7 +62,7 @@ julia> power(GateCS(), 2), inverse(GateCS())
 ```jldoctests
 julia> decompose(GateCS())
 2-qubit circuit with 1 instructions:
-└── CP(π/2) @ q1, q2
+└── CP(π/2) @ q[1], q[2]
 
 ```
 """
@@ -77,7 +77,7 @@ end
 @doc raw"""
     GateCSDG()
 
-Two qubit controlled-``S^\dagger`` gate.
+    Adjoint of two qubit Controlled-S gate.
 
 !!! details
     Implemented as an alias to `inverse(Control(1, GateS()))`.
@@ -87,11 +87,11 @@ See also [`GateS`](@ref), [`Control`](@ref).
 ## Matrix representation
 
 ```math
-\begin{pmatrix}
+\operatorname{CS}^{\dagger} = \begin{pmatrix}
     1 & 0 & 0 & 0 \\
     0 & 1 & 0 & 0 \\
     0 & 0 & 1 & 0 \\
-    0 & 0 & 0 & i
+    0 & 0 & 0 & -i
 \end{pmatrix}
 ```
 
@@ -110,7 +110,7 @@ julia> matrix(GateCSDG())
 
 julia> c = push!(Circuit(), GateCSDG(), 1, 2)
 2-qubit circuit with 1 instructions:
-└── C(S†) @ q1, q2
+└── C(S†) @ q[1], q[2]
 
 julia> power(GateCSDG(), 2), inverse(GateCSDG())
 (C(S†^2), CS)
@@ -122,7 +122,7 @@ julia> power(GateCSDG(), 2), inverse(GateCSDG())
 ```jldoctests
 julia> decompose(GateCSDG())
 2-qubit circuit with 1 instructions:
-└── CP(-1π/2) @ q1, q2
+└── CP(-1π/2) @ q[1], q[2]
 
 ```
 """

@@ -46,12 +46,12 @@ julia> matrix(GateSX())
 
 julia> c = push!(Circuit(), GateSX(), 1)
 1-qubit circuit with 1 instructions:
-└── SX @ q1
+└── SX @ q[1]
 
 julia> push!(c, GateSX, 2)
 2-qubit circuit with 2 instructions:
-├── SX @ q1
-└── SX @ q2
+├── SX @ q[1]
+└── SX @ q[2]
 
 julia> power(GateSX(), 2), inverse(GateSX())
 (X, SX†)
@@ -63,10 +63,10 @@ julia> power(GateSX(), 2), inverse(GateSX())
 ```jldoctests
 julia> decompose(GateSX())
 1-qubit circuit with 4 instructions:
-├── S† @ q1
-├── H @ q1
-├── S† @ q1
-└── GPhase(π/4) @ q1
+├── S† @ q[1]
+├── H @ q[1]
+├── S† @ q[1]
+└── GPhase(π/4) @ q[1]
 
 ```
 """
@@ -79,7 +79,7 @@ function decompose!(circ::Circuit, ::GateSX, qtargets, _)
     push!(circ, GateSDG(), a)
     push!(circ, GateH(), a)
     push!(circ, GateSDG(), a)
-    push!(circ, GPhase(π / 4), a)
+    push!(circ, GPhase(1, π / 4), a)
     return circ
 end
 
@@ -116,12 +116,12 @@ julia> matrix(GateSXDG())
 
 julia> c = push!(Circuit(), GateSXDG(), 1)
 1-qubit circuit with 1 instructions:
-└── SX† @ q1
+└── SX† @ q[1]
 
 julia> push!(c, GateSXDG, 2)
 2-qubit circuit with 2 instructions:
-├── SX† @ q1
-└── SX† @ q2
+├── SX† @ q[1]
+└── SX† @ q[2]
 
 julia> power(GateSXDG(), 2), inverse(GateSXDG())
 (SX†^2, SX)
@@ -132,7 +132,7 @@ const GateSXDG = typeof(inverse(GateSX()))
 
 function decompose!(circ::Circuit, ::GateSXDG, qtargets, _)
     a = qtargets[1]
-    push!(circ, GPhase(-π / 4), a)
+    push!(circ, GPhase(1, -π / 4), a)
     push!(circ, GateS(), a)
     push!(circ, GateH(), a)
     push!(circ, GateS(), a)

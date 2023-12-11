@@ -35,12 +35,12 @@ Measure
 
 julia> c = push!(Circuit(), Measure, 1, 1)
 1-qubit circuit with 1 instructions:
-└── Measure @ q1, c1
+└── Measure @ q[1], c[1]
 
 julia> push!(c, Measure(), 3, 4)
 3-qubit circuit with 2 instructions:
-├── Measure @ q1, c1
-└── Measure @ q3, c4
+├── Measure @ q[1], c[1]
+└── Measure @ q[3], c[4]
 ```
 """
 struct Measure <: Operation{1,1} end

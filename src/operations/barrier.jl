@@ -31,18 +31,22 @@ Barrier
 
 julia> c = push!(Circuit(), Barrier(1), 1)
 1-qubit circuit with 1 instructions:
-└── Barrier @ q1
+└── Barrier @ q[1]
 
-julia> push!(c, Barrier, 1,2,3)
-3-qubit circuit with 2 instructions:
-├── Barrier @ q1
-└── Barrier @ q1, q2, q3
+julia> push!(c, Barrier(1), 1:3)
+3-qubit circuit with 4 instructions:
+├── Barrier @ q[1]
+├── Barrier @ q[1]
+├── Barrier @ q[2]
+└── Barrier @ q[3]
 
 julia> push!(c, Barrier(3), 1,2,3)
-3-qubit circuit with 3 instructions:
-├── Barrier @ q1
-├── Barrier @ q1, q2, q3
-└── Barrier @ q1, q2, q3
+3-qubit circuit with 5 instructions:
+├── Barrier @ q[1]
+├── Barrier @ q[1]
+├── Barrier @ q[2]
+├── Barrier @ q[3]
+└── Barrier @ q[1:3]
 ```
 """
 struct Barrier{N} <: Operation{N,0}
@@ -51,9 +55,11 @@ struct Barrier{N} <: Operation{N,0}
     end
 end
 
-Barrier() = (targets...) -> Instruction(Barrier(length(targets)), targets, ())
+Barrier() = LazyExpr(Barrier, LazyArg())
 
 opname(::Type{<:Barrier}) = "Barrier"
+
+qregsizes(::Barrier{N}) where {N} = (N,)
 
 # barriers are no-ops, so
 # barriers are their own inverse
@@ -64,14 +70,4 @@ inverse(::Barrier{N}) where {N} = Barrier{N}()
 _power(::Barrier{N}, _) where {N} = Barrier{N}()
 
 isunitary(::Type{<:Barrier}) = true
-
-# Convenience functions for adding a Barrier.
-function Instruction(::Type{Barrier}, targets...)
-    N = length(targets)
-    Instruction(Barrier(N), targets, ())
-end
-
-Base.insert!(c::Circuit, i::Integer, ::Type{Barrier}, args...) = insert!(c, i, Barrier(length(args)), args...)
-
-Base.push!(c::Circuit, ::Type{Barrier}, args...) = push!(c, Barrier(length(args)), args...)
 

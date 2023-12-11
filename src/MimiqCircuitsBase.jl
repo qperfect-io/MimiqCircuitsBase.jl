@@ -26,10 +26,12 @@ using Statistics
 # documentation of function
 include("docstrings.jl")
 
+include("exceptions.jl")
 include("bitvectors.jl")
 include("utils.jl")
 include("matrices.jl")
 include("shortestzip.jl")
+include("lazybuilder.jl")
 
 export isunitary
 export isopalias
@@ -41,6 +43,8 @@ export opname
 export hilbertspacedim
 export numqubits
 export numbits
+export qregsizes
+export cregsizes
 export iswrapper
 include("operation.jl")
 
@@ -66,7 +70,11 @@ include("operations/gate.jl")
 
 # circuits and circuit-embedded gates
 export Circuit
+export emplace!
 include("circuit.jl")
+include("circuit/push.jl")
+include("circuit/insert.jl")
+include("circuit/emplace.jl")
 
 # functions for circuits
 export depth
@@ -86,6 +94,7 @@ export GPhase
 include("operations/gphase.jl")
 
 export Control
+export control
 export numcontrols
 export numtargets
 include("operations/control.jl")
@@ -104,6 +113,7 @@ include("operations/inverse.jl")
 
 export Parallel
 export numrepeats
+export parallel
 include("operations/parallel.jl")
 
 export GateU
@@ -216,6 +226,12 @@ include("operations/generalized/phasegradient.jl")
 export QFT
 include("operations/generalized/qft.jl")
 
+export PolynomialOracle
+include("operations/generalized/polynomialoracle.jl")
+
+export Diffusion
+include("operations/generalized/diffusion.jl")
+
 # other non-gate type instructions
 export Barrier
 include("operations/barrier.jl")
@@ -271,6 +287,8 @@ include("proto/qcsresults.jl")
 export saveproto
 export loadproto
 include("proto/proto.jl")
+
+include("recipes.jl")
 
 # disable precompilation when profiling runtime performance, as
 # it can lead to wrong traces

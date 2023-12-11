@@ -1,7 +1,5 @@
 syntax = "proto3";
 
-
-
 enum Irrational {
     PI = 0;
     EULER = 1;

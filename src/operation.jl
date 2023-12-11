@@ -114,9 +114,15 @@ Length of the quantum registers the given operation acts on.
 
 ## Examples
 
-```@repl
-qregsizes(GateRX())
-qregsizes(QFT(4))
+```jldoctests
+julia> qregsizes(GateRX(0.1))
+(1,)
+
+julia> qregsizes(GateCRX(0.1))
+(1, 1)
+
+julia> qregsizes(QFT(4))
+(4,)
 ```
 
 ## See also
@@ -124,7 +130,8 @@ qregsizes(QFT(4))
 [`cregsizes`](@ref), [`numqubits`](@ref), [`numbits`](@ref)
 """
 qregsizes(::T) where {T} = qregsizes(T)
-qregsizes(::Type{<:Operation{N,M}}) where {N,M} = ntuple(x -> 1, N)
+qregsizes(::Type{<:Operation{0,M}}) where {M} = ()
+qregsizes(::Type{<:Operation{N,M}}) where {N,M} = (N,)
 
 """
     cregsizes(operation)
@@ -137,7 +144,8 @@ Length of the classicalregisters the given operation acts on.
 [`qregsizes`](@ref), [`numqubits`](@ref), [`numbits`](@ref)
 """
 cregsizes(::T) where {T} = cregsizes(T)
-cregsizes(::Type{<:Operation{N,M}}) where {N,M} = ntuple(x -> 1, M)
+cregsizes(::Type{<:Operation{N,0}}) where {N} = ()
+cregsizes(::Type{<:Operation{N,M}}) where {N,M} = (M,)
 
 """
     parnames(operation)
@@ -177,11 +185,19 @@ By default it returns the number of fields of the operations.
 
 ## Examples
 
-```@repl
-numparams(GateH)
-numparams(GateU)
-numparams(GateRX)
-numparams(Measure)
+```jldoctests
+julia> numparams(GateH)
+0
+
+julia> numparams(GateU)
+3
+
+julia> numparams(GateRX)
+1
+
+julia> numparams(Measure)
+0
+
 ```
 
 ## See also

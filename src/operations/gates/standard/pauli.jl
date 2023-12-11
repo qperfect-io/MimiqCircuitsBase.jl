@@ -42,12 +42,12 @@ julia> matrix(GateX())
 
 julia> c = push!(Circuit(), GateX(), 1)
 1-qubit circuit with 1 instructions:
-└── X @ q1
+└── X @ q[1]
 
 julia> push!(c, GateX, 2)
 2-qubit circuit with 2 instructions:
-├── X @ q1
-└── X @ q2
+├── X @ q[1]
+└── X @ q[2]
 
 ```
 
@@ -56,8 +56,8 @@ julia> push!(c, GateX, 2)
 ```jldoctests
 julia> decompose(GateX())
 1-qubit circuit with 2 instructions:
-├── U(π, 0, π) @ q1
-└── GPhase(-1π/2) @ q1
+├── U(π, 0, π) @ q[1]
+└── GPhase(-1π/2) @ q[1]
 
 ```
 """
@@ -74,7 +74,7 @@ _power(::GateX, pwr) = _power_nilpotent(GateX(), GateID(), pwr)
 function decompose!(circ::Circuit, ::GateX, qtargets, _)
     q = qtargets[1]
     push!(circ, GateU(π, 0, π), q)
-    push!(circ, GPhase(-π / 2), q)
+    push!(circ, GPhase(1, -π / 2), q)
     return circ
 end
 
@@ -106,12 +106,12 @@ julia> matrix(GateY())
 
 julia> c = push!(Circuit(), GateY(), 1)
 1-qubit circuit with 1 instructions:
-└── Y @ q1
+└── Y @ q[1]
 
 julia> push!(c, GateY, 2)
 2-qubit circuit with 2 instructions:
-├── Y @ q1
-└── Y @ q2
+├── Y @ q[1]
+└── Y @ q[2]
 
 ```
 
@@ -120,8 +120,8 @@ julia> push!(c, GateY, 2)
 ```jldoctests
 julia> decompose(GateY())
 1-qubit circuit with 2 instructions:
-├── U(π, π/2, π/2) @ q1
-└── GPhase(-1π/2) @ q1
+├── U(π, π/2, π/2) @ q[1]
+└── GPhase(-1π/2) @ q[1]
 
 ```
 """
@@ -138,7 +138,7 @@ _power(::GateY, pwr) = _power_nilpotent(GateY(), GateID(), pwr)
 function decompose!(circ::Circuit, ::GateY, qtargets, _)
     q = qtargets[1]
     push!(circ, GateU(π, π / 2, π / 2), q)
-    push!(circ, GPhase(-π / 2), q)
+    push!(circ, GPhase(1, -π / 2), q)
     return circ
 end
 
@@ -170,12 +170,12 @@ julia> matrix(GateZ())
 
 julia> c = push!(Circuit(), GateZ(), 1)
 1-qubit circuit with 1 instructions:
-└── Z @ q1
+└── Z @ q[1]
 
 julia> push!(c, GateZ, 2)
 2-qubit circuit with 2 instructions:
-├── Z @ q1
-└── Z @ q2
+├── Z @ q[1]
+└── Z @ q[2]
 
 ```
 
@@ -184,7 +184,7 @@ julia> push!(c, GateZ, 2)
 ```jldoctests
 julia> decompose(GateZ())
 1-qubit circuit with 1 instructions:
-└── P(π) @ q1
+└── P(π) @ q[1]
 
 ```
 """

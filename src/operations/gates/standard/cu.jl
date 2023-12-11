@@ -24,6 +24,17 @@ Controlled-``\operatorname{U}(\theta, \phi, \lambda)`` gate.
 
 See also [`Control`](@ref), [`GateUPhase`](@ref).
 
+
+```math
+\operatorname{CU}(\theta, \phi, \lambda, \gamma) = \frac{1}{2} e^{i\gamma} \begin{pmatrix}
+            1 & 0 & 0 & 0 \\
+            0 & 1 & 0 & 0 \\
+            0 & 0 & 1 + e^{i\theta} & -i e^{i\lambda}(1 - e^{i\theta}) \\
+            0 & 0 & i e^{i\phi}(1 - e^{i\theta}) & e^{i(\phi + \lambda)}(1 + e^{i\theta})
+        \end{pmatrix}
+```
+
+
 ## Examples
 
 ```jldoctests
@@ -46,12 +57,12 @@ julia> matrix(GateCU(2.023, 0.5, 0.1, 0.2))
 
 julia> c = push!(Circuit(), GateCU(θ, ϕ, λ, γ), 1, 2)
 2-qubit circuit with 1 instructions:
-└── CU(θ, ϕ, λ, γ) @ q1, q2
+└── CU(θ, ϕ, λ, γ) @ q[1], q[2]
 
 julia> push!(c, GateCU(π/8, π/2, π/4, π/7), 1, 2)
 2-qubit circuit with 2 instructions:
-├── CU(θ, ϕ, λ, γ) @ q1, q2
-└── CU(π/8, π/2, π/4, π/7) @ q1, q2
+├── CU(θ, ϕ, λ, γ) @ q[1], q[2]
+└── CU(π/8, π/2, π/4, π/7) @ q[1], q[2]
 
 julia> power(GateCU(θ, ϕ, λ, γ), 2), inverse(GateCU(θ, ϕ, λ, γ))
 (C(U(θ, ϕ, λ, γ)^2), CU(-θ, -λ, -ϕ, -γ))
@@ -63,14 +74,14 @@ julia> power(GateCU(θ, ϕ, λ, γ), 2), inverse(GateCU(θ, ϕ, λ, γ))
 ```jldoctests; setup = :(@variables λ θ ϕ γ)
 julia> decompose(GateCU(θ, λ, ϕ, γ))
 2-qubit circuit with 8 instructions:
-├── CGPhase(γ) @ q1, q2
-├── U((1//2)*θ, 0, ϕ) @ q2
-├── CX @ q1, q2
-├── U((1//2)*θ, (1//2)*(6.283185307179586 - λ - ϕ), π) @ q2
-├── CX @ q1, q2
-├── P((1//2)*(λ - ϕ)) @ q2
-├── P((1//2)*(θ + λ + ϕ)) @ q1
-└── GPhase((-1//2)*θ) @ q[1,2]
+├── CGPhase(γ) @ q[1], q[2]
+├── U((1//2)*θ, 0, ϕ) @ q[2]
+├── CX @ q[1], q[2]
+├── U((1//2)*θ, (1//2)*(6.283185307179586 - λ - ϕ), π) @ q[2]
+├── CX @ q[1], q[2]
+├── P((1//2)*(λ - ϕ)) @ q[2]
+├── P((1//2)*(θ + λ + ϕ)) @ q[1]
+└── GPhase((-1//2)*θ) @ q[1:2]
 
 ```
 """

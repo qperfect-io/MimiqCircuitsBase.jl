@@ -55,10 +55,13 @@
         push!(c, Reset(), 121)
 
         # barrier
-        push!(c, Barrier(), 1, 2, 121)
+        push!(c, Barrier(3), 1, 2, 121)
 
         # algorithm
-        push!(c, QFT, 1:4)
+        push!(c, QFT(4), 1:4...)
+        push!(c, PhaseGradient(4), 1:4...)
+        push!(c, Diffusion(4), 1:4...)
+        push!(c, PolynomialOracle(2, 2, 1, 2, 3, 4), 1:2..., 3:4...)
 
         # gate declaration
         decl = @gatedecl ansatz(θ) = begin
