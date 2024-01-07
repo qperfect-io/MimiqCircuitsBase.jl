@@ -48,9 +48,9 @@ julia> decompose(Parallel(2, GateX()))
 
 julia> decompose(Parallel(3, GateSWAP()))
 6-qubit circuit with 3 instructions:
-├── SWAP @ q[1,4]
-├── SWAP @ q[2,5]
-└── SWAP @ q[3,6]
+├── SWAP @ q[1:2]
+├── SWAP @ q[3:4]
+└── SWAP @ q[5:6]
 ```
 """
 struct Parallel{N,M,L,T<:AbstractGate{M}} <: AbstractGate{L}
@@ -134,8 +134,11 @@ end
 
 function decompose!(circ::Circuit, p::Parallel, qtargets, _)
     op = getoperation(p)
-    targets = reshape(qtargets, (numrepeats(p), numqubits(op)))
-    push!(circ, getoperation(p), eachcol(targets)...)
+    nq = numqubits(op)
+    for i in 1:numrepeats(p)
+        push!(circ, op, qtargets[nq*(i-1).+(1:nq)]...)
+    end
+    return circ
 end
 
 """

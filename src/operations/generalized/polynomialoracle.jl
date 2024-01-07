@@ -85,7 +85,7 @@ qregsizes(::PolynomialOracle{NX,NY,N}) where {NX,NY,N} = (NX, NY)
 inverse(s::PolynomialOracle{NX,NY,N}) where {NX,NY,N} = s
 
 # TODO: change when ID is generalized
-_power(s::PolynomialOracle{NX,NY,N}, pwr) where {NX,NY,N} = _power_nilpotent(s, control(N - 1, GateID()), pwr)
+_power(s::PolynomialOracle{NX,NY,N}, pwr) where {NX,NY,N} = _power_idempotent(s, control(N - 1, GateID()), pwr)
 
 # decomposition requires auxiliary qubits
 function decompose!(::Circuit, ::PolynomialOracle{NX,NY,N}, _, _) where {NX,NY,N}

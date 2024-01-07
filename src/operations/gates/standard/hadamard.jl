@@ -69,7 +69,7 @@ struct GateH <: AbstractGate{1} end
 
 opname(::Type{GateH}) = "H"
 
-@generated _matrix(::Type{GateH}) = _decomplex(gphasepi(-1 / 4) * umatrixpi(1 / 2, 0, 1))
+@generated _matrix(::Type{GateH}) = [1 1; 1 -1] / √2
 
 @generated inverse(::GateH) = GateH()
 

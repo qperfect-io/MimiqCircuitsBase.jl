@@ -72,7 +72,7 @@ opname(::Type{GateECR}) = "ECR"
 
 @generated inverse(::GateECR) = GateECR()
 
-_power(::GateECR, pwr) = _power_nilpotent(GateECR(), GateID(), pwr)
+_power(::GateECR, pwr) = _power_idempotent(GateECR(), GateID(), pwr)
 
 function decompose!(circ::Circuit, ::GateECR, qtargets, _)
     a, b = qtargets

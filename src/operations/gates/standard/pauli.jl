@@ -69,7 +69,7 @@ opname(::Type{GateX}) = "X"
 
 @generated inverse(::GateX) = GateX()
 
-_power(::GateX, pwr) = _power_nilpotent(GateX(), GateID(), pwr)
+_power(::GateX, pwr) = _power_idempotent(GateX(), GateID(), pwr)
 
 function decompose!(circ::Circuit, ::GateX, qtargets, _)
     q = qtargets[1]
@@ -133,7 +133,7 @@ opname(::Type{GateY}) = "Y"
 
 @generated inverse(::GateY) = GateY()
 
-_power(::GateY, pwr) = _power_nilpotent(GateY(), GateID(), pwr)
+_power(::GateY, pwr) = _power_idempotent(GateY(), GateID(), pwr)
 
 function decompose!(circ::Circuit, ::GateY, qtargets, _)
     q = qtargets[1]
@@ -196,7 +196,7 @@ opname(::Type{GateZ}) = "Z"
 
 @generated inverse(::GateZ) = GateZ()
 
-_power(::GateZ, pwr) = _power_nilpotent(GateZ(), GateID(), pwr)
+_power(::GateZ, pwr) = _power_idempotent(GateZ(), GateID(), pwr)
 
 function decompose!(circ::Circuit, ::GateZ, qtargets, _)
     q = qtargets[1]

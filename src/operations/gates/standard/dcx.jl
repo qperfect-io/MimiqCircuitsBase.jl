@@ -68,7 +68,7 @@ opname(::Type{GateDCX}) = "DCX"
 
 @generated _matrix(::Type{GateDCX}) = ctrlfs(_matrix(GateX))
 
-_power(::GateDCX, pwr) = _power_3potent(GateDCX(), inverse(GateDCX()), GateID(), pwr)
+_power(::GateDCX, pwr) = _power_three_idempotent(GateDCX(), inverse(GateDCX()), GateID(), pwr)
 
 function decompose!(circ::Circuit, ::GateDCX, qtargets, _)
     a, b = qtargets

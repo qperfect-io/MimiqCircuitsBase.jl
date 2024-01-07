@@ -79,7 +79,7 @@ opname(::Type{GateSWAP}) = "SWAP"
 
 @generated inverse(::GateSWAP) = GateSWAP()
 
-_power(::GateSWAP, pwr) = _power_nilpotent(GateSWAP(), GateID2(), pwr)
+_power(::GateSWAP, pwr) = _power_idempotent(GateSWAP(), GateID2(), pwr)
 
 function decompose!(circ::Circuit, ::GateSWAP, qtargets, _)
     a, b = qtargets

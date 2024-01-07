@@ -58,7 +58,7 @@ function _decomplex(x::Real)
     return float(x)
 end
 
-function _power_3potent(obj, invobj, idobj, pwr)
+function _power_three_idempotent(obj, invobj, idobj, pwr)
     m = pwr % 3
     if m == 0
         return idobj
@@ -71,7 +71,7 @@ function _power_3potent(obj, invobj, idobj, pwr)
     end
 end
 
-function _power_nilpotent(obj, idobj, pwr)
+function _power_idempotent(obj, idobj, pwr)
     m = pwr % 2
     if m == 0
         return idobj
