@@ -15,7 +15,7 @@
 #
 
 using RecipesBase
-using Measures
+import Measures: mm
 
 @recipe function f(res::QCSResults; endianess=:big, max_outcomes=15)
     x = []
@@ -39,8 +39,8 @@ using Measures
     nq = length(first(x))
 
     size := (800, 400 + 10 * nq)
-    margin := 10Measures.mm
-    bottom_margin := nq * 1.7Measures.mm
+    margin := 10mm
+    bottom_margin := nq * 1.7mm
 
     title := "$(res.simulator) $(res.version) fidelity=$(mean(res.fidelities))"
     @series begin

@@ -46,18 +46,32 @@ function decompose!(circuit::Circuit, inst::Instruction)
     return decompose!(circuit, getoperation(inst), getqubits(inst), getbits(inst))
 end
 
-function _checkdecompose!(circuit::Circuit, inst::Instruction{N,M,T}; issupported=_ -> false) where {N,M,T}
+function _checkdecompose!(circuit::Circuit, inst::Instruction{N,M,T}, issupported::Function) where {N,M,T}
     # PERF: speed here can be highly improved
     if issupported(getoperation(inst))
         push!(circuit, inst)
     else
-        decompose!(circuit, inst)
+        decomposed = decompose(inst)
+        for inst in decomposed
+            _checkdecompose!(circuit, inst, issupported)
+        end
     end
 end
 
-function decompose!(circuit::Circuit, todecompose::Circuit; kwargs...)
+issupported_default(::T) where {T<:Operation} = issupported_default(T)
+issupported_default(::Type{GateU}) = true
+issupported_default(::Type{GateCX}) = true
+issupported_default(::Type{<:GPhase}) = true
+issupported_default(::Type{<:Barrier}) = true
+issupported_default(::Type{<:Measure}) = true
+issupported_default(::Type{<:Reset}) = true
+issupported_default(::Type{<:IfStatement{N,M,T}}) where {N,M,T} = issupported_default(T)
+issupported_default(::Type{<:AbstractGate}) = false
+issupported_default(::Type{<:GateCustom}) = true
+
+function decompose!(circuit::Circuit, todecompose::Circuit; issupported=issupported_default)
     for inst in todecompose
-        _checkdecompose!(circuit, inst; kwargs...)
+        _checkdecompose!(circuit, inst, issupported)
     end
 
     return circuit
