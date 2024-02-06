@@ -78,7 +78,7 @@ struct GateCustom{N} <: AbstractGate{N}
 
         M = 1 << N
         if ndims(U) != 2 || size(U, 1) != M || size(U, 2) != M
-            throw(ArgumentError("Custom matrix should be 2^$(M)×2^$(M)."))
+            throw(ArgumentError("Custom matrix should be $(M)×$(M)."))
         end
 
         if !isapprox(U * adjoint(U), Matrix(I, M, M), rtol=1e-8)

@@ -193,7 +193,7 @@ function Base.show(io::IO, ::MIME"text/html", r::QCSResults)
         h = histsamples(r)
         h = sort(collect(h), by=x -> x[2], rev=true)[1:min(10, length(h))]
         for (k, v) in h
-            print(io, "<tr><td>", k, "</td><td>", v, "</td></tr>")
+            print(io, "<tr><td style=\"text-align:left;font-family: monospace;\">", k, "</td><td style=\"text-align:left;font-family: monospace;\">", v, "</td></tr>")
         end
     end
 

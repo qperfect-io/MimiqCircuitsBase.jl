@@ -135,6 +135,14 @@ function Base.insert!(c::Circuit, index, g::Instruction)
     return c
 end
 
+function Base.insert!(c::Circuit, index::Int, g::Circuit)
+    for inst in g._instructions
+        insert!(c, index, inst)
+        index += 1
+    end
+    return c
+end
+
 function numqubits(insts::Vector{<:Instruction})
     isempty(insts) && return 0
     return maximum(Iterators.map(g -> maximum(getqubits(g), init=0), insts))

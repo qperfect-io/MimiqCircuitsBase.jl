@@ -63,7 +63,7 @@ evaluate(g::GateCustom, d::Dict=Dict()) = GateCustom(evaluate(g.U, d))
 function evaluate(g::GateCall{N,M}, d::Dict=Dict()) where {N,M}
     decl = g._decl
     args = map(x -> Symbolics.substitute(x, d), g._args)
-    return GateCall(decl, args)
+    return GateCall(decl, args...)
 end
 
 evaluate(g::Operation, ::Dict) = g
