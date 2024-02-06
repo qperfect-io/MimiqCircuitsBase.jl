@@ -45,12 +45,11 @@ struct GateDecl{N,M}
             throw(ArgumentError("GateDecl instructions cannot be empty."))
         end
 
-        unique_qubits = Set{Symbol}()
+        nq = 0
         for inst in instructions
-            unique_qubits = union(unique_qubits, getqubits(inst))
+            nq = max(nq, maximum(getqubits(inst)))
         end
 
-        nq = length(unique_qubits)
         np = length(args)
 
         new{nq,np}(name, args, instructions)

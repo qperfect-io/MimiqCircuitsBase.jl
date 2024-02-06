@@ -51,9 +51,8 @@ function _checkdecompose!(circuit::Circuit, inst::Instruction{N,M,T}, issupporte
     if issupported(getoperation(inst))
         push!(circuit, inst)
     else
-        decomposed = decompose(inst)
-        for inst in decomposed
-            _checkdecompose!(circuit, inst, issupported)
+        for inst2 in decompose(inst)
+            _checkdecompose!(circuit, inst2, issupported)
         end
     end
 end
