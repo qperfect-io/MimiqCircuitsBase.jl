@@ -146,7 +146,7 @@ julia> opname(GateRX(π/2))
 "RX"
 
 julia> opname(Instruction(GateCX(),1,2))
-"Control"
+"CX"
 
 julia> opname(QFT(4))
 "QFT"

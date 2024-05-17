@@ -39,7 +39,12 @@ function bitarr_to_int(arr, ::Type{T}) where {T<:BigInt}
 end
 
 function int_to_bitarr(x::Integer, pad)
-    BitVector(digits(x, base=2, pad=pad))
+    bv = BitVector(undef, pad)
+    ax = abs(x)
+    for i in Base.OneTo(pad)
+        bv[i] = (ax >> (i - 1)) & 1
+    end
+    return bv
 end
 
 function bitarr_to_bytes(bv::BitVector)

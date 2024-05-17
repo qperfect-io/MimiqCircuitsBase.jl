@@ -401,8 +401,8 @@ See also [`GateRXX`](@ref), [`GateRYY`](@ref), [`GateRZZ`](@ref),
 \operatorname{(XX+YY)}(\theta, \beta) =
 \begin{pmatrix}
     1 & 0 & 0 & 0 \\
-    0 & \cos(\frac{\theta}{2}) & -i\sin(\frac{\theta}{2})e^{-i\beta} & 0 \\
-    0 & -i\sin(\frac{\theta}{2})e^{i\beta} & \cos(\frac{\theta}{2}) & 0 \\
+    0 & \cos(\frac{\theta}{2}) & -i\sin(\frac{\theta}{2})e^{i\beta} & 0 \\
+    0 & -i\sin(\frac{\theta}{2})e^{-i\beta} & \cos(\frac{\theta}{2}) & 0 \\
     0 & 0 & 0 & 1
 \end{pmatrix}
 ```
@@ -469,8 +469,8 @@ inverse(g::GateXXplusYY) = GateXXplusYY(-g.θ, g.β)
 
 _matrix(::Type{GateXXplusYY}, θ, β) = [
     1 0 0 0
-    0 cos(θ / 2) -im*sin(θ / 2)*cis(-β) 0
-    0 -im*sin(θ / 2)*cis(β) cos(θ / 2) 0
+    0 cos(θ / 2) -im*sin(θ / 2)*cis(β) 0
+    0 -im*sin(θ / 2)*cis(-β) cos(θ / 2) 0
     0 0 0 1
 ]
 

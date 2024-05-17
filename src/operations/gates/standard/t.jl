@@ -116,7 +116,7 @@ julia> push!(c, GateTDG, 2)
 └── T† @ q[2]
 
 julia> power(GateTDG(), 2), power(GateTDG(), 4), inverse(GateTDG())
-(T†^2, T†^4, T)
+((T†)^2, (T†)^4, T)
 
 ```
 

@@ -31,13 +31,12 @@ List of gates provided by the library.
 
 ## Single qubit parametric gates
 
-[`GateU`](@ref), [`GateUPhase`](@ref), [`GateP`](@ref),
+[`GateU`](@ref), [`GateP`](@ref),
 [`GateRX`](@ref), [`GateRY`](@ref), [`GateRZ`](@ref), [`GateR`](@ref),
 [`GateU1`](@ref), [`GateU2`](@ref), [`GateU3`](@ref).
 
 ## Two qubit gates
 
-[`GateID2`](@ref),
 [`GateCX`](@ref), [`GateCY`](@ref), [`GateCZ`](@ref),
 [`GateCH`](@ref),
 [`GateSWAP`](@ref), [`GateISWAP`](@ref),
@@ -75,7 +74,6 @@ const GATES = Type[
     GateU,
     GateP,
     GateID,
-    GateID2,
     GateX,
     GateY,
     GateZ,
@@ -129,7 +127,7 @@ const GATES = Type[
 
 See [`GATES`](@ref) for a complete list unitary gates.
 
-[`GPhase`](@ref), [`GateCustom`](@ref)
+[`GateCustom`](@ref)
 
 For gate definitions and calls, see [`GateDecl`](@ref) and [`GateCall`](@ref)
 

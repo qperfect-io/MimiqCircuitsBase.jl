@@ -38,12 +38,10 @@ RX(3π)
 """
 function evaluate end
 
-"""
-    evaluate!(circutit, dictionary)
-
-Evaluate the 
-"""
-function evaluate! end
+function evaluate(g, rules...)
+    d = Dict(pairs...)
+    return evaluate(g, d)
+end
 
 function evaluate(g::T, d::Dict) where {T<:AbstractGate}
     args = [Symbolics.substitute(getparam(g, n), d) for n in parnames(T)]
@@ -58,7 +56,12 @@ evaluate(g::Inverse{N,T}, d::Dict=Dict()) where {N,T} = Inverse(evaluate(g.op, d
 
 evaluate(g::Power{P,T}, d::Dict=Dict()) where {P,T} = Power(evaluate(g.op, d), P)
 
-evaluate(g::GateCustom, d::Dict=Dict()) = GateCustom(evaluate(g.U, d))
+function evaluate(g::GateCustom, d::Dict=Dict())
+    Unew = map(g.U) do x
+        Symbolics.substitute(x, d)
+    end
+    GateCustom(Unew)
+end
 
 function evaluate(g::GateCall{N,M}, d::Dict=Dict()) where {N,M}
     decl = g._decl

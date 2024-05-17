@@ -65,9 +65,7 @@ julia> decompose(GateSX())
 1-qubit circuit with 4 instructions:
 ├── S† @ q[1]
 ├── H @ q[1]
-├── S† @ q[1]
-└── GPhase(π/4) @ q[1]
-
+└── S† @ q[1]
 ```
 """
 const GateSX = typeof(power(GateX(), 1 // 2))
@@ -79,7 +77,7 @@ function decompose!(circ::Circuit, ::GateSX, qtargets, _)
     push!(circ, GateSDG(), a)
     push!(circ, GateH(), a)
     push!(circ, GateSDG(), a)
-    push!(circ, GPhase(1, π / 4), a)
+    push!(circ, GateU(0, 0, 0, π / 4), a)
     return circ
 end
 
@@ -132,9 +130,9 @@ const GateSXDG = typeof(inverse(GateSX()))
 
 function decompose!(circ::Circuit, ::GateSXDG, qtargets, _)
     a = qtargets[1]
-    push!(circ, GPhase(1, -π / 4), a)
     push!(circ, GateS(), a)
     push!(circ, GateH(), a)
     push!(circ, GateS(), a)
+    push!(circ, GateU(0, 0, 0, -π / 4), a)
     return circ
 end

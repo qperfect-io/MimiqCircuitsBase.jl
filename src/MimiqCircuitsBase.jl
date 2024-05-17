@@ -90,9 +90,6 @@ export tobits
 export to01
 include("bitstrings.jl")
 
-export GPhase
-include("operations/gphase.jl")
-
 export Control
 export control
 export numcontrols
@@ -117,14 +114,12 @@ export parallel
 include("operations/parallel.jl")
 
 export GateU
-export GateUPhase
 include("operations/gates/standard/u.jl")
 
 export GateP
 include("operations/gates/standard/phase.jl")
 
 export GateID
-export GateID2
 include("operations/gates/standard/id.jl")
 
 export GateX
@@ -260,6 +255,9 @@ export evaluate
 @reexport using Symbolics: @variables
 include("evaluate.jl")
 
+export issymbolic
+include("symbolics.jl")
+
 export GATES
 export OPERATIONS
 export GENERALIZED
@@ -289,6 +287,9 @@ export loadproto
 include("proto/proto.jl")
 
 include("recipes.jl")
+
+export draw
+include("circuit/draw.jl")
 
 # disable precompilation when profiling runtime performance, as
 # it can lead to wrong traces

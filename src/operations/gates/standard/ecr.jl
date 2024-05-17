@@ -68,11 +68,11 @@ struct GateECR <: AbstractGate{2} end
 
 opname(::Type{GateECR}) = "ECR"
 
-@generated _matrix(::Type{GateECR}) = ComplexF64[0 1 0 im; 1 0 -im 0; 0 im 0 1; -im 0 1 0] ./ sqrt(2)
+@generated _matrix(::Type{GateECR}) = ComplexF64[0 0 1 im; 0 0 im 1; 1 -im 0 0; -im 1 0 0] ./ sqrt(2)
 
 @generated inverse(::GateECR) = GateECR()
 
-_power(::GateECR, pwr) = _power_idempotent(GateECR(), GateID(), pwr)
+_power(::GateECR, pwr) = _power_idempotent(GateECR(), parallel(2, GateID()), pwr)
 
 function decompose!(circ::Circuit, ::GateECR, qtargets, _)
     a, b = qtargets
@@ -81,3 +81,4 @@ function decompose!(circ::Circuit, ::GateECR, qtargets, _)
     push!(circ, GateRZX(-π / 4), a, b)
     return circ
 end
+

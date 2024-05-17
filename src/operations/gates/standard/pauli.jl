@@ -55,9 +55,8 @@ julia> push!(c, GateX, 2)
 
 ```jldoctests
 julia> decompose(GateX())
-1-qubit circuit with 2 instructions:
-├── U(π, 0, π) @ q[1]
-└── GPhase(-1π/2) @ q[1]
+1-qubit circuit with 1 instructions:
+└── U(π, 0, π) @ q[1]
 
 ```
 """
@@ -65,7 +64,7 @@ struct GateX <: AbstractGate{1} end
 
 opname(::Type{GateX}) = "X"
 
-@generated _matrix(::Type{GateX}) = _decomplex(umatrixpi(1, 0, 1) * gphasepi(-1 / 2))
+@generated _matrix(::Type{GateX}) = [0 1; 1 0]
 
 @generated inverse(::GateX) = GateX()
 
@@ -74,7 +73,6 @@ _power(::GateX, pwr) = _power_idempotent(GateX(), GateID(), pwr)
 function decompose!(circ::Circuit, ::GateX, qtargets, _)
     q = qtargets[1]
     push!(circ, GateU(π, 0, π), q)
-    push!(circ, GPhase(1, -π / 2), q)
     return circ
 end
 
@@ -119,9 +117,8 @@ julia> push!(c, GateY, 2)
 
 ```jldoctests
 julia> decompose(GateY())
-1-qubit circuit with 2 instructions:
-├── U(π, π/2, π/2) @ q[1]
-└── GPhase(-1π/2) @ q[1]
+1-qubit circuit with 1 instructions:
+└── U(π, π/2, π/2) @ q[1]
 
 ```
 """
@@ -129,7 +126,7 @@ struct GateY <: AbstractGate{1} end
 
 opname(::Type{GateY}) = "Y"
 
-@generated _matrix(::Type{GateY}) = _decomplex(umatrixpi(1, 1 / 2, 1 / 2) * gphasepi(-1 / 2))
+@generated _matrix(::Type{GateY}) = ComplexF64[0 -im; im 0]
 
 @generated inverse(::GateY) = GateY()
 
@@ -138,7 +135,6 @@ _power(::GateY, pwr) = _power_idempotent(GateY(), GateID(), pwr)
 function decompose!(circ::Circuit, ::GateY, qtargets, _)
     q = qtargets[1]
     push!(circ, GateU(π, π / 2, π / 2), q)
-    push!(circ, GPhase(1, -π / 2), q)
     return circ
 end
 
@@ -192,7 +188,7 @@ struct GateZ <: AbstractGate{1} end
 
 opname(::Type{GateZ}) = "Z"
 
-@generated _matrix(::Type{GateZ}) = _decomplex(pmatrixpi(1))
+@generated _matrix(::Type{GateZ}) = Float64[1 0; 0 -1]
 
 @generated inverse(::GateZ) = GateZ()
 

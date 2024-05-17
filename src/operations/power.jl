@@ -70,8 +70,7 @@ julia> decompose(Power(GateX(), 1//2)) # same as decomposing GateSX
 1-qubit circuit with 4 instructions:
 ├── S† @ q[1]
 ├── H @ q[1]
-├── S† @ q[1]
-└── GPhase(π/4) @ q[1]
+└── S† @ q[1]
 ```
 """
 struct Power{P,N,T<:AbstractGate{N}} <: AbstractGate{N}
@@ -106,7 +105,19 @@ parnames(::Type{Power{P,N,T}}) where {P,N,T} = parnames(T)
 
 getparam(op::Power, name) = getparam(getoperation(op), name)
 
-opname(::Type{<:Power}) = "Power"
+function opname(::Type{<:Power{P,N,T}}) where {P,N,T}
+    if iswrapper(T) && !isopalias(T)
+        op = "($(opname(T)))"
+    else
+        op = opname(T)
+    end
+
+    if (P isa Integer || P isa AbstractFloat) && P >= 0
+        return "$(op)^P"
+    else
+        return "$(op)^($P)"
+    end
+end
 
 """
     exponent(poweroperation)
@@ -125,12 +136,13 @@ julia> MimiqCircuitsBase.exponent(GateSX())
 """
 exponent(::Power{P}) where {P} = P
 
-@generated _matrix(::Type{Power{P,N,T}}) where {P,N,T} = complex(_matrix(T))^P
+@generated _matrix(::Type{Power{P,N,T}}) where {P,N,T} = Matrix(complex(_matrix(T))^P)
 
-_matrix(::Type{Power{P,N,T}}, args...) where {P,N,T} = complex(_matrix(T, args...))^P
+_matrix(::Type{Power{P,N,T}}, args...) where {P,N,T} = Matrix(complex(_matrix(T, args...))^P)
 
-function decompose!(circ::Circuit, pwr::Power{P}, qtargets, _) where {P}
+function decompose!(circ::Circuit, pwr::Power{P,N,T}, qtargets, _) where {P,N,T}
     op = getoperation(pwr)
+
     if exponent(pwr) isa Integer
         for _ in 1:exponent(pwr)
             push!(circ, op, qtargets...)
@@ -149,15 +161,15 @@ function decompose!(circ::Circuit, pwr::Power{P}, qtargets, _) where {P}
         return circ
     end
 
-    push!(circ, pwr, qtargets...)
-    return circ
+    error("Cannnot decompose $pwr.")
 end
 
 function Base.show(io::IO, op::Power)
     exp = exponent(op)
+    _print_wrapped_parens(io, getoperation(op))
     if (exp isa Integer || exp isa AbstractFloat) && exp >= 0
-        print(io, op.op, '^', exp)
+        print(io, '^', exp)
     else
-        print(io, op.op, "^(", exp, ')')
+        print(io, "^(", exp, ')')
     end
 end

@@ -22,6 +22,7 @@ message ArgValue {
     oneof arg_value {
         int64 integer_value = 1;
         double double_value = 2;
+        bool bool_value = 3;
     }
 }
 

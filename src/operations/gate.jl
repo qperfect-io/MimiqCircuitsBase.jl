@@ -59,8 +59,8 @@ julia> matrix(GateH())
 ```jldoctests
 julia> matrix(GateRX(π/2))
 2×2 Matrix{ComplexF64}:
-    0.707107+5.55112e-17im       0.0-0.707107im
- 1.11022e-16-0.707107im     0.707107+5.55112e-17im
+ 0.707107+0.0im            0.0-0.707107im
+      0.0-0.707107im  0.707107+0.0im
 
 julia> matrix(GateCX())
 4×4 Matrix{Float64}:
@@ -92,18 +92,16 @@ end
 matrix(g::T) where {T<:AbstractGate} = matrix(g, Val(numparams(T) != 0))
 
 """
-    UndefinedParameterError(name, gatename)
+    UnexpectedSymbolics(sym, expr)
 
-The parameters of the gate are undefined.
-`name` is the name of the parameter, `gatename` the one of the gate.
+Error to be thrown when a unexpected symbolics is present in an expression.
 """
-struct UndefinedParameterError <: Exception
-    name::Symbol
-    gatename::String
+struct UnexpectedSymbolics <: Exception
+    expr::String
 end
 
-function showerror(io::IO, e::UndefinedParameterError)
-    print(io, "Undefined parameter $(e.name) in gate $(e.gatename)")
+function Base.showerror(io::IO, e::UnexpectedSymbolics)
+    println(io, "Unexpected symbolic expression $(e.expr). Try to evaluate or define all symbols.")
 end
 
 """
@@ -138,25 +136,30 @@ function unwrappedmatrix(g::T) where {T<:AbstractGate}
 
     # Check the parameters.
     # Assumes that the parameters cannot be complex.
-    params = []
+    params = map(getparams(g)) do p
+        v = Symbolics.value(p)
 
-    for name in parnames(g)
-        v = Symbolics.value(getparam(g, name))
         if v isa Number
-            push!(params, v)
+            return v
         elseif v isa SymbolicUtils.BasicSymbolic{Irrational{:π}}
-            push!(params, π)
+            return π
         elseif v isa SymbolicUtils.BasicSymbolic{Irrational{:ℯ}}
-            push!(params, ℯ)
-        else
-            throw(UndefinedParameterError(name, opname(g)))
+            return ℯ
         end
+
+        vv = Symbolics.value(Symbolics.substitute(p, Dict()))
+
+        if vv isa Number
+            return vv
+        end
+
+        throw(UnexpectedSymbolics(string(g)))
     end
+
     return _matrix(T, params...)
 end
 
 function _displaypi(num::Num)
-
     v = Symbolics.value(num)
 
     if v isa Float64
@@ -181,10 +184,11 @@ _displaypi(num) = num
 
 function Base.show(io::IO, gate::AbstractGate)
     compact = get(io, :compact, false)
+    sep = compact ? "," : ", "
     print(io, opname(gate))
     if numparams(gate) > 0
         print(io, "(")
-        join(io, map(x -> _displaypi(getproperty(gate, x)), parnames(gate)), compact ? "," : ", ")
+        join(io, map(x -> _displaypi(getproperty(gate, x)), parnames(gate)), sep)
         print(io, ")")
     end
 end

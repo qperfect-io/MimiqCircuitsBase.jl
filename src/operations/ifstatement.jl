@@ -33,7 +33,7 @@ if (c==10) x q[0];
 
 ```jldoctest
 julia> IfStatement(10, GateX(), 999)
-If(c == 999) X
+IF(c == 999) X
 ```
 """
 struct IfStatement{N,M,T<:Operation{M,0}} <: Operation{M,N}
@@ -51,7 +51,7 @@ end
 
 IfStatement(op::T, val) where {T<:AbstractGate} = LazyExpr(IfStatement, LazyArg(), op, val)
 
-opname(::Type{<:IfStatement}) = "If"
+opname(::Type{<:IfStatement}) = "IF"
 
 inverse(::IfStatement) = error("Cannot inverse an IfStatement.")
 
@@ -59,19 +59,28 @@ _power(::IfStatement, n) = error("Cannot elevate an IfStatement to any power.")
 
 getoperation(c::IfStatement) = c.op
 
+getcondition(c::IfStatement) = c.val
+
 iswrapper(::Type{<:IfStatement}) = true
 
 function getunwrappedvalue(g::IfStatement)
-    v = Symbolics.value(g.val)
+    v = Symbolics.value(getcondition(g))
+
     if v isa Number
         return v
     elseif v isa SymbolicUtils.BasicSymbolic{Irrational{:π}}
         return π
     elseif v isa SymbolicUtils.BasicSymbolic{Irrational{:ℯ}}
         return ℯ
-    else
-        throw(UndefinedParameterError("val", opname(g)))
     end
+
+    vv = Symbolics.value(Symbolics.substitute(p, Dict()))
+
+    if vv isa Number
+        return vv
+    end
+
+    throw(UnexpectedSymbolics(string(g)))
 end
 
 function Base.show(io::IO, s::IfStatement)

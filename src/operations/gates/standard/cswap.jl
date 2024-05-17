@@ -50,7 +50,7 @@ julia> c = push!(Circuit(), GateCSWAP(), 1, 2, 3)
 └── CSWAP @ q[1], q[2:3]
 
 julia> power(GateCSWAP(), 2), inverse(GateCSWAP())
-(C₂ID, CSWAP)
+(C(Parallel(2, ID)), CSWAP)
 
 ```
 

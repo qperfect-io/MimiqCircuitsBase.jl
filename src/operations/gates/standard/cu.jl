@@ -20,20 +20,19 @@
 Controlled-``\operatorname{U}(\theta, \phi, \lambda)`` gate.
 
 !!! details
-    Implemented as an alias to `Control(1, GateUPhase(θ, ϕ, λ, γ))`.
+    Implemented as an alias to `Control(1, GateU(θ, ϕ, λ, γ))`.
 
-See also [`Control`](@ref), [`GateUPhase`](@ref).
-
+See also [`Control`](@ref), [`GateU`](@ref).
 
 ```math
-\operatorname{CU}(\theta, \phi, \lambda, \gamma) = \frac{1}{2} e^{i\gamma} \begin{pmatrix}
-            1 & 0 & 0 & 0 \\
-            0 & 1 & 0 & 0 \\
-            0 & 0 & 1 + e^{i\theta} & -i e^{i\lambda}(1 - e^{i\theta}) \\
-            0 & 0 & i e^{i\phi}(1 - e^{i\theta}) & e^{i(\phi + \lambda)}(1 + e^{i\theta})
-        \end{pmatrix}
+\operatorname{CU}(\theta, \phi, \lambda, \gamma) =
+\frac{1}{2} \begin{pmatrix}
+    1 & 0 & 0 & 0 \\
+    0 & 1 & 0 & 0 \\
+    0 & 0 & e^{i\gamma} \cos\left(\frac{\theta}{2}\right) & -e^{i\gamma} e^{i\lambda}\sin\left(\frac{\theta}{2}\right) \\
+    0 & 0 & e^{i\gamma} \mathrm{e}^{i\phi}\sin\left(\frac{\theta}{2}\right) & e^{i\gamma} \mathrm{e}^{i(\phi+\lambda)}\cos\left(\frac{\theta}{2}\right)
+\end{pmatrix}
 ```
-
 
 ## Examples
 
@@ -85,7 +84,7 @@ julia> decompose(GateCU(θ, λ, ϕ, γ))
 
 ```
 """
-const GateCU = typeof(Control(1, GateUPhase(π, π, π, π)))
+const GateCU = typeof(Control(1, GateU(π, π, π, π)))
 
 function decompose!(circ::Circuit, g::GateCU, qtargets, _)
     c, t = qtargets
@@ -96,14 +95,13 @@ function decompose!(circ::Circuit, g::GateCU, qtargets, _)
     λ = op.λ
     γ = op.γ
 
-    push!(circ, Control(GPhase(1, γ)), c, t)
-    push!(circ, GateU(θ / 2, 0, λ), t)
+    push!(circ, GateP(γ), c)
+    push!(circ, GateP((λ + ϕ) / 2), c)
+    push!(circ, GateP((λ - ϕ) / 2), t)
     push!(circ, GateCX(), c, t)
-    push!(circ, GateU(θ / 2, -(λ + ϕ - 2π) / 2, π), t)
+    push!(circ, GateU(-θ / 2, 0, -(λ + ϕ) / 2), t)
     push!(circ, GateCX(), c, t)
-    push!(circ, GateP(-(λ - ϕ) / 2), t)
-    push!(circ, GateP((λ + ϕ + θ) / 2), c)
-    push!(circ, GPhase(2, -θ / 2), c, t)
+    push!(circ, GateU(θ / 2, ϕ, 0), t)
 
     return circ
 end

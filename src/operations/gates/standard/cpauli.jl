@@ -64,13 +64,16 @@ julia> power(GateCX(), 2), inverse(GateCX())
 
 ```jldoctests
 julia> decompose(GateCX())
-2-qubit circuit with 2 instructions:
-├── CU(π, 0, π) @ q[1], q[2]
-└── CGPhase(-1π/2) @ q[1], q[2]
+2-qubit circuit with 1 instructions:
+└── CX @ q[1], q[2]
 
 ```
 """
 const GateCX = typeof(Control(GateX()))
+
+function decompose!(circ::Circuit, ::GateCX, qtarget, _)
+    return push!(circ, GateCX(), qtarget...)
+end
 
 @doc raw"""
     GateCY()

@@ -1,7 +1,7 @@
 name = "MimiqCircuitsBase"
 uuid = "3a95eabf-73f4-453e-aae8-8a11a27ac032"
 authors = ["Guido Masella <guido.masella@gmail.com>"]
-version = "0.7.5"
+version = "0.8.2"
 
 [deps]
 BiMaps = "02e1a8d2-c0bf-449f-9d6e-85b4cfc6bdab"

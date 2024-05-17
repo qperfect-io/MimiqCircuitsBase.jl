@@ -82,9 +82,9 @@ function Base.show(io::IO, ::MIME"text/plain", r::QCSResults)
     if !isnothing(r.simulator)
         print(io, "├── simulator: ", r.simulator)
         if isnothing(r.version)
-            print('\n')
+            print(io, '\n')
         else
-            println(" ", r.version)
+            println(io, " ", r.version)
         end
     end
 
@@ -107,9 +107,9 @@ function Base.show(io::IO, ::MIME"text/plain", r::QCSResults)
     end
 
     if length(r.avggateerrors) == 1
-        println(io, "├── average >=2-qubit gate error estimate: ", round.(r.avggateerrors[1]; digits=3))
+        println(io, "├── average multi-qubit gate error estimate: ", round.(r.avggateerrors[1]; digits=3))
     elseif !isempty(r.avggateerrors)
-        println(io, "├── average >=2-qubit gate error estimate:")
+        println(io, "├── average multi-qubit gate error estimate:")
         println(io, "│   ├── mean: ", round.(mean(r.avggateerrors); digits=3))
         println(io, "│   ├── median: ", round.(median(r.avggateerrors); digits=3))
         println(io, "│   └── std: ", round.(std(r.avggateerrors); digits=3))
@@ -206,4 +206,6 @@ function Base.show(io::IO, ::MIME"text/html", r::QCSResults)
     end
 
     print(io, "</tbody></table>")
+
+    return nothing
 end

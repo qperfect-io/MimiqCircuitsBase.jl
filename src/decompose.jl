@@ -51,7 +51,8 @@ function _checkdecompose!(circuit::Circuit, inst::Instruction{N,M,T}, issupporte
     if issupported(getoperation(inst))
         push!(circuit, inst)
     else
-        for inst2 in decompose(inst)
+        decomposed = decompose(inst)
+        for inst2 in decomposed
             _checkdecompose!(circuit, inst2, issupported)
         end
     end
@@ -60,7 +61,6 @@ end
 issupported_default(::T) where {T<:Operation} = issupported_default(T)
 issupported_default(::Type{GateU}) = true
 issupported_default(::Type{GateCX}) = true
-issupported_default(::Type{<:GPhase}) = true
 issupported_default(::Type{<:Barrier}) = true
 issupported_default(::Type{<:Measure}) = true
 issupported_default(::Type{<:Reset}) = true

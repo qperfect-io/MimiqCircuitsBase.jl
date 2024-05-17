@@ -115,6 +115,7 @@ _substitute_irrationals(expr) = Symbolics.substitute(expr, Dict(π => Float64(π
 
 _convert_to_number(x::Num) = Symbolics.value(x)
 
+Base.cis(x::Num) = cos(x) + im * sin(x)
 Base.cispi(x::Num) = cospi(x) + im * sinpi(x)
 
 function unwrapvalue(g::Num)
@@ -131,3 +132,6 @@ function unwrapvalue(g::Num)
 end
 
 unwrapvalue(g::Real) = g
+
+unwrapvalue(g::Complex{<:Real}) = g
+unwrapvalue(g::Complex{Num}) = complex(unwrapvalue(real(g)), unwrapvalue(imag(g)))

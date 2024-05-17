@@ -87,7 +87,7 @@ function checkpgate(gatetype, N, numpars)
             @test all(x -> x == hilbertspacedim(inst), size(M))
 
             # check that the matrix is non symbolic
-            @test eltype(M) <: ComplexF64
+            @test eltype(M) <: ComplexF64 || eltype(M) <: Float64
 
             # matrix should be equal every time we get it from the same gate
             @test M == matrix(inst)
@@ -137,7 +137,8 @@ end
 @testset "Parametric 1-qubit gates" begin
     map(t -> checkpgate(t, 1, 1), Type[GateP, GateRX, GateRY, GateRZ, GateU1])
     map(t -> checkpgate(t, 1, 2), Type[GateR, GateU2])
-    map(t -> checkpgate(t, 1, 3), Type[GateU, GateU3])
+    map(t -> checkpgate(t, 1, 3), Type[GateU3])
+    map(t -> checkpgate(t, 1, 4), Type[GateU])
 end
 
 @testset "Parametric 2-qubit gates" begin
@@ -197,6 +198,79 @@ end
     checkcustomgate(2, ComplexF64)
 
     @test_throws "larger than 2 qubits" checkcustomgate(3, ComplexF64)
+end
+
+@testset "Rotations" begin
+    function RX(theta)
+        return exp(-im * theta / 2 * matrix(GateX()))
+    end
+
+    function RY(theta)
+        return exp(-im * theta / 2 * matrix(GateY()))
+    end
+
+    function RZ(theta)
+        return exp(-im * theta / 2 * matrix(GateZ()))
+    end
+
+    Random.seed!(20230501)
+    for (theta, phi, lam) in [rand(3) for _ in 1:20]
+        @test matrix(GateRX(theta)) ≈ RX(theta)
+        @test matrix(GateRY(phi)) ≈ RY(phi)
+        @test matrix(GateRZ(lam)) ≈ RZ(lam)
+    end
+end
+
+@testset "Interactions" begin
+    import MimiqCircuitsBase: _matrix
+
+    function XXplusYY(theta, beta)
+        RZ0p = kron(_matrix(GateRZ, beta), Matrix(I, 2, 2))
+        RZ0m = kron(_matrix(GateRZ, -beta), Matrix(I, 2, 2))
+        XX = kron(_matrix(GateX), _matrix(GateX))
+        YY = kron(_matrix(GateY), _matrix(GateY))
+        EXP = exp(-im * theta / 2 * (XX + YY) / 2)
+        return RZ0m * EXP * RZ0p
+    end
+
+    function XXminusYY(theta, beta)
+        RZ0p = kron(_matrix(GateRZ, beta), Matrix(I, 2, 2))
+        RZ0m = kron(_matrix(GateRZ, -beta), Matrix(I, 2, 2))
+        XX = kron(_matrix(GateX), _matrix(GateX))
+        YY = kron(_matrix(GateY), _matrix(GateY))
+        EXP = exp(-im * theta / 2 * (XX - YY) / 2)
+        return RZ0p * EXP * RZ0m
+    end
+
+    function RXX(theta)
+        XX = kron(_matrix(GateX), _matrix(GateX))
+        return exp(-im * theta / 2 * XX)
+    end
+
+    function RYY(theta)
+        YY = kron(_matrix(GateY), _matrix(GateY))
+        return exp(-im * theta / 2 * YY)
+    end
+
+    function RZZ(theta)
+        ZZ = kron(_matrix(GateZ), _matrix(GateZ))
+        return exp(-im * theta / 2 * ZZ)
+    end
+
+    function RZX(theta)
+        ZX = kron(_matrix(GateZ), _matrix(GateX))
+        return exp(-im * theta / 2 * ZX)
+    end
+
+    Random.seed!(20230501)
+    for (theta, beta) in [rand(2) for _ in 1:20]
+        @test matrix(GateXXplusYY(theta, beta)) ≈ XXplusYY(theta, beta)
+        @test matrix(GateXXminusYY(theta, beta)) ≈ XXminusYY(theta, beta)
+        @test matrix(GateRXX(theta)) ≈ RXX(theta)
+        @test matrix(GateRYY(theta)) ≈ RYY(theta)
+        @test matrix(GateRZZ(theta)) ≈ RZZ(theta)
+        @test matrix(GateRZX(theta)) ≈ RZX(theta)
+    end
 end
 
 nothing

@@ -11,7 +11,8 @@ using Test
         # two controls of the same matrix should always be egal
         @test mygate1 === mygate2
 
-        @test opname(mygate1) == "Control"
+        @test opname(mygate1) != "Control"
+        @test opname(mygate1)[1] == 'C'
         @test numqubits(mygate1) == 1 + numqubits(gate)
         @test numbits(mygate1) == 0
 

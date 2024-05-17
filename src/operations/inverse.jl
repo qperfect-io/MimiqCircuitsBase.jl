@@ -85,7 +85,15 @@ Inverse(inv::Inverse) = inv.op
 # inverse is supposed to perform the simplification, so ok.
 inverse(inv::Inverse) = inv.op
 
-opname(::Type{<:Inverse}) = "Inverse"
+function opname(::Type{<:Inverse{N,T}}) where {N,T}
+    if iswrapper(T) && !isopalias(T)
+        op = "($(opname(T)))"
+    else
+        op = opname(T)
+    end
+
+    return "$(op)†"
+end
 
 iswrapper(::Type{<:Inverse}) = true
 

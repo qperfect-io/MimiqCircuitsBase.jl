@@ -62,9 +62,8 @@ julia> push!(c, GateRX(π/2), 2)
 
 ```jldoctests; setup = :(@variables θ)
 julia> decompose(GateRX(θ))
-1-qubit circuit with 2 instructions:
-├── U(θ, -1π/2, π/2) @ q[1]
-└── GPhase((-1//2)*θ) @ q[1]
+1-qubit circuit with 1 instructions:
+└── U(θ, -1π/2, π/2) @ q[1]
 
 ```
 """
@@ -76,14 +75,23 @@ opname(::Type{GateRX}) = "RX"
 
 inverse(g::GateRX) = GateRX(-g.θ)
 
-_matrix(::Type{GateRX}, θ) = gphase(-θ / 2) * umatrix(θ, -π / 2, π / 2)
+function _matrix(::Type{GateRX}, θ)
+    cosθ2 = cospi((θ / 2) / π)
+    sinθ2 = sinpi(θ / 2 / π)
+    return [cosθ2 -im*sinθ2; -im*sinθ2 cosθ2]
+end
+
+function _matrix(::Type{GateRX}, θ::Symbolics.Num)
+    cosθ2 = cos(θ / 2)
+    sinθ2 = sin(θ / 2)
+    return [cosθ2 -im*sinθ2; -im*sinθ2 cosθ2]
+end
 
 _power(g::GateRX, pwr) = GateRX(g.θ * pwr)
 
 function decompose!(circ::Circuit, g::GateRX, qtargets, _)
     q = qtargets[1]
     push!(circ, GateU(g.θ, -π / 2, π / 2), q)
-    push!(circ, GPhase(1, -g.θ / 2), q)
     return circ
 end
 
@@ -135,9 +143,8 @@ julia> push!(c, GateRY(π/2), 2)
 
 ```jldoctests; setup=:(@variables θ)
 julia> decompose(GateRY(θ))
-1-qubit circuit with 2 instructions:
-├── U(θ, 0, 0) @ q[1]
-└── GPhase((-1//2)*θ) @ q[1]
+1-qubit circuit with 1 instructions:
+└── U(θ, 0, 0) @ q[1]
 
 ```
 """
@@ -149,14 +156,23 @@ inverse(g::GateRY) = GateRY(-g.θ)
 
 opname(::Type{GateRY}) = "RY"
 
-_matrix(::Type{GateRY}, θ) = gphase(-θ / 2) * umatrix(θ, 0, 0)
+function _matrix(::Type{GateRY}, θ)
+    cosθ2 = cospi(θ / 2 / π)
+    sinθ2 = sinpi(θ / 2 / π)
+    return [cosθ2 -sinθ2; sinθ2 cosθ2]
+end
+
+function _matrix(::Type{GateRY}, θ::Symbolics.Num)
+    cosθ2 = cos(θ / 2)
+    sinθ2 = sin(θ / 2)
+    return [cosθ2 -sinθ2; sinθ2 cosθ2]
+end
 
 _power(g::GateRY, pwr) = GateRY(g.θ * pwr)
 
 function decompose!(circ::Circuit, g::GateRY, qtargets, _)
     q = qtargets[1]
     push!(circ, GateU(g.θ, 0, 0), q)
-    push!(circ, GPhase(1, -g.θ / 2), q)
     return circ
 end
 
@@ -208,9 +224,8 @@ julia> push!(c, GateRZ(π/2), 2)
 
 ```jldoctests; setup = :(@variables θ)
 julia> decompose(GateRZ(θ))
-1-qubit circuit with 2 instructions:
-├── U(0, 0, θ) @ q[1]
-└── GPhase((-1//2)*θ) @ q[1]
+1-qubit circuit with 1 instructions:
+└── U(0, 0, θ) @ q[1]
 
 ```
 """
@@ -222,14 +237,23 @@ inverse(g::GateRZ) = GateRZ(-g.λ)
 
 opname(::Type{GateRZ}) = "RZ"
 
-_matrix(::Type{GateRZ}, λ) = gphase(-λ / 2) * umatrix(0, 0, λ)
+function _matrix(::Type{GateRZ}, λ)
+    cisλ2 = cispi(λ / 2 / π)
+    cismλ2 = cispi(-λ / 2 / π)
+    return [cismλ2 0; 0 cisλ2]
+end
+
+function _matrix(::Type{GateRZ}, λ::Symbolics.Num)
+    cisλ2 = cis(λ / 2)
+    cismλ2 = cis(-λ / 2)
+    return [cismλ2 0; 0 cisλ2]
+end
 
 _power(g::GateRZ, pwr) = GateRZ(g.λ * pwr)
 
 function decompose!(circ::Circuit, g::GateRZ, qtargets, _)
     q = qtargets[1]
-    push!(circ, GateU(0, 0, g.λ), q)
-    push!(circ, GPhase(1, -g.λ / 2), q)
+    push!(circ, GateU(0, 0, g.λ, -g.λ / 2), q)
     return circ
 end
 
@@ -248,7 +272,7 @@ XY-plane axis of the Bloch sphere determined by
 \operatorname{R}(\theta,\phi) =
 \begin{pmatrix}
     \cos\frac{\theta}{2} & -ie^{-i\phi}\sin\frac{\theta}{2} \\
-    -ie^{-i\phi}\sin\frac{\theta}{2} & \cos\frac{\theta}{2}
+    -ie^{i\phi}\sin\frac{\theta}{2} & \cos\frac{\theta}{2}
 \end{pmatrix}
 ```
 
@@ -273,7 +297,7 @@ julia> c = push!(Circuit(), GateR(θ, ϕ), 1)
 └── R(θ, ϕ) @ q[1]
 
 julia> push!(c, GateR(π/2, π/4), 2)
-2-qubit circuit with 2 instructions:
+2-qubit circuit with 1 instructions:
 ├── R(θ, ϕ) @ q[1]
 └── R(π/2, π/4) @ q[2]
 
@@ -297,7 +321,7 @@ inverse(g::GateR) = GateR(-g.θ, g.ϕ)
 
 opname(::Type{GateR}) = "R"
 
-_matrix(::Type{GateR}, θ, ϕ) = _matrix(GateU3, θ, ϕ - π / 2, -ϕ + π / 2)
+_matrix(::Type{GateR}, θ, ϕ) = [cos(θ / 2) -im*cis(-ϕ)*sin(θ / 2); -im*cis(ϕ)*sin(θ / 2) cos(θ / 2)]
 
 function decompose!(circ::Circuit, g::GateR, qtargets, _)
     a = qtargets[1]

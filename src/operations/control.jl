@@ -156,7 +156,28 @@ parnames(::Type{Control{N,M,L,T}}) where {N,M,L,T} = parnames(T)
 # access directly the parameters of the wrapped gate
 getparam(c::Control, name::Symbol) = getparam(getoperation(c), name)
 
-opname(::Type{<:Control}) = "Control"
+function opname(::Type{<:Control{N,M,L,T}}) where {N,M,L,T}
+    if iswrapper(T) && !isopalias(T)
+        op = "($(opname(T)))"
+    else
+        op = opname(T)
+    end
+
+    subscript = collect("₀₁₂₃₄₅₆₇₈₉")
+    Ntext = join(map(x -> subscript[x+1], reverse(digits(N))))
+
+    return "C$(Ntext)$(op)"
+end
+
+function opname(::Type{<:Control{1,M,L,T}}) where {M,L,T}
+    if iswrapper(T) && !isopalias(T)
+        op = "($(opname(T)))"
+    else
+        op = opname(T)
+    end
+
+    return "C$(op)"
+end
 
 """
     numcontrols(control)

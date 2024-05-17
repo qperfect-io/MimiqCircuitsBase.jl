@@ -240,7 +240,6 @@ end
 const GATEENUMMAP = BiMap(
     Dict(
         GateU => circuit_pb.GateType.GateU,
-        GateUPhase => circuit_pb.GateType.GateUPhase,
         GateID => circuit_pb.GateType.GateID,
         GateX => circuit_pb.GateType.GateX,
         GateY => circuit_pb.GateType.GateY,
@@ -294,8 +293,6 @@ function fromproto(g::circuit_pb.Generalized)
         return QFT(rs..., params...)
     elseif g.name == "PhaseGradient"
         return PhaseGradient(rs..., params...)
-    elseif g.name == "GPhase"
-        return GPhase(rs..., params...)
     elseif g.name == "PolynomialOracle"
         return PolynomialOracle(rs..., params...)
     elseif g.name == "Diffusion"
@@ -331,7 +328,14 @@ function toproto(g::Num)
             vv = toproto(SymbolicUtils.arguments(v)[1])
             return circuit_pb.Arg(OneOf(:irrational_value, vv))
         elseif v isa Number
-            vv = OneOf(v isa Integer ? :integer_value : :double_value, v)
+            if v isa Integer
+                vv = OneOf(:integer_value, Int64(v))
+            elseif v isa AbstractFloat
+                vv = OneOf(:double_value, Float64(v))
+            elseif v isa Bool
+                vv = OneOf(:bool_value, Bool(v))
+            end
+
             return circuit_pb.Arg(OneOf(:argvalue_value, circuit_pb.ArgValue(vv)))
         end
     end

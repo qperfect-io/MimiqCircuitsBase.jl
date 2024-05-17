@@ -81,7 +81,20 @@ struct GateCustom{N} <: AbstractGate{N}
             throw(ArgumentError("Custom matrix should be $(M)×$(M)."))
         end
 
-        if !isapprox(U * adjoint(U), Matrix(I, M, M), rtol=1e-8)
+        # first check if 
+        issymbolic = any(U) do x
+            if isa(x, Complex{Num})
+                return !(Symbolics.value(real(x)) isa Number) || !(Symbolics.value(imag(x)) isa Number)
+            end
+
+            if x isa Num
+                return !(Symbolics.value(x) isa Number)
+            end
+
+            return false
+        end
+
+        if !issymbolic && !isapprox(U * adjoint(U), Matrix(I, M, M), rtol=1e-8)
             throw(ArgumentError("Custom matrix not unitary (U⋅adjoint(U) ≉ I)."))
         end
 
@@ -100,6 +113,22 @@ opname(::Type{<:GateCustom}) = "Custom"
 inverse(g::GateCustom) = GateCustom(inv(g.U))
 
 matrix(g::GateCustom) = g.U
+
+function _matrix(::Type{GateCustom{N}}, params...) where {N}
+    reshape(collect(params), 2^N, 2^N)
+end
+
+function unwrappedmatrix(g::GateCustom)
+    return unwrapvalue.(g.U)
+end
+
+parnames(::GateCustom{N}) where {N} = tuple(1:2^(2N)...)
+
+parnames(::Type{<:GateCustom{N}}) where {N} = tuple(1:2^(2N)...)
+
+getparam(g::GateCustom, i) = g.U[i]
+
+getparams(g::GateCustom) = g.U
 
 function Base.show(io::IO, gate::GateCustom)
     print(io, opname(gate), "(")

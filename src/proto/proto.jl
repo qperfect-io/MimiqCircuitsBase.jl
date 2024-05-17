@@ -1,7 +1,10 @@
 function saveproto(fname, c::Circuit)
+    iobuffer = IOBuffer()
+    e = ProtoEncoder(iobuffer)
+    encode(e, toproto(c))
+
     open(fname, "w") do io
-        e = ProtoEncoder(io)
-        return encode(e, toproto(c))
+        write(io, take!(iobuffer))
     end
 end
 
@@ -14,9 +17,12 @@ function loadproto(fname, ::Type{Circuit})
 end
 
 function saveproto(fname, c::QCSResults)
+    iobuffer = IOBuffer()
+    e = ProtoEncoder(iobuffer)
+    encode(e, toproto(c))
+
     open(fname, "w") do io
-        e = ProtoEncoder(io)
-        return encode(e, toproto(c))
+        write(io, take!(iobuffer))
     end
 end
 

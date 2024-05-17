@@ -59,9 +59,8 @@ julia> power(GateH(), 2), inverse(GateH())
 
 ```jldoctests
 julia> decompose(GateH())
-1-qubit circuit with 2 instructions:
-├── U(π/2, 0, π) @ q[1]
-└── GPhase(-1π/4) @ q[1]
+1-qubit circuit with 1 instructions:
+└── U(π/2, 0, π) @ q[1]
 
 ```
 """
@@ -69,13 +68,12 @@ struct GateH <: AbstractGate{1} end
 
 opname(::Type{GateH}) = "H"
 
-@generated _matrix(::Type{GateH}) = [1 1; 1 -1] / √2
+@generated _matrix(::Type{GateH}) = [1 1; 1 -1] / sqrt(2)
 
 @generated inverse(::GateH) = GateH()
 
 function decompose!(circ::Circuit, ::GateH, qtargets, _)
     q = qtargets[1]
     push!(circ, GateU(π / 2, 0, π), q)
-    push!(circ, GPhase(1, -π / 4), q)
     return circ
 end

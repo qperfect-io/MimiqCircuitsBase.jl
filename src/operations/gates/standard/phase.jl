@@ -25,10 +25,10 @@ Single qubit Phase gate.
 
 ```math
 \operatorname{P}(\lambda) =
-\operatorname{U}(0, 0, g.λ) =
+\operatorname{U}(0, 0, \lambda) =
 \begin{pmatrix}
     1 & 0 \\
-    0 & e^{i\lambda}
+    0 & \mathrm{e}^{i\lambda}
 \end{pmatrix}
 ```
 
@@ -77,10 +77,13 @@ inverse(g::GateP) = GateP(-g.λ)
 
 _power(g::GateP, pwr) = GateP(g.λ * pwr)
 
-_matrix(::Type{GateP}, λ) = pmatrix(λ)
+_matrix(::Type{GateP}, λ) = [1 0; 0 cispi(λ / π)]
+
+_matrix(::Type{GateP}, λ::Symbolics.Num) = [1 0; 0 cis(λ)]
 
 function decompose!(circ::Circuit, g::GateP, qtargets, _)
     q = qtargets[1]
     push!(circ, GateU(0, 0, g.λ), q)
     return circ
 end
+

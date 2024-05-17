@@ -47,10 +47,10 @@ julia> GateCRX(θ), numcontrols(GateCRX(θ)), numtargets(GateCRX(θ))
 
 julia> matrix(GateCRX(1.989))
 4×4 Matrix{ComplexF64}:
- 1.0+0.0im  0.0+0.0im          0.0+0.0im                0.0+0.0im
- 0.0+0.0im  1.0+0.0im          0.0+0.0im                0.0+0.0im
- 0.0+0.0im  0.0+0.0im     0.544922+0.0im       -5.55112e-17-0.838487im
- 0.0+0.0im  0.0+0.0im  5.55112e-17-0.838487im      0.544922+0.0im
+ 1.0+0.0im  0.0+0.0im       0.0+0.0im            0.0+0.0im
+ 0.0+0.0im  1.0+0.0im       0.0+0.0im            0.0+0.0im
+ 0.0+0.0im  0.0+0.0im  0.544922+0.0im            0.0-0.838487im
+ 0.0+0.0im  0.0+0.0im       0.0-0.838487im  0.544922+0.0im
 
 julia> c = push!(Circuit(), GateCRX(θ), 1, 2)
 2-qubit circuit with 1 instructions:
@@ -124,11 +124,11 @@ julia> GateCRY(θ), numcontrols(GateCRY(θ)), numtargets(GateCRY(θ))
 (CRY(θ), 1, 1)
 
 julia> matrix(GateCRY(1.989))
-4×4 Matrix{ComplexF64}:
- 1.0+0.0im  0.0+0.0im       0.0+0.0im        0.0+0.0im
- 0.0+0.0im  1.0+0.0im       0.0+0.0im        0.0+0.0im
- 0.0+0.0im  0.0+0.0im  0.544922+0.0im  -0.838487+0.0im
- 0.0+0.0im  0.0+0.0im  0.838487+0.0im   0.544922+0.0im
+4×4 Matrix{Float64}:
+ 1.0  0.0  0.0        0.0
+ 0.0  1.0  0.0        0.0
+ 0.0  0.0  0.544922  -0.838487
+ 0.0  0.0  0.838487   0.544922
 
 julia> c = push!(Circuit(), GateCRY(θ), 1, 2)
 2-qubit circuit with 1 instructions:

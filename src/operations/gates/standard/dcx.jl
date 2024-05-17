@@ -24,9 +24,9 @@ Two qubit double-CNOT (control on first qubit and then second) OR DCX gate.
 ```math
 \operatorname{DCX}= \begin{pmatrix}
     1 & 0 & 0 & 0 \\
+    0 & 0 & 1 & 0 \\
     0 & 0 & 0 & 1 \\
-    0 & 1 & 0 & 0 \\
-    0 & 0 & 1 & 0
+    0 & 1 & 0 & 0
 \end{pmatrix}
 ```
 
@@ -39,9 +39,9 @@ DCX
 julia> matrix(GateDCX())
 4×4 Matrix{Float64}:
  1.0  0.0  0.0  0.0
+ 0.0  0.0  1.0  0.0
  0.0  0.0  0.0  1.0
  0.0  1.0  0.0  0.0
- 0.0  0.0  1.0  0.0
 
 julia> c = push!(Circuit(), GateDCX(), 1, 2)
 2-qubit circuit with 1 instructions:
@@ -66,7 +66,7 @@ struct GateDCX <: AbstractGate{2} end
 
 opname(::Type{GateDCX}) = "DCX"
 
-@generated _matrix(::Type{GateDCX}) = ctrlfs(_matrix(GateX))
+@generated _matrix(::Type{GateDCX}) = _matrix(GateSWAP) * _matrix(GateCX) * _matrix(GateSWAP) * _matrix(GateCX)
 
 _power(::GateDCX, pwr) = _power_three_idempotent(GateDCX(), inverse(GateDCX()), GateID(), pwr)
 

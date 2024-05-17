@@ -10,7 +10,9 @@ filelist = [
     "instruction.jl",
     "circuit.jl",
     "control.jl",
-    "inverse.jl"
+    "inverse.jl",
+    "decompositions.jl",
+    "power.jl"
 ]
 
 @testset "MimiqCircuitsBase.jl" begin

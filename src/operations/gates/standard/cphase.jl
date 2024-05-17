@@ -77,12 +77,12 @@ function decompose!(circ::Circuit, g::GateCP, qtargets, _)
     c, t = qtargets
     op = getoperation(g)
 
-    λ = op.λ
+    λ2 = op.λ / 2
 
-    push!(circ, GateP(λ / 2), c)
+    push!(circ, GateP(λ2), c)
     push!(circ, GateCX(), c, t)
-    push!(circ, GateP(-λ / 2), c)
+    push!(circ, GateP(-λ2), t)
     push!(circ, GateCX(), c, t)
-    push!(circ, GateP(λ / 2), c)
+    push!(circ, GateP(λ2), t)
     return circ
 end
