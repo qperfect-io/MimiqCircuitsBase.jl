@@ -39,17 +39,17 @@ ECR
 
 julia> matrix(GateECR())
 4×4 Matrix{ComplexF64}:
-      0.0+0.0im       0.707107+0.0im       …       0.0+0.707107im
- 0.707107+0.0im            0.0+0.0im               0.0+0.0im
-      0.0+0.0im            0.0+0.707107im     0.707107+0.0im
-      0.0-0.707107im       0.0+0.0im               0.0+0.0im
+      0.0+0.0im            0.0+0.0im       …       0.0+0.707107im
+      0.0+0.0im            0.0+0.0im          0.707107+0.0im
+ 0.707107+0.0im            0.0-0.707107im          0.0+0.0im
+      0.0-0.707107im  0.707107+0.0im               0.0+0.0im
 
 julia> c = push!(Circuit(), GateECR(), 1, 2)
 2-qubit circuit with 1 instructions:
 └── ECR @ q[1:2]
 
 julia> power(GateECR(), 2), inverse(GateECR())
-(ID, ECR)
+(Parallel(2, ID), ECR)
 
 ```
 

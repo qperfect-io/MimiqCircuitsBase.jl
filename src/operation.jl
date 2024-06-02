@@ -190,7 +190,7 @@ julia> numparams(GateH)
 0
 
 julia> numparams(GateU)
-3
+4
 
 julia> numparams(GateRX)
 1
@@ -252,6 +252,7 @@ function power(op::Operation, n)
     if isone(n)
         return op
     end
+
     return _power(op, n)
 end
 

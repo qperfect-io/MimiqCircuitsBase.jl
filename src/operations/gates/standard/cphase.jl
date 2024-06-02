@@ -66,9 +66,9 @@ julia> decompose(GateCP(θ))
 2-qubit circuit with 5 instructions:
 ├── P((1//2)*θ) @ q[1]
 ├── CX @ q[1], q[2]
-├── P((-1//2)*θ) @ q[1]
+├── P((-1//2)*θ) @ q[2]
 ├── CX @ q[1], q[2]
-└── P((1//2)*θ) @ q[1]
+└── P((1//2)*θ) @ q[2]
 ```
 """
 const GateCP = typeof(Control(GateP(π)))

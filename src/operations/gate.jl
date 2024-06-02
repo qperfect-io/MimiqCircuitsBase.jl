@@ -120,8 +120,8 @@ See also [`matrix`](@ref).
 ```jldoctests; setup=:(import MimiqCircuitsBase.unwrappedmatrix)
 julia> unwrappedmatrix(GateRX(π/2))
 2×2 Matrix{ComplexF64}:
-    0.707107+5.55112e-17im       0.0-0.707107im
- 1.11022e-16-0.707107im     0.707107+5.55112e-17im
+ 0.707107+0.0im            0.0-0.707107im
+      0.0-0.707107im  0.707107+0.0im
 
 julia> unwrappedmatrix(GateH())
 2×2 Matrix{Float64}:

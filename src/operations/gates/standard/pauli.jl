@@ -36,9 +36,9 @@ julia> GateX()
 X
 
 julia> matrix(GateX())
-2×2 Matrix{Float64}:
- 0.0  1.0
- 1.0  0.0
+2×2 Matrix{Int64}:
+ 0  1
+ 1  0
 
 julia> c = push!(Circuit(), GateX(), 1)
 1-qubit circuit with 1 instructions:

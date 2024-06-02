@@ -116,7 +116,7 @@ julia> push!(c, GateSDG, 2)
 └── S† @ q[2]
 
 julia> power(GateSDG(), 2), inverse(GateSDG())
-(S†^2, S)
+((S†)^2, S)
 
 ```
 

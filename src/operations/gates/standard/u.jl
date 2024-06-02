@@ -48,8 +48,8 @@ U(θ, ϕ, λ)
 
 julia> matrix(GateU(2.023, 0.5, 0.1))
 2×2 Matrix{ComplexF64}:
-  0.281526+0.449743im  -0.375769-0.759784im
- 0.0502318+0.846139im  -0.021591+0.53015im
+  0.53059+0.0im       -0.843394-0.0846217im
+ 0.743864+0.406375im   0.437915+0.299594im
 
 julia> c = push!(Circuit(), GateU(θ, ϕ, λ), 1)
 1-qubit circuit with 1 instructions:
@@ -72,7 +72,7 @@ Since ``U`` gate, is the most general single qubit unitary matrix, all other mat
 ```jldoctests; setup = :(@variables λ θ ϕ γ)
 julia> decompose(GateU(θ, λ, ϕ))
 1-qubit circuit with 1 instructions:
-└── U(θ, λ, ϕ, γ) @ q[1]
+└── U(θ, λ, ϕ) @ q[1]
 
 ```
 """
@@ -94,6 +94,10 @@ opname(::Type{GateU}) = "U"
 _matrix(::Type{GateU}, θ, ϕ, λ, γ) = umatrix(θ, ϕ, λ, γ)
 
 function _power(g::GateU, pwr)
+    if issymbolic(g)
+        return Power(g, pwr)
+    end
+
     Up = matrix(g)^pwr
 
     γ = angle(Up[1, 1])

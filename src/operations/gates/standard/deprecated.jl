@@ -187,8 +187,8 @@ U3(θ, ϕ, λ)
 
 julia> matrix(GateU3(2.023, 0.5, 0.1))
 2×2 Matrix{ComplexF64}:
- 0.506892-0.1568im    -0.830733+0.168398im
- 0.830733+0.168398im   0.506892+0.1568im
+  0.53059+0.0im       -0.843394-0.0846217im
+ 0.743864+0.406375im   0.437915+0.299594im
 
 julia> c = push!(Circuit(), GateU3(θ, ϕ, λ), 1)
 1-qubit circuit with 1 instructions:

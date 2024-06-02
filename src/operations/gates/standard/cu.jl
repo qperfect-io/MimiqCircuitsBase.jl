@@ -49,10 +49,10 @@ julia> GateCU(θ, ϕ, λ, γ), numcontrols(GateCU(θ, ϕ, λ, γ)), numtargets(G
 
 julia> matrix(GateCU(2.023, 0.5, 0.1, 0.2))
 4×4 Matrix{ComplexF64}:
- 1.0+0.0im  0.0+0.0im        0.0+0.0im             0.0+0.0im
- 0.0+0.0im  1.0+0.0im        0.0+0.0im             0.0+0.0im
- 0.0+0.0im  0.0+0.0im   0.186564+0.496709im  -0.217332-0.819293im
- 0.0+0.0im  0.0+0.0im  -0.118871+0.839252im  -0.126485+0.515293im
+ 1.0+0.0im  0.0+0.0im       0.0+0.0im             0.0+0.0im
+ 0.0+0.0im  1.0+0.0im       0.0+0.0im             0.0+0.0im
+ 0.0+0.0im  0.0+0.0im  0.520013+0.105412im  -0.809771-0.250491im
+ 0.0+0.0im  0.0+0.0im  0.648302+0.546057im   0.369666+0.380622im
 
 julia> c = push!(Circuit(), GateCU(θ, ϕ, λ, γ), 1, 2)
 2-qubit circuit with 1 instructions:
@@ -72,15 +72,14 @@ julia> power(GateCU(θ, ϕ, λ, γ), 2), inverse(GateCU(θ, ϕ, λ, γ))
 
 ```jldoctests; setup = :(@variables λ θ ϕ γ)
 julia> decompose(GateCU(θ, λ, ϕ, γ))
-2-qubit circuit with 8 instructions:
-├── CGPhase(γ) @ q[1], q[2]
-├── U((1//2)*θ, 0, ϕ) @ q[2]
+2-qubit circuit with 7 instructions:
+├── P(γ) @ q[1]
+├── P((1//2)*(λ + ϕ)) @ q[1]
+├── P((1//2)*(-λ + ϕ)) @ q[2]
 ├── CX @ q[1], q[2]
-├── U((1//2)*θ, (1//2)*(6.283185307179586 - λ - ϕ), π) @ q[2]
+├── U((-1//2)*θ, 0, (1//2)*(-λ - ϕ)) @ q[2]
 ├── CX @ q[1], q[2]
-├── P((1//2)*(λ - ϕ)) @ q[2]
-├── P((1//2)*(θ + λ + ϕ)) @ q[1]
-└── GPhase((-1//2)*θ) @ q[1:2]
+└── U((1//2)*θ, λ, 0) @ q[2]
 
 ```
 """

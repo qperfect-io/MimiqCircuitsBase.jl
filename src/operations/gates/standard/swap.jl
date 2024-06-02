@@ -56,7 +56,7 @@ julia> push!(c, GateSWAP, 3, 4)
 └── SWAP @ q[3:4]
 
 julia> power(GateSWAP(), 2), inverse(GateSWAP())
-(CID, SWAP)
+(Parallel(2, ID), SWAP)
 
 ```
 

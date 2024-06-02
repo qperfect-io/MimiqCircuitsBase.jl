@@ -117,7 +117,7 @@ julia> c = push!(Circuit(), GateCSXDG(), 1, 2)
 └── C(SX†) @ q[1], q[2]
 
 julia> power(GateCSXDG(), 2), inverse(GateCSXDG())
-(C(SX†^2), CSX)
+(C((SX†)^2), CSX)
 
 ```
 

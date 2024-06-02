@@ -44,8 +44,8 @@ RX(θ)
 
 julia> matrix(GateRX(1.989))
 2×2 Matrix{ComplexF64}:
-    0.544922+0.0im       -5.55112e-17-0.838487im
- 5.55112e-17-0.838487im      0.544922+0.0im
+ 0.544922+0.0im            0.0-0.838487im
+      0.0-0.838487im  0.544922+0.0im
 
 julia> c = push!(Circuit(), GateRX(θ), 1)
 1-qubit circuit with 1 instructions:
@@ -124,9 +124,9 @@ julia> GateRY(θ)
 RY(θ)
 
 julia> matrix(GateRY(1.989))
-2×2 Matrix{ComplexF64}:
- 0.544922+0.0im  -0.838487+0.0im
- 0.838487+0.0im   0.544922+0.0im
+2×2 Matrix{Float64}:
+ 0.544922  -0.838487
+ 0.838487   0.544922
 
 julia> c = push!(Circuit(), GateRY(θ), 1)
 1-qubit circuit with 1 instructions:
@@ -225,7 +225,7 @@ julia> push!(c, GateRZ(π/2), 2)
 ```jldoctests; setup = :(@variables θ)
 julia> decompose(GateRZ(θ))
 1-qubit circuit with 1 instructions:
-└── U(0, 0, θ) @ q[1]
+└── U(0, 0, θ, (-1//2)*θ) @ q[1]
 
 ```
 """
@@ -289,15 +289,15 @@ R(θ, ϕ)
 
 julia> matrix(GateR(2.023, 1.989))
 2×2 Matrix{ComplexF64}:
- 0.53059-2.77556e-17im  -0.77458+0.344239im
- 0.77458+0.344239im      0.53059-2.77556e-17im
+ 0.53059+0.0im       -0.77458+0.344239im
+ 0.77458+0.344239im   0.53059+0.0im
 
 julia> c = push!(Circuit(), GateR(θ, ϕ), 1)
 1-qubit circuit with 1 instructions:
 └── R(θ, ϕ) @ q[1]
 
 julia> push!(c, GateR(π/2, π/4), 2)
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 2 instructions:
 ├── R(θ, ϕ) @ q[1]
 └── R(π/2, π/4) @ q[2]
 

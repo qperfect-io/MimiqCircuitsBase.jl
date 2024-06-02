@@ -43,10 +43,10 @@ julia> Power(GateZ(), 2)
 Z^2
 
 julia> Power(GateCH(), 1//2)
-CH^(1//2)
+(CH)^(1//2)
 
 julia> Power(GateCX(), 1//2)
-CX^(1//2)
+(CX)^(1//2)
 ```
 
 ## Decomposition
@@ -64,13 +64,14 @@ julia> decompose(Power(GateH(), 2))
 
 julia> decompose(Power(GateH(), 1//2))
 1-qubit circuit with 1 instructions:
-└── H^(1//2) @ q[1]
+└── U(π/2, 0, π)^(1//2) @ q[1]
 
 julia> decompose(Power(GateX(), 1//2)) # same as decomposing GateSX
 1-qubit circuit with 4 instructions:
 ├── S† @ q[1]
 ├── H @ q[1]
-└── S† @ q[1]
+├── S† @ q[1]
+└── U(0, 0, 0, π/4) @ q[1]
 ```
 """
 struct Power{P,N,T<:AbstractGate{N}} <: AbstractGate{N}

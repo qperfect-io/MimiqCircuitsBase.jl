@@ -40,7 +40,7 @@ julia> GateSX()
 SX
 
 julia> matrix(GateSX())
-2×2 LinearAlgebra.Symmetric{ComplexF64, Matrix{ComplexF64}}:
+2×2 Matrix{ComplexF64}:
  0.5+0.5im  0.5-0.5im
  0.5-0.5im  0.5+0.5im
 
@@ -65,7 +65,8 @@ julia> decompose(GateSX())
 1-qubit circuit with 4 instructions:
 ├── S† @ q[1]
 ├── H @ q[1]
-└── S† @ q[1]
+├── S† @ q[1]
+└── U(0, 0, 0, π/4) @ q[1]
 ```
 """
 const GateSX = typeof(power(GateX(), 1 // 2))
@@ -108,7 +109,7 @@ julia> GateSXDG()
 SX†
 
 julia> matrix(GateSXDG())
-2×2 adjoint(::LinearAlgebra.Symmetric{ComplexF64, Matrix{ComplexF64}}) with eltype ComplexF64:
+2×2 adjoint(::Matrix{ComplexF64}) with eltype ComplexF64:
  0.5-0.5im  0.5+0.5im
  0.5+0.5im  0.5-0.5im
 
@@ -122,7 +123,7 @@ julia> push!(c, GateSXDG, 2)
 └── SX† @ q[2]
 
 julia> power(GateSXDG(), 2), inverse(GateSXDG())
-(SX†^2, SX)
+((SX†)^2, SX)
 
 ```
 """
