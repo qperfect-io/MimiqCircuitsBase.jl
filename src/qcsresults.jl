@@ -75,6 +75,20 @@ function histsamples(r::QCSResults)
     return d
 end
 
+function _helper_roundfidelity(fid)
+    if fid ≈ 1.0
+        return 1.0
+    end
+    floor(fid; sigdigits=3)
+end
+
+function _helper_rounderror(err)
+    if err ≈ 0.0
+        return 0.0
+    end
+    ceil(err; sigdigits=3)
+end
+
 function Base.show(io::IO, ::MIME"text/plain", r::QCSResults)
     print(io, typeof(r))
     println(io, ":")
@@ -98,21 +112,23 @@ function Base.show(io::IO, ::MIME"text/plain", r::QCSResults)
     end
 
     if length(r.fidelities) == 1
-        println(io, "├── fidelity estimate: ", round.(r.fidelities[1]; digits=3))
+        println(io, "├── fidelity estimate: ", _helper_roundfidelity(r.fidelities[1]))
     elseif !isempty(r.fidelities)
         println(io, "├── fidelity estimate:")
-        println(io, "│   ├── mean: ", round.(mean(r.fidelities); digits=3))
-        println(io, "│   ├── median: ", round.(median(r.fidelities); digits=3))
-        println(io, "│   └── std: ", round.(std(r.fidelities); digits=3))
+        println(io, "│   ├── min, max: ", _helper_roundfidelity(minimum(r.fidelities)), ", ", _helper_roundfidelity(maximum(r.fidelities)))
+        println(io, "│   ├── mean: ", _helper_roundfidelity(mean(r.fidelities)))
+        println(io, "│   ├── median: ", _helper_roundfidelity(median(r.fidelities)))
+        println(io, "│   └── std: ", _helper_roundfidelity(std(r.fidelities)))
     end
 
     if length(r.avggateerrors) == 1
-        println(io, "├── average multi-qubit gate error estimate: ", round.(r.avggateerrors[1]; digits=3))
+        println(io, "├── average multi-qubit gate error estimate: ", _helper_rounderror(r.avggateerrors[1]))
     elseif !isempty(r.avggateerrors)
         println(io, "├── average multi-qubit gate error estimate:")
-        println(io, "│   ├── mean: ", round.(mean(r.avggateerrors); digits=3))
-        println(io, "│   ├── median: ", round.(median(r.avggateerrors); digits=3))
-        println(io, "│   └── std: ", round.(std(r.avggateerrors); digits=3))
+        println(io, "│   ├── min, max: ", _helper_rounderror(minimum(r.avggateerrors)), ", ", _helper_rounderror(maximum(r.avggateerrors)))
+        println(io, "│   ├── mean: ", _helper_rounderror(mean(r.avggateerrors)))
+        println(io, "│   ├── median: ", _helper_rounderror(median(r.avggateerrors)))
+        println(io, "│   └── std: ", _helper_rounderror(std(r.avggateerrors)))
     end
 
     if !isempty(r.cstates)
@@ -162,11 +178,12 @@ function Base.show(io::IO, ::MIME"text/html", r::QCSResults)
         print(io, "<tr><td colspan=2></td></tr>")
         print(io, "<tr><td colspan=2 align=\"center\"><strong>Fidelity estimate</strong></td></tr>")
         if length(r.fidelities) == 1
-            print(io, "<tr><td>Single run value</td><td>", round.(r.fidelities[1]; digits=3), "</td></tr>")
+            print(io, "<tr><td>Single run value</td><td>", _helper_roundfidelity(r.fidelities[1]), "</td></tr>")
         else
-            print(io, "<tr><td>Mean</td><td>", round.(mean(r.fidelities); digits=3), "</td></tr>")
-            print(io, "<tr><td>Median</td><td>", round.(median(r.fidelities); digits=3), "</td></tr>")
-            print(io, "<tr><td>Standard Deviation</td><td>", round.(std(r.fidelities); digits=3), "</td></tr>")
+            print(io, "<tr><td>Min, Max</td><td>", _helper_roundfidelity(minimum(r.fidelities)), ", ", _helper_roundfidelity(maximum(r.fidelities)), "</td></tr>")
+            print(io, "<tr><td>Mean</td><td>", _helper_roundfidelity(mean(r.fidelities)), "</td></tr>")
+            print(io, "<tr><td>Median</td><td>", _helper_roundfidelity(median(r.fidelities)), "</td></tr>")
+            print(io, "<tr><td>Standard Deviation</td><td>", _helper_roundfidelity(std(r.fidelities)), "</td></tr>")
         end
     end
 
@@ -174,11 +191,12 @@ function Base.show(io::IO, ::MIME"text/html", r::QCSResults)
         print(io, "<tr><td colspan=2></td></tr>")
         print(io, "<tr><td colspan=2 align=\"center\"><strong>Average multiqubit error estimate</strong></td></tr>")
         if length(r.avggateerrors) == 1
-            print(io, "<tr><td>Single run value</td><td>", round.(r.avggateerrors[1]; digits=3), "</td></tr>")
+            print(io, "<tr><td>Single run value</td><td>", _helper_rounderror(r.avggateerrors[1]), "</td></tr>")
         else
-            print(io, "<tr><td>Mean</td><td>", round.(mean(r.avggateerrors); digits=3), "</td></tr>")
-            print(io, "<tr><td>Median</td><td>", round.(median(r.avggateerrors); digits=3), "</td></tr>")
-            print(io, "<tr><td>Standard Deviation</td><td>", round.(std(r.avggateerrors); digits=3), "</td></tr>")
+            print(io, "<tr><td>Min, Max</td><td>", _helper_rounderror(minimum(r.avggateerrors)), ",", _helper_rounderror(maximum(r.avggateerrors)), "</td></tr>")
+            print(io, "<tr><td>Mean</td><td>", _helper_rounderror(mean(r.avggateerrors)), "</td></tr>")
+            print(io, "<tr><td>Median</td><td>", _helper_rounderror(median(r.avggateerrors)), "</td></tr>")
+            print(io, "<tr><td>Standard Deviation</td><td>", _helper_rounderror(std(r.avggateerrors)), "</td></tr>")
         end
     end
 
