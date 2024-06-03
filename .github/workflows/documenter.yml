@@ -1,9 +1,7 @@
 name: Documenter
 on:
   push:
-    branches: [main]
     tags: [v*-public]
-  pull_request:
 
 jobs:
   Documenter:

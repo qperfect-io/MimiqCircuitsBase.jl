@@ -90,7 +90,7 @@ function Base.show(io::IO, ::MIME"text/plain", r::QCSResults)
 
     if !isempty(r.timings)
         println(io, "├── timings:")
-        timings = collect(r.timings)
+        timings = collect(filter(((k, v),) -> v > 1e-7, r.timings))
         for (k, v) in timings[1:end-1]
             println(io, "│   ├── $k time: $(v)s")
         end
@@ -153,7 +153,8 @@ function Base.show(io::IO, ::MIME"text/html", r::QCSResults)
     print(io, "<tr><td colspan=2></td></tr>")
 
     print(io, "<tr><td colspan=2 align=\"center\"><strong>Timings</strong></td></tr>")
-    for (k, v) in r.timings
+
+    for (k, v) in filter(((k, v),) -> v > 1e-7, r.timings)
         print(io, "<tr><td>", k, " time</td><td>", v, "s</td></tr>")
     end
 

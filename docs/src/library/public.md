@@ -25,7 +25,7 @@ Pages   = ["abstract.jl", "docstrings.jl", "evaluate.jl"]
 ```@autodocs
 Modules = [MimiqCircuitsBase]
 Private = false
-Pages   = ["instruction.jl", "circuit.jl", "circuit_extras.jl", "circuit_macro.jl"]
+Pages   = ["instruction.jl", "circuit.jl", "circuit_extras.jl", "circuit_macro.jl", "draw.jl", "emplace.j", "emplace.jl"]
 ```
 
 ## Operations
@@ -163,3 +163,18 @@ Private = false
 Pages   = ["bitstrings.jl"]
 ```
 
+## Results of simulations
+
+```@autodocs
+Modules = [MimiqCircuitsBase]
+Private = false
+Pages   = ["qcsresults.jl"]
+```
+
+## Symbolics
+
+```@autodocs
+Modules = [MimiqCircuitsBase]
+Private = false
+Pages   = ["symbolics.jl"]
+```
