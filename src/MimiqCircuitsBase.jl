@@ -1,5 +1,5 @@
 #
-# Copyright © 2022-2023 University of Strasbourg. All Rights Reserved.
+# Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -71,6 +71,7 @@ include("operations/gate.jl")
 # circuits and circuit-embedded gates
 export Circuit
 export emplace!
+export specify_operations
 include("circuit.jl")
 include("circuit/push.jl")
 include("circuit/insert.jl")
@@ -236,6 +237,9 @@ include("operations/reset.jl")
 
 export Measure
 include("operations/measure.jl")
+
+export MeasureReset
+include("operations/measurereset.jl")
 
 # decomposition
 export decompose

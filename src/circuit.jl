@@ -1,5 +1,5 @@
 #
-# Copyright © 2022-2023 University of Strasbourg. All Rights Reserved.
+# Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -142,6 +142,37 @@ function Base.insert!(c::Circuit, index::Int, g::Circuit)
     end
     return c
 end
+
+function specify_operations(c::Circuit)
+    counts = Dict{String, Int}()
+    for i in c._instructions
+        nq = length(i.qtargets)
+        nb = length(i.ctargets)
+        
+        if nb > 0
+            qubit_key = nq > 1 ? "$(nq)_qubits" : "1_qubit"
+            bit_key = nb > 1 ? "$(nb)_bits" : "1_bit"
+            key = "$qubit_key & $bit_key"
+        else
+            key = nq > 1 ? "$(nq)_qubits" : "1_qubit"
+        end
+        
+        counts[key] = get(counts, key, 0) + 1
+    end
+
+    total_operations = sum(values(counts))
+    println("Total number of operations: $total_operations")
+    
+    count_items = collect(counts)
+    for (idx, (key, count)) in enumerate(count_items)
+        if idx == length(count_items)
+            println("└── $count x $key")
+        else
+            println("├── $count x $key")
+        end
+    end
+end
+
 
 function numqubits(insts::Vector{<:Instruction})
     isempty(insts) && return 0

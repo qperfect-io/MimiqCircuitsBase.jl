@@ -1,5 +1,5 @@
 #
-# Copyright © 2022-2023 University of Strasbourg. All Rights Reserved.
+# Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,6 +22,8 @@ This method examines each instruction in the circuit to determine if any paramet
 symbolic (i.e., unevaluated). It recursively checks through each instruction and its nested 
 operations, if any.
 Returns True if any parameter is symbolic (unevaluated), False if all parameters are fully evaluated.
+
+## Examples
 
 ```jldoctests
 julia> c = Circuit()
@@ -47,7 +49,7 @@ julia> push!(c,Control(3,GateP(x+y)),1,2,3,4)
 
 julia> issymbolic(c)
 true
-
+```
 """
 function issymbolic end
     

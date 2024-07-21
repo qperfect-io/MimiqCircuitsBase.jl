@@ -58,6 +58,7 @@ message Operation {
         GateCustom custom = 10;
         GateCall gatecall = 11;
         Parallel parallel = 12;
+        MeasureReset measurereset = 13;
     }
 }
 
@@ -103,6 +104,8 @@ message Generalized {
 }
 
 message Measure {}
+
+message MeasureReset {}
 
 message Reset {}
 

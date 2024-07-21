@@ -1,5 +1,5 @@
 #
-# Copyright © 2022-2023 University of Strasbourg. All Rights Reserved.
+# Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -85,4 +85,16 @@ end
 
 function Base.show(io::IO, s::IfStatement)
     print(io, opname(IfStatement), "(c == ", s.val, ") ", s.op)
+end
+
+function decompose!(circuit::Circuit, ifs::IfStatement{N, M, T}, qtargets, ctargets) where {N, M, T}
+    decomposed = decompose(getoperation(ifs))
+
+    cond = getcondition(ifs)
+
+    for inst in decomposed
+        push!(circuit, IfStatement(N, getoperation(inst), cond), qtargets[collect(getqubits(inst))]..., ctargets...)
+    end
+
+    return circuit
 end

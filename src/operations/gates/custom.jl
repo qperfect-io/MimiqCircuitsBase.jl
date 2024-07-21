@@ -1,5 +1,5 @@
 #
-# Copyright © 2022-2023 University of Strasbourg. All Rights Reserved.
+# Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
 # See AUTHORS.md for the list of authors.
 #
 

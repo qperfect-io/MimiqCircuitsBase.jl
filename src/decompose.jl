@@ -1,5 +1,5 @@
 #
-# Copyright © 2022-2023 University of Strasbourg. All Rights Reserved.
+# Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -67,6 +67,7 @@ issupported_default(::Type{<:Reset}) = true
 issupported_default(::Type{<:IfStatement{N,M,T}}) where {N,M,T} = issupported_default(T)
 issupported_default(::Type{<:AbstractGate}) = false
 issupported_default(::Type{<:GateCustom}) = true
+issupported_default(::Type{MeasureReset}) = false
 
 function decompose!(circuit::Circuit, todecompose::Circuit; issupported=issupported_default)
     for inst in todecompose

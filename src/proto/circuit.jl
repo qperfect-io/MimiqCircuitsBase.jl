@@ -1,5 +1,5 @@
 #
-# Copyright © 2022-2023 University of Strasbourg. All Rights Reserved.
+# Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -221,6 +221,18 @@ function fromproto(g::circuit_pb.Measure)
     return Measure()
 end
 
+
+#=============================#
+#== Operation: MeasureReset ==#
+#=============================#
+
+function toproto(g::MeasureReset)
+    return circuit_pb.Operation(OneOf(:measurereset, circuit_pb.MeasureReset()))
+end
+
+function fromproto(g::circuit_pb.MeasureReset)
+    return MeasureReset()
+end
 #======================#
 #== Operation: Reset ==#
 #======================#

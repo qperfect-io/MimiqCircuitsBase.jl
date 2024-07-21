@@ -178,3 +178,11 @@ Modules = [MimiqCircuitsBase]
 Private = false
 Pages   = ["symbolics.jl"]
 ```
+
+## Serialization Functions
+
+```@autodocs
+Modules = [MimiqCircuitsBase]
+Private = false
+Pages   = ["proto/proto.jl"]
+```

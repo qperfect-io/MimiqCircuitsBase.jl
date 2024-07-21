@@ -1,5 +1,5 @@
 #
-# Copyright © 2022-2023 University of Strasbourg. All Rights Reserved.
+# Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -539,6 +539,32 @@ function draw!(canvas::AsciiCircuit, p::Parallel, qubits, _)
     end
 
     return canvas
+end
+
+function draw!(circuit::AsciiCircuit, ::MeasureReset, qubits, bits)
+    qubit = qubits[1]
+    bit = bits[1]
+
+    qrow = getqubitrow(circuit, qubit)
+    brow = getbitrow(circuit)
+    midcol = getcurrentcol(circuit) + 1
+
+    drawbox!(circuit.canvas, qrow - 1, midcol - 1, 4, 3; clean=true)
+    drawtext!(circuit.canvas, "MR", qrow, midcol)
+    setcurrentcol!(circuit, midcol + 3)
+
+    drawdoublevline!(circuit.canvas, qrow + 1, midcol, brow - qrow)
+
+    bitstr = "$bit"
+    drawtext!(circuit.canvas, bitstr, brow + 1, midcol)
+    setcurrentcol!(circuit, midcol + length(bitstr))
+
+    return circuit
+end
+
+function asciiwidth(::MeasureReset, _, bits)
+    bit = bits[1]
+    return max(3, 1 + length("$bit"))
 end
 
 asciiwidth(instr::Instruction) = asciiwidth(getoperation(instr), getqubits(instr), getbits(instr))
