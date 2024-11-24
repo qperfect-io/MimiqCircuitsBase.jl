@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +24,7 @@ Grover's diffusion operator.
 It implements the unitary transformation.
 
 ```math
-H^{\otimes n} (1-2\bra{0^n}\ket{0^n}) H^{\otimes n}
+H^{\otimes n} (1-2\ket{0^n}\bra{0^n}) H^{\otimes n}
 ```
 
 ## Examples
@@ -81,7 +82,7 @@ opname(::Type{<:Diffusion}) = "Diffusion"
 
 qregsizes(::Diffusion{N}) where {N} = (N,)
 
-function decompose!(circ::Circuit, ::Diffusion{N}, qubits, _) where {N}
+function decompose!(circ::Circuit, ::Diffusion{N}, qubits, _, _) where {N}
     push!(circ, GateRY(pi / 2), qubits)
     push!(circ, control(N - 1, GateZ()), qubits...)
     push!(circ, GateRY(pi / 2), qubits)

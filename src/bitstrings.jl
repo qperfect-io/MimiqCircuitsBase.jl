@@ -1,12 +1,13 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -99,6 +100,8 @@ function BitString(f::Function, nq::Integer)
     end
     bs
 end
+
+BitString(s::String) = parse(BitString, s)
 
 """
     bitstring_to_integer(bitstring[, T])
@@ -260,11 +263,11 @@ function to01(bs::BitString; endianess::Symbol=:big)
 end
 
 function Base.parse(::Type{BitString}, s::AbstractString)
-    m = match(r"^bs([01]+)$", s)
+    m = match(r"^(?:bs)?([01]+)$", s)
     if !isnothing(m)
         return BitString(map(x -> parse(Bool, x), collect(m.captures[1])))
     else
-        throw(ArgumentError("Invalid bit state string"))
+        throw(ArgumentError("Invalid bit state string: expected 'bs' prefix or plain binary string"))
     end
 end
 
@@ -288,7 +291,7 @@ julia> bs"101011"
 ```
 """
 macro bs_str(s)
-    return :(parse(BitString, "bs" * $s))
+    return :(parse(BitString, $s))
 end
 
 """
@@ -319,17 +322,17 @@ Base.zeros(::Type{BitString}, nq::Integer) = falses(BitString, nq)
 
 # Bitwise operators
 
-Base.:~(bs::BitString) = BitString(~bs.bits)
+Base.:~(bs::BitString) = BitString(map(b -> !b, bs.bits))
 
-Base.:&(lhs::BitString, rhs::BitString) = BitString(lhs.bits & rhs.bits)
+Base.:&(lhs::BitString, rhs::BitString) = BitString(lhs.bits .& rhs.bits)
 
-Base.:|(lhs::BitString, rhs::BitString) = BitString(lhs.bits | rhs.bits)
+Base.:|(lhs::BitString, rhs::BitString) = BitString(lhs.bits .| rhs.bits)
 
-Base.:⊻(lhs::BitString, rhs::BitString) = BitString(lhs.bits ⊻ rhs.bits)
+Base.:⊻(lhs::BitString, rhs::BitString) = BitString(lhs.bits .⊻ rhs.bits)
 
-Base.:<<(bs::BitString, n::Integer) = BitString(Bool.(circshift(bs.bits, n)))
+Base.:<<(bs::BitString, n::Integer) = BitString(Bool.(circshift(bs.bits, -n)))
 
-Base.:>>(bs::BitString, n::Integer) = BitString(Bool.(circshift(bs.bits, -n)))
+Base.:>>(bs::BitString, n::Integer) = BitString(Bool.(circshift(bs.bits, n)))
 
 # concatenation
 

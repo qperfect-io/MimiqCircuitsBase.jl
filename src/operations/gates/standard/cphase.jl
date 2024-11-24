@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,7 +33,7 @@ julia> @variables λ
  λ
 
 julia> GateCP(λ), numcontrols(GateCP(λ)), numtargets(GateCP(λ))
-(CP(λ), 1, 1)
+(GateCP(λ), 1, 1)
 
 julia> matrix(GateCP(1.989))
 4×4 Matrix{ComplexF64}:
@@ -51,7 +52,7 @@ julia> push!(c, GateCP(π/8), 1, 2)
 └── CP(π/8) @ q[1], q[2]
 
 julia> power(GateCP(λ), 2), inverse(GateCP(λ))
-(CP(2λ), CP(-λ))
+(GateCP(2λ), GateCP(-λ))
 
 ```
 
@@ -73,7 +74,9 @@ julia> decompose(GateCP(θ))
 """
 const GateCP = typeof(Control(GateP(π)))
 
-function decompose!(circ::Circuit, g::GateCP, qtargets, _)
+@definename GateCP "CP"
+
+function decompose!(circ::Circuit, g::GateCP, qtargets, _, _)
     c, t = qtargets
     op = getoperation(g)
 

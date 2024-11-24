@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,13 +27,13 @@ applied over `N * repeats` qubits.
 
 ```jldoctests; setup = :(@variables λ)
 julia> Parallel(5, GateX())
-Parallel(5, X)
+⨷ ⁵ X
 
 julia> Parallel(3, GateRX(λ))
-Parallel(3, RX(λ))
+⨷ ³ RX(λ)
 
 julia> Parallel(2, Parallel(3, GateX()))
-Parallel(2, Parallel(3, X))
+⨷ ² (⨷ ³ X)
 
 ```
 
@@ -118,10 +119,6 @@ numrepeats(::Type{<:Parallel{N}}) where {N} = N
 
 numrepeats(::T) where {T<:Parallel} = numrepeats(T)
 
-function Base.show(io::IO, p::Parallel)
-    print(io, opname(p), "(", numrepeats(p), ", ", getoperation(p), ")")
-end
-
 @generated function _matrix(::Type{Parallel{N,M,L,T}}) where {N,M,L,T}
     mat = _matrix(T)
     return kron([mat for _ in 1:N]...)
@@ -132,7 +129,7 @@ function _matrix(::Type{Parallel{N,M,L,T}}, args...) where {N,M,L,T}
     return kron([mat for _ in 1:N]...)
 end
 
-function decompose!(circ::Circuit, p::Parallel, qtargets, _)
+function decompose!(circ::Circuit, p::Parallel, qtargets, _, _)
     op = getoperation(p)
     nq = numqubits(op)
     for i in 1:numrepeats(p)
@@ -155,3 +152,17 @@ parallel(numrepeats::Integer, op::Operation{N,0}) where {N} = Parallel(numrepeat
 parallel(op::Operation{N,0}) where {N} = LazyExpr(parallel, LazyArg(), op)
 parallel(num_repeats, l::LazyExpr) = LazyExpr(parallel, num_repeats, l)
 parallel(l::LazyExpr) = LazyExpr(parallel, LazyArg(), l)
+
+function Base.show(io::IO, p::Parallel)
+    print(io, opname(p), "(", numrepeats(p), ", ", getoperation(p), ")")
+end
+
+function Base.show(io::IO, m::MIME"text/plain", p::Parallel)
+    print(io, "⨷ ")
+    superscript = collect("⁰¹²³⁴⁵⁶⁷⁸⁹")
+    for i in reverse(digits(numrepeats(p)))
+        print(io, superscript[Int(i)+1])
+    end
+    print(io, " ")
+    _show_wrapped_parens(io, m, getoperation(p))
+end

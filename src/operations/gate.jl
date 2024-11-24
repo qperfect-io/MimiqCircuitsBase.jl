@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,14 +16,14 @@
 #
 
 """
-    AbstractGate{N} <: Operation{N,0}
+    AbstractGate{N} <: AbstractOperator{N}
 
 Supertype for all the `N`-qubit unitary gates.
 
 See also [`hilbertspacedim`](@ref), [`inverse`](@ref), [`isunitary`](@ref),
 [`matrix`](@ref), [`numqubits`](@ref), [`opname`](@ref)
 """
-abstract type AbstractGate{N} <: Operation{N,0} end
+abstract type AbstractGate{N} <: AbstractOperator{N} end
 
 # documentation defined in src/abstract.jl
 # in this library gate is a shorthand for 
@@ -33,163 +34,12 @@ isunitary(::Type{T}) where {T<:AbstractGate} = true
 # by default gates are wrapped in the Inverse operation
 inverse(op::AbstractGate) = Inverse(op)
 
-
 _power(op::AbstractGate, n) = Power(op, n)
 
-"""
-    matrix(gate)
-
-Matrix associated to the given gate.
-
-!!! note
-    if the gate is parametric, the matrix elements are is wrapped in a
-    `Symbolics.Num` object. To manipulate expressions use the `Symbolics`
-    package.
-
-## Examples
-
-Matrix of a simple gate
-```jldoctests
-julia> matrix(GateH())
-2×2 Matrix{Float64}:
- 0.707107   0.707107
- 0.707107  -0.707107
-```
-
-```jldoctests
-julia> matrix(GateRX(π/2))
-2×2 Matrix{ComplexF64}:
- 0.707107+0.0im            0.0-0.707107im
-      0.0-0.707107im  0.707107+0.0im
-
-julia> matrix(GateCX())
-4×4 Matrix{Float64}:
- 1.0  0.0  0.0  0.0
- 0.0  1.0  0.0  0.0
- 0.0  0.0  0.0  1.0
- 0.0  0.0  1.0  0.0
-
-```
-"""
-function matrix end
-
-matrix(g::Instruction{N,0,<:AbstractGate{N}}) where {N} = matrix(getoperation(g))
-
-
-@generated matrix(g::T, ::Val{false}) where {T} = _matrix(T)
-
-function matrix(g::T, ::Val{true}) where {T}
-    params = map(getparams(g)) do p
-        v = Symbolics.value(p)
-        v isa Number && return v
-        v isa SymbolicUtils.BasicSymbolic{Irrational{:π}} && return π
-        v isa SymbolicUtils.BasicSymbolic{Irrational{:ℯ}} && return ℯ
-        return p
-    end
-    return _matrix(T, params...)
-end
-
-matrix(g::T) where {T<:AbstractGate} = matrix(g, Val(numparams(T) != 0))
-
-"""
-    UnexpectedSymbolics(sym, expr)
-
-Error to be thrown when a unexpected symbolics is present in an expression.
-"""
-struct UnexpectedSymbolics <: Exception
-    expr::String
-end
-
-function Base.showerror(io::IO, e::UnexpectedSymbolics)
-    println(io, "Unexpected symbolic expression $(e.expr). Try to evaluate or define all symbols.")
-end
-
-"""
-    unwrappedmatrix(gate)
-
-Returns the matrix associated to the specified quantum gate without
-the `Symbolics.Num` wrapper.
-
-!!! note
-    If any of the gate's parameters is symbolic, an error is thrown.
-
-See also [`matrix`](@ref).
-
-## Examples
-
-```jldoctests; setup=:(import MimiqCircuitsBase.unwrappedmatrix)
-julia> unwrappedmatrix(GateRX(π/2))
-2×2 Matrix{ComplexF64}:
- 0.707107+0.0im            0.0-0.707107im
-      0.0-0.707107im  0.707107+0.0im
-
-julia> unwrappedmatrix(GateH())
-2×2 Matrix{Float64}:
- 0.707107   0.707107
- 0.707107  -0.707107
-```
-"""
-function unwrappedmatrix(g::T) where {T<:AbstractGate}
-    if numparams(g) == 0
-        return matrix(g)
-    end
-
-    # Check the parameters.
-    # Assumes that the parameters cannot be complex.
-    params = map(getparams(g)) do p
-        v = Symbolics.value(p)
-
-        if v isa Number
-            return v
-        elseif v isa SymbolicUtils.BasicSymbolic{Irrational{:π}}
-            return π
-        elseif v isa SymbolicUtils.BasicSymbolic{Irrational{:ℯ}}
-            return ℯ
-        end
-
-        vv = Symbolics.value(Symbolics.substitute(p, Dict()))
-
-        if vv isa Number
-            return vv
-        end
-
-        throw(UnexpectedSymbolics(string(g)))
-    end
-
-    return _matrix(T, params...)
-end
-
-function _displaypi(num::Num)
-    v = Symbolics.value(num)
-
-    if v isa Float64
-        div = v / π
-        divint = round(Int, div)
-        divrational = rationalize(div)
-
-        if div == divint
-            return string(divint) * "π"
-        elseif isapprox(divrational, div; rtol=eps(div)) && (divrational.den < 10 || divrational.num == 1)
-            numstring = divrational.num == 1 ? "" : string(divrational.num)
-            return numstring * "π/" * string(divrational.den)
-        else
-            return string(v)
-        end
-    end
-
-    return string(v)
-end
-
-_displaypi(num) = num
-
-function Base.show(io::IO, gate::AbstractGate)
-    compact = get(io, :compact, false)
-    sep = compact ? "," : ", "
-    print(io, opname(gate))
-    if numparams(gate) > 0
-        print(io, "(")
-        join(io, map(x -> _displaypi(getproperty(gate, x)), parnames(gate)), sep)
-        print(io, ")")
+function opsquared(::AbstractGate{N}) where {N}
+    if N == 1
+        return GateID()
+    else
+        return Parallel(N, GateID())
     end
 end
-

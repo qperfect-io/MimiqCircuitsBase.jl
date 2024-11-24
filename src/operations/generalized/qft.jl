@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -66,7 +67,7 @@ opname(::Type{<:QFT}) = "QFT"
 
 qregsizes(::QFT{N}) where {N} = (N,)
 
-function decompose!(circ::Circuit, ::QFT{N}, qubits, _) where {N}
+function decompose!(circ::Circuit, ::QFT{N}, qubits, _, _) where {N}
     qreg = reverse(qubits)
 
     push!(circ, GateH(), qreg[1])

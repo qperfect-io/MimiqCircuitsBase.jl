@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -49,7 +50,7 @@ julia> push!(c, Barrier(3), 1,2,3)
 └── Barrier @ q[1:3]
 ```
 """
-struct Barrier{N} <: Operation{N,0}
+struct Barrier{N} <: Operation{N,0,0}
     function Barrier(numqubits::Integer)
         new{numqubits}()
     end

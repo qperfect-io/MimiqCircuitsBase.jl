@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,12 +39,17 @@ julia> emplace!(Circuit(), QFT(), [1,2,3])
 function emplace! end
 
 function emplace!(c::Circuit, op::Operation, regs...)
+    if op isa AbstractOperator && !(op isa AbstractGate)
+        throw(ArgumentError("Cannot add an AbstractOperator $(op) that is not an AbstractGate to the circuit."))
+    end
+
     lr = length(regs)
     lq = length(qregsizes(op))
     lc = length(cregsizes(op))
+    lz = length(zregsizes(op))
 
-    if lr != lq + lc
-        error(lazy"Wrong number of registers. Expected $(lq) quantum + $(lc) classical, got $(lr)")
+    if lr != lq + lc + lz
+        error(lazy"Wrong number of registers. Expected $(lq) quantum + $(lc) classical + $(lz) z-register, got $(lr)")
     end
 
     qr = qregsizes(op)
@@ -57,6 +63,13 @@ function emplace!(c::Circuit, op::Operation, regs...)
     for i in 1:lc
         if length(regs[i+lq]) != cr[i]
             error(lazy"Wrong size for $(i)th classical register. Expected $(cr[i]), got $(length(regs[i + lq])).")
+        end
+    end
+
+    zr = zregsizes(op)
+    for i in 1:lz
+        if length(regs[i+lq+lc]) != zr[i]
+            error(lazy"Wrong size for $(i)th z-register. Expected $(zr[i]), got $(length(regs[i + lq + lc])).")
         end
     end
 
@@ -106,6 +119,10 @@ end
 
 function emplace!(c::Circuit, op::LazyExpr, regs...)
     obj = _lazy_recursive_evaluate_emplace!(collect(length.(regs)), op)
+
+    if obj isa AbstractOperator && !(obj isa AbstractGate)
+        throw(ArgumentError("Cannot add an AbstractOperator $(obj) that is not an AbstractGate to the circuit."))
+    end
 
     if obj isa LazyExpr
         throw(ArgumentError("Lazy expression not fully evaluated."))

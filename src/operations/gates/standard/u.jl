@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -53,15 +54,15 @@ julia> matrix(GateU(2.023, 0.5, 0.1))
 
 julia> c = push!(Circuit(), GateU(θ, ϕ, λ), 1)
 1-qubit circuit with 1 instructions:
-└── U(θ, ϕ, λ) @ q[1]
+└── U(θ,ϕ,λ) @ q[1]
 
 julia> push!(c, GateU(π/8, π/2, π/4), 2)
 2-qubit circuit with 2 instructions:
-├── U(θ, ϕ, λ) @ q[1]
-└── U(π/8, π/2, π/4) @ q[2]
+├── U(θ,ϕ,λ) @ q[1]
+└── U(π/8,π/2,π/4) @ q[2]
 
 julia> power(GateU(θ, ϕ, λ), 2), inverse(GateU(θ, ϕ, λ))
-(U(θ, ϕ, λ)^2, U(-θ, -λ, -ϕ))
+(GateU(θ, ϕ, λ, 0π)^2, GateU(-θ, -λ, -ϕ, 0π))
 
 ```
 
@@ -72,7 +73,7 @@ Since ``U`` gate, is the most general single qubit unitary matrix, all other mat
 ```jldoctests; setup = :(@variables λ θ ϕ γ)
 julia> decompose(GateU(θ, λ, ϕ))
 1-qubit circuit with 1 instructions:
-└── U(θ, λ, ϕ) @ q[1]
+└── U(θ,λ,ϕ) @ q[1]
 
 ```
 """
@@ -108,7 +109,7 @@ function _power(g::GateU, pwr)
     return GateU(θ, ϕ, λ, γ)
 end
 
-function Base.show(io::IO, gate::GateU)
+function Base.show(io::IO, ::MIME"text/plain", gate::GateU)
     compact = get(io, :compact, false)
     sep = compact ? "," : ", "
     print(io, opname(gate))

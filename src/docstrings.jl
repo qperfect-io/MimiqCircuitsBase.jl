@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -62,8 +63,8 @@ julia> numbits(Measure())
 
 julia> c = Circuit(); push!(c, Measure(), 1, 1); push!(c, Measure(),1,3)
 1-qubit circuit with 2 instructions:
-├── Measure @ q[1], c[1]
-└── Measure @ q[1], c[3]
+├── M @ q[1], c[1]
+└── M @ q[1], c[3]
 
 julia> numbits(c)
 3

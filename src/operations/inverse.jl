@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,7 +46,7 @@ julia> Inverse(GateSX())
 SX†
 
 julia> Inverse(GateCSX())
-(CSX)†
+CSX†
 
 julia> Inverse(QFT(4))
 QFT†
@@ -111,8 +112,8 @@ getparam(inv::Inverse, name) = getparam(getoperation(inv), name)
 
 _matrix(::Type{Inverse{N,T}}, args...) where {N,T} = adjoint(_matrix(T, args...))
 
-function decompose!(circuit::Circuit, inv::Inverse, qtargets, _)
-    newcirc = decompose!(Circuit(), inv.op, qtargets, nothing)
+function decompose!(circuit::Circuit, inv::Inverse, qtargets, _, _)
+    newcirc = decompose!(Circuit(), inv.op, qtargets, (), ())
 
     for inst in inverse(newcirc)
         push!(circuit, inst)
@@ -122,11 +123,14 @@ function decompose!(circuit::Circuit, inv::Inverse, qtargets, _)
 end
 
 function Base.show(io::IO, inv::Inverse)
-    op = getoperation(inv)
-    _print_wrapped_parens(io, op)
+    print(io, "Inverse(", getoperation(inv), ")")
+    return nothing
+end
 
-    # PERF: should not be there, since the operation wrapped should always be
-    # unitary.
+function Base.show(io::IO, m::MIME"text/plain", inv::Inverse)
+    op = getoperation(inv)
+    _show_wrapped_parens(io, m, op)
+
     if isunitary(getoperation(inv))
         print(io, "†")
     else

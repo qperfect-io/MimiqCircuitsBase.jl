@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,15 +24,17 @@ The depth of a quantum circuit is a metric computing the maximum time (in units 
 gates application) between the input and output of the circuit.
 """
 function depth(c::Circuit)
-    d = zeros(Int64, numqubits(c) + numbits(c))
+    d = zeros(Int64, numqubits(c) + numbits(c) + numzvars(c))
     for g in c
-        optargets = collect(getqubits(g))
-        dm = maximum(d[optargets])
-        for t in getqubits(g)
-            d[t] = dm + 1
+        if iszero(numqubits(g)) && iszero(numbits(g)) && iszero(numzvars(g))
+            continue
         end
-        for t in getbits(g)
-            d[t+numqubits(c)] = dm + 1
+
+        optargets = vcat(collect(getqubits(g)), collect(getbits(g)) .+ numqubits(c), collect(getztargets(g)) .+ (numqubits(c) + numbits(c)))
+        dm = maximum(d[optargets])
+
+        for t in optargets
+            d[t] = dm + 1
         end
     end
     return maximum(d)

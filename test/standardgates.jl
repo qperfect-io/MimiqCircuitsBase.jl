@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -138,17 +139,17 @@ function test_inverse(g)
     end
 end
 
-function manual_matrix_2q(c::Circuit)
-    @assert numqubits(c) == 2
-    @assert numbits(c) == 0
+# function manual_matrix_2q(c::Circuit)
+#     @assert numqubits(c) == 2
+#     @assert numbits(c) == 0
 
-    M = Matrix(I, 4, 4)
+#     M = Matrix(I, 4, 4)
 
-    for inst in circ
-        if numqubits(inst) == 2
-            M = M * kron(matrix(inst), I)
-        M = M * 
-end
+#     for inst in circ
+#         if numqubits(inst) == 2
+#             M = M * kron(matrix(inst), I)
+#         M = M * 
+# end
 
 @testset "CHadamard" begin end
 

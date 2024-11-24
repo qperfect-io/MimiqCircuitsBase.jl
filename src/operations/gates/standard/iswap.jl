@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -56,7 +57,7 @@ julia> push!(c, GateISWAP, 3, 4)
 └── ISWAP @ q[3:4]
 
 julia> power(GateISWAP(), 2), inverse(GateISWAP())
-(ISWAP^2, ISWAP†)
+(GateISWAP()^2, Inverse(GateISWAP()))
 
 ```
 
@@ -80,7 +81,7 @@ struct GateISWAP <: AbstractGate{2} end
 
 opname(::Type{GateISWAP}) = "ISWAP"
 
-function decompose!(circ::Circuit, ::GateISWAP, qtargets, _)
+function decompose!(circ::Circuit, ::GateISWAP, qtargets, _, _)
     a, b = qtargets
     push!(circ, GateS(), a)
     push!(circ, GateS(), b)

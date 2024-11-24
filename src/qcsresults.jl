@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -75,18 +76,26 @@ function histsamples(r::QCSResults)
     return d
 end
 
-function _helper_roundfidelity(fid)
-    if fid ≈ 1.0
-        return 1.0
+function histzvars(r::QCSResults)
+    d = Dict{Vector{ComplexF64},Int}()
+
+    for z in r.zstates
+        if haskey(d, z)
+            d[z] += 1
+        else
+            d[z] = 1
+        end
     end
-    floor(fid; sigdigits=3)
+
+    return d
+end
+
+function _helper_roundfidelity(fid)
+    floor(fid; sigdigits=8)
 end
 
 function _helper_rounderror(err)
-    if err ≈ 0.0
-        return 0.0
-    end
-    ceil(err; sigdigits=3)
+    ceil(err; sigdigits=8)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", r::QCSResults)
@@ -132,13 +141,27 @@ function Base.show(io::IO, ::MIME"text/plain", r::QCSResults)
     end
 
     if !isempty(r.cstates)
-        println(io, "├── most sampled:")
+        println(io, "├── creg (most sampled):")
         h = histsamples(r)
         h = sort(collect(h), by=x -> x[2], rev=true)[1:min(5, length(h))]
         for (k, v) in h[1:end-1]
             println(io, "│   ├── ", k, " => ", v)
         end
         println(io, "│   └── ", h[end][1], " => ", h[end][2])
+    end
+
+    if !isempty(r.zstates) && any(!isempty, r.zstates)
+        println(io, "├── zreg (most sampled):")
+        h = histzvars(r)
+        h = sort(collect(h), by=x -> x[2], rev=true)[1:min(5, length(h))]
+        for (k, v) in h[1:end-1]
+            print(io, "│   ├── ", "[")
+            join(io, Iterators.map(x -> _decomplex(x), k), ", ")
+            println(io, "] => ", v)
+        end
+        print(io, "│   └── ", "[")
+        join(io, Iterators.map(x -> _decomplex(x), h[end][1]), ", ")
+        println(io, "] => ", h[end][2])
     end
 
     if !isempty(r.amplitudes)
@@ -149,7 +172,6 @@ function Base.show(io::IO, ::MIME"text/plain", r::QCSResults)
         end
         println(io, "│   └── ", amplitudes[end][1], " => ", amplitudes[end][2])
     end
-
 
     println(io, "├── ", length(r.fidelities), " executions")
     println(io, "├── ", length(r.amplitudes), " amplitudes")
@@ -208,11 +230,23 @@ function Base.show(io::IO, ::MIME"text/html", r::QCSResults)
 
     if !isempty(r.cstates)
         print(io, "<tr><td colspan=2></td></tr>")
-        print(io, "<tr><td colspan=2 align=\"center\"><strong>Samples</strong></td></tr>")
+        print(io, "<tr><td colspan=2 align=\"center\"><strong>creg (most sampled)</strong></td></tr>")
         h = histsamples(r)
         h = sort(collect(h), by=x -> x[2], rev=true)[1:min(10, length(h))]
         for (k, v) in h
             print(io, "<tr><td style=\"text-align:left;font-family: monospace;\">", k, "</td><td style=\"text-align:left;font-family: monospace;\">", v, "</td></tr>")
+        end
+    end
+
+    if !isempty(r.zstates) && any(!isempty, r.zstates)
+        print(io, "<tr><td colspan=2></td></tr>")
+        print(io, "<tr><td colspan=2 align=\"center\"><strong>zreg (most sampled)</strong></td></tr>")
+        h = histzvars(r)
+        h = sort(collect(h), by=x -> x[2], rev=true)[1:min(10, length(h))]
+        for (k, v) in h
+            print(io, "<tr><td style=\"text-align:left;font-family: monospace;\">")
+            join(io, Iterators.map(x -> _decomplex(x), k), ", ")
+            print(io, "</td><td style=\"text-align:left;font-family: monospace;\">", v, "</td></tr>")
         end
     end
 

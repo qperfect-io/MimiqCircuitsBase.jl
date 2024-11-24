@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -43,10 +44,10 @@ julia> Power(GateZ(), 2)
 Z^2
 
 julia> Power(GateCH(), 1//2)
-(CH)^(1//2)
+CH^(1//2)
 
 julia> Power(GateCX(), 1//2)
-(CX)^(1//2)
+CX^(1//2)
 ```
 
 ## Decomposition
@@ -64,14 +65,14 @@ julia> decompose(Power(GateH(), 2))
 
 julia> decompose(Power(GateH(), 1//2))
 1-qubit circuit with 1 instructions:
-└── U(π/2, 0, π)^(1//2) @ q[1]
+└── U(1.0471975511966005,-0.9553166181245096,2.1862760354652835,0.16991845472706107) @ q[1]
 
 julia> decompose(Power(GateX(), 1//2)) # same as decomposing GateSX
 1-qubit circuit with 4 instructions:
 ├── S† @ q[1]
 ├── H @ q[1]
 ├── S† @ q[1]
-└── U(0, 0, 0, π/4) @ q[1]
+└── U(0,0,0,π/4) @ q[1]
 ```
 """
 struct Power{P,N,T<:AbstractGate{N}} <: AbstractGate{N}
@@ -141,7 +142,7 @@ exponent(::Power{P}) where {P} = P
 
 _matrix(::Type{Power{P,N,T}}, args...) where {P,N,T} = Matrix(complex(_matrix(T, args...))^P)
 
-function decompose!(circ::Circuit, pwr::Power{P,N,T}, qtargets, _) where {P,N,T}
+function decompose!(circ::Circuit, pwr::Power{P,N,T}, qtargets, _, _) where {P,N,T}
     op = getoperation(pwr)
 
     if exponent(pwr) isa Integer
@@ -155,7 +156,7 @@ function decompose!(circ::Circuit, pwr::Power{P,N,T}, qtargets, _) where {P,N,T}
     # if there is only a gate, maybe it is ok
     # if the gates are all diagonal then we can continue
     # otherwise just do nothing and push the same thing
-    cop = decompose!(Circuit(), op, qtargets, ())
+    cop = decompose!(Circuit(), op, qtargets, (), ())
 
     if length(cop) == 1
         push!(circ, power(getoperation(cop[1]), P), getqubits(cop[1])...)
@@ -168,6 +169,16 @@ end
 function Base.show(io::IO, op::Power)
     exp = exponent(op)
     _print_wrapped_parens(io, getoperation(op))
+    if (exp isa Integer || exp isa AbstractFloat) && exp >= 0
+        print(io, '^', exp)
+    else
+        print(io, "^(", exp, ')')
+    end
+end
+
+function Base.show(io::IO, m::MIME"text/plain", op::Power)
+    exp = exponent(op)
+    _show_wrapped_parens(io, m, getoperation(op))
     if (exp isa Integer || exp isa AbstractFloat) && exp >= 0
         print(io, '^', exp)
     else

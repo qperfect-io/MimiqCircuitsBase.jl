@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -54,7 +55,7 @@ julia> push!(c, GateSX, 2)
 └── SX @ q[2]
 
 julia> power(GateSX(), 2), inverse(GateSX())
-(X, SX†)
+(GateX(), Inverse(GateSX()))
 
 ```
 
@@ -66,14 +67,14 @@ julia> decompose(GateSX())
 ├── S† @ q[1]
 ├── H @ q[1]
 ├── S† @ q[1]
-└── U(0, 0, 0, π/4) @ q[1]
+└── U(0,0,0,π/4) @ q[1]
 ```
 """
 const GateSX = typeof(power(GateX(), 1 // 2))
 
 @definename GateSX "SX"
 
-function decompose!(circ::Circuit, ::GateSX, qtargets, _)
+function decompose!(circ::Circuit, ::GateSX, qtargets, _, _)
     a = qtargets[1]
     push!(circ, GateSDG(), a)
     push!(circ, GateH(), a)
@@ -81,6 +82,8 @@ function decompose!(circ::Circuit, ::GateSX, qtargets, _)
     push!(circ, GateU(0, 0, 0, π / 4), a)
     return circ
 end
+
+@generated _matrix(::Type{GateSX}) = ComplexF64[0.5+0.5im 0.5-0.5im; 0.5-0.5im 0.5+0.5im]
 
 @doc raw"""
     GateSXDG()
@@ -109,7 +112,7 @@ julia> GateSXDG()
 SX†
 
 julia> matrix(GateSXDG())
-2×2 adjoint(::Matrix{ComplexF64}) with eltype ComplexF64:
+2×2 Matrix{ComplexF64}:
  0.5-0.5im  0.5+0.5im
  0.5+0.5im  0.5-0.5im
 
@@ -123,13 +126,13 @@ julia> push!(c, GateSXDG, 2)
 └── SX† @ q[2]
 
 julia> power(GateSXDG(), 2), inverse(GateSXDG())
-((SX†)^2, SX)
+((Inverse(GateSX()))^2, GateSX())
 
 ```
 """
 const GateSXDG = typeof(inverse(GateSX()))
 
-function decompose!(circ::Circuit, ::GateSXDG, qtargets, _)
+function decompose!(circ::Circuit, ::GateSXDG, qtargets, _, _)
     a = qtargets[1]
     push!(circ, GateS(), a)
     push!(circ, GateH(), a)
@@ -137,3 +140,5 @@ function decompose!(circ::Circuit, ::GateSXDG, qtargets, _)
     push!(circ, GateU(0, 0, 0, -π / 4), a)
     return circ
 end
+
+@generated _matrix(::Type{GateSXDG}) = ComplexF64[0.5-0.5im 0.5+0.5im; 0.5+0.5im 0.5-0.5im]

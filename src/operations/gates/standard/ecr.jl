@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -49,7 +50,7 @@ julia> c = push!(Circuit(), GateECR(), 1, 2)
 └── ECR @ q[1:2]
 
 julia> power(GateECR(), 2), inverse(GateECR())
-(Parallel(2, ID), ECR)
+(Parallel(2, GateID()), GateECR())
 
 ```
 
@@ -74,7 +75,7 @@ opname(::Type{GateECR}) = "ECR"
 
 _power(::GateECR, pwr) = _power_idempotent(GateECR(), parallel(2, GateID()), pwr)
 
-function decompose!(circ::Circuit, ::GateECR, qtargets, _)
+function decompose!(circ::Circuit, ::GateECR, qtargets, _, _)
     a, b = qtargets
     push!(circ, GateRZX(π / 4), a, b)
     push!(circ, GateX(), a)

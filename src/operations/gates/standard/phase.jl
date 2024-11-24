@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -63,7 +64,7 @@ julia> push!(c, GateP(π/2), 2)
 ```jldoctests; setup = :(@variables λ)
 julia> decompose(GateP(λ))
 1-qubit circuit with 1 instructions:
-└── U(0, 0, λ) @ q[1]
+└── U(0,0,λ) @ q[1]
 
 ```
 """
@@ -81,7 +82,7 @@ _matrix(::Type{GateP}, λ) = [1 0; 0 cispi(λ / π)]
 
 _matrix(::Type{GateP}, λ::Symbolics.Num) = [1 0; 0 cis(λ)]
 
-function decompose!(circ::Circuit, g::GateP, qtargets, _)
+function decompose!(circ::Circuit, g::GateP, qtargets, _, _)
     q = qtargets[1]
     push!(circ, GateU(0, 0, g.λ), q)
     return circ

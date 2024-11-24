@@ -1,73 +1,119 @@
 # MimiqCircuitsBase.jl
 
-Core library used to build and manage quantum algorithms as quantum circuits.
+Part of MIMIQ by [QPerfect](https://qperfect.io).
 
-## Quick Start
+This core library provides all the functionalities to build and manage quantum algorithms as quantum circuits.
+
+## Examples
+
+### GHZ state and Expectation Values
+
+The following code
 
 ```julia
-julia> using MimiqCircuitsBase
+using MimiqCircuitsBase
 
-julia> c = Circuit()
-empty circuit
-
-julia> push!(c, GateX(), 1)
-1-qubit circuit with 1 gates:
-└── X @ q1
-
-julia> push!(c, GateT(), 1)
-1-qubit circuit with 2 gates:
-├── X @ q1
-└── T @ q1
-
-julia> push!(c, GateX(), 2)
-2-qubit circuit with 3 gates:
-├── X @ q1
-├── T @ q1
-└── X @ q2
-
-julia> for i in 1:10
-           push!(c, GateH(), i)
-       end
-
-julia> push!(c, GateCX(), 2, 3)
-10-qubit circuit with 14 gates:
-├── X @ q1
-├── T @ q1
-├── X @ q2
-├── H @ q1
-├── H @ q2
-├── H @ q3
-├── H @ q4
-├── H @ q5
-├── H @ q6
-├── H @ q7
-├── H @ q8
-├── H @ q9
-├── H @ q10
-└── CX @ q2, q3
-
-julia> push!(c, GateCU(-π, π, π/4, π/8), 3, 4)
-10-qubit circuit with 15 gates:
-├── X @ q1
-├── T @ q1
-├── X @ q2
-├── H @ q1
-├── H @ q2
-├── H @ q3
-├── H @ q4
-├── H @ q5
-├── H @ q6
-├── H @ q7
-├── H @ q8
-├── H @ q9
-├── H @ q10
-├── CX @ q2, q3
-└── CU(θ=-π⋅1.0, ϕ=π⋅1.0, λ=π⋅0.25, γ=π⋅0.125) @ q3, q4
+c = Circuit()
+push!(c, GateH(), 1)
+push!(c, GateCX(), 1, 2:10)
+push!(c, ExpectationValue(GateZ()), 1, 1)
+push!(c, Measure(), 1:10, 1:10-)
+draw(c)
 ````
+
+will output
+
+```
+        ┌─┐                           ┌───┐┌─┐
+q[1]:  ╶┤H├─●──●──●──●──●──●──●──●──●─┤⟨Z⟩├┤M├───────────────────────────╴
+        └─┘┌┴┐ │  │  │  │  │  │  │  │ └─╥─┘└╥┘┌─┐
+q[2]:  ╶───┤X├─┼──┼──┼──┼──┼──┼──┼──┼───╫───╫─┤M├────────────────────────╴
+           └─┘┌┴┐ │  │  │  │  │  │  │   ║   ║ └╥┘┌─┐
+q[3]:  ╶──────┤X├─┼──┼──┼──┼──┼──┼──┼───╫───╫──╫─┤M├─────────────────────╴
+              └─┘┌┴┐ │  │  │  │  │  │   ║   ║  ║ └╥┘┌─┐
+q[4]:  ╶─────────┤X├─┼──┼──┼──┼──┼──┼───╫───╫──╫──╫─┤M├──────────────────╴
+                 └─┘┌┴┐ │  │  │  │  │   ║   ║  ║  ║ └╥┘┌─┐
+q[5]:  ╶────────────┤X├─┼──┼──┼──┼──┼───╫───╫──╫──╫──╫─┤M├───────────────╴
+                    └─┘┌┴┐ │  │  │  │   ║   ║  ║  ║  ║ └╥┘┌─┐
+q[6]:  ╶───────────────┤X├─┼──┼──┼──┼───╫───╫──╫──╫──╫──╫─┤M├────────────╴
+                       └─┘┌┴┐ │  │  │   ║   ║  ║  ║  ║  ║ └╥┘┌─┐
+q[7]:  ╶──────────────────┤X├─┼──┼──┼───╫───╫──╫──╫──╫──╫──╫─┤M├─────────╴
+                          └─┘┌┴┐ │  │   ║   ║  ║  ║  ║  ║  ║ └╥┘┌─┐
+q[8]:  ╶─────────────────────┤X├─┼──┼───╫───╫──╫──╫──╫──╫──╫──╫─┤M├──────╴
+                             └─┘┌┴┐ │   ║   ║  ║  ║  ║  ║  ║  ║ └╥┘┌─┐
+q[9]:  ╶────────────────────────┤X├─┼───╫───╫──╫──╫──╫──╫──╫──╫──╫─┤M├───╴
+                                └─┘┌┴┐  ║   ║  ║  ║  ║  ║  ║  ║  ║ └╥┘┌─┐
+q[10]: ╶───────────────────────────┤X├──╫───╫──╫──╫──╫──╫──╫──╫──╫──╫─┤M├╴
+                                   └─┘  ║   ║  ║  ║  ║  ║  ║  ║  ║  ║ └╥┘
+                                        ║   ║  ║  ║  ║  ║  ║  ║  ║  ║  ║
+c:     ═════════════════════════════════╬═══╩══╩══╩══╩══╩══╩══╩══╩══╩══╩═
+                                        ║   1  2  3  4  5  6  7  8  9  10
+z:     ═════════════════════════════════╩════════════════════════════════
+                                        1
+```
+
+### Quantum Fourier Transform and inverse
+
+The following code
+
+```julia
+c = push!(Circuit(), QFT(10), 1:10...)
+push!(c, Barrier(10), 1:10...)
+push!(c, inverse(QFT(10)), 1:10...)
+draw(c)
+```
+
+will output
+
+```
+        ┌──────┐░┌───────┐
+q[1]:  ╶┤1     ├░┤1      ├╴
+        │      │░│       │
+q[2]:  ╶┤2     ├░┤2      ├╴
+        │      │░│       │
+q[3]:  ╶┤3     ├░┤3      ├╴
+        │      │░│       │
+q[4]:  ╶┤4     ├░┤4      ├╴
+        │      │░│       │
+q[5]:  ╶┤5     ├░┤5      ├╴
+        │   QFT│░│   QFT†│
+q[6]:  ╶┤6     ├░┤6      ├╴
+        │      │░│       │
+q[7]:  ╶┤7     ├░┤7      ├╴
+        │      │░│       │
+q[8]:  ╶┤8     ├░┤8      ├╴
+        │      │░│       │
+q[9]:  ╶┤9     ├░┤9      ├╴
+        │      │░│       │
+q[10]: ╶┤10    ├░┤10     ├╴
+        └──────┘░└───────┘
+```
+### Teleportation
+
+```julia
+c = push!(cirtcuit(), GateH(), [1,2])
+push!(c, GateT(), 2)
+push!(c, GateCX(), 1, 2)
+push!(c, Measure(), 1, 1)
+push!(c, IfStatement(GateS(), bs"1"), 1, 1)
+```
+
+```
+       ┌─┐                     ┌─┐
+q[1]: ╶┤H├───────●─────────────┤S├
+       └─┘┌─┐┌─┐┌┴┐┌─┐         └╥┘
+q[2]: ╶───┤H├┤T├┤X├┤M├──────────╫─
+          └─┘└─┘└─┘└╥┘          ║
+                    ║ ┌───────┐○╝
+c:    ══════════════╩═│c[1]==1│═══
+                    1 └───────┘
+```
+
 
 ## COPYRIGHT
 
-Copyright © 2022-2023 University of Strasbourg. All Rights Reserved.
+Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+Copyright © 2023-2024 QPerfect. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

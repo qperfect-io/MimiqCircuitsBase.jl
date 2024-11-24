@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -257,14 +258,25 @@ function _matrix(::Type{Control{N,M,L,T}}, args...) where {N,M,L,T}
     return _ctrl_matrix(Val(N), _matrix(T, args...))
 end
 
-function Base.show(io::IO, c::Control{1})
-    print(io, "C")
-    _print_wrapped_parens(io, getoperation(c))
+function Base.show(io::IO, c::Control{N}) where {N}
+    if N == 1
+        print(io, "Control(", getoperation(c), ")")
+        return nothing
+    end
+
+    sep = get(io, :compact, false) ? "," : ", "
+    print(io, "Control(", N, sep, getoperation(c), ")")
+    return nothing
 end
 
-function Base.show(io::IO, c::Control{N}) where {N}
+function Base.show(io::IO, m::MIME"text/plain", c::Control{1})
+    print(io, "C")
+    _show_wrapped_parens(io, m, getoperation(c))
+end
+
+function Base.show(io::IO, m::MIME"text/plain", c::Control{N}) where {N}
     subscript = collect("₀₁₂₃₄₅₆₇₈₉")
     Ntext = join(map(x -> subscript[x+1], reverse(digits(N))))
     print(io, "C", Ntext)
-    _print_wrapped_parens(io, getoperation(c))
+    _show_wrapped_parens(io, m, getoperation(c))
 end

@@ -1,61 +1,27 @@
+#
+# Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 """
     saveproto(fname, c::Circuit)
     saveproto(fname, c::QCSResults)
-    loadproto(fname, ::typeof(Circuit))
-    loadproto(fname, ::typeof(QCSResults))
 
-Save and load a quantum circuit or QCSResults to/from a protocol buffer file.
-
-## saveproto
-
-The `saveproto` function saves a given object, such as a `Circuit` or `QCSResults`, to a protocol buffer file.
-
-
-## loadproto
-
-The `loadproto` function loads a specified type of object from a protocol buffer file.
-
-## Examples
-
-```jldoctests
-julia> c = Circuit()
-empty circuit
-
-julia> push!(c, GateX(), 1)
-1-qubit circuit with 1 instructions:
-└── X @ q[1]
-
-julia> push!(c, GateXXplusYY(1.0, 4), 1, 2:5)
-5-qubit circuit with 5 instructions:
-├── X @ q[1]
-├── XXplusYY(1.0, 4) @ q[1:2]
-├── XXplusYY(1.0, 4) @ q[1,3]
-├── XXplusYY(1.0, 4) @ q[1,4]
-└── XXplusYY(1.0, 4) @ q[1,5]
-
-julia> mktemp() do path, io
-           saveproto(path, c)
-           println( saveproto(path, c))
-           loaded_circuit = loadproto(path, Circuit)
-           println(loaded_circuit)
-       end
-135
-5-qubit circuit with 5 instructions:
-├── X @ q[1]
-├── XXplusYY(1.0, 4) @ q[1:2]
-├── XXplusYY(1.0, 4) @ q[1,3]
-├── XXplusYY(1.0, 4) @ q[1,4]
-└── XXplusYY(1.0, 4) @ q[1,5]
-```
-
-!!! note
-    This example uses a temporary file to demonstrate the save and load functionality.
-    You can save your file with any name at any location using:
-
-        saveproto("example.pb", c)
-
-        loadproto("example.pb", typeof(c))
+Serialize a `Circuit` or a `QCSResults` object to a ProtoBuf file.
 """
+function saveproto end
+
 function saveproto(fname, c::Circuit)
     iobuffer = IOBuffer()
     e = ProtoEncoder(iobuffer)
@@ -66,19 +32,6 @@ function saveproto(fname, c::Circuit)
     end
 end
 
-"""
-
-See [`saveproto`](@ref), for the Examples
-
-"""
-function loadproto(fname, ::Type{Circuit})
-    open(fname, "r") do io
-        d = ProtoDecoder(io)
-        proto = decode(d, circuit_pb.Circuit)
-        return fromproto(proto)
-    end
-end
-
 function saveproto(fname, c::QCSResults)
     iobuffer = IOBuffer()
     e = ProtoEncoder(iobuffer)
@@ -86,6 +39,22 @@ function saveproto(fname, c::QCSResults)
 
     open(fname, "w") do io
         write(io, take!(iobuffer))
+    end
+end
+
+"""
+    loadproto(fname, Circuit)
+    loadproto(fname, QCSResults)
+
+Deserialize a `Circuit` or a `QCSResults` object from a ProtoBuf file.
+"""
+function loadproto end
+
+function loadproto(fname, ::Type{Circuit})
+    open(fname, "r") do io
+        d = ProtoDecoder(io)
+        proto = decode(d, circuit_pb.Circuit)
+        return fromproto(proto)
     end
 end
 

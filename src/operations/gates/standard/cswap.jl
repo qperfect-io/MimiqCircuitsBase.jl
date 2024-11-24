@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,7 +33,7 @@ See also [`Control`](@ref), [`GateU`](@ref).
 
 ```jldoctests
 julia> GateCSWAP(), numcontrols(GateCSWAP()), numtargets(GateCSWAP())
-(CSWAP, 1, 2)
+(GateCSWAP(), 1, 2)
 
 julia> matrix(GateCSWAP())
 8×8 Matrix{Float64}:
@@ -50,7 +51,7 @@ julia> c = push!(Circuit(), GateCSWAP(), 1, 2, 3)
 └── CSWAP @ q[1], q[2:3]
 
 julia> power(GateCSWAP(), 2), inverse(GateCSWAP())
-(C(Parallel(2, ID)), CSWAP)
+(Control(Parallel(2, GateID())), GateCSWAP())
 
 ```
 
@@ -67,7 +68,9 @@ julia> decompose(GateCSWAP())
 """
 const GateCSWAP = typeof(Control(1, GateSWAP()))
 
-function decompose!(circ::Circuit, ::GateCSWAP, qtargets, _)
+@definename GateCSWAP "CSWAP"
+
+function decompose!(circ::Circuit, ::GateCSWAP, qtargets, _, _)
     a, b, c = qtargets
     push!(circ, GateCX(), c, b)
     push!(circ, GateCCX(), a, b, c)

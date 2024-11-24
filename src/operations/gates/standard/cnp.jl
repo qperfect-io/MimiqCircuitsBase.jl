@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,7 +35,7 @@ julia> @variables λ
  λ
 
 julia> GateCCP(λ), numcontrols(GateCCP(λ)), numtargets(GateCCP(λ))
-(C₂P(λ), 2, 1)
+(GateCCP(λ), 2, 1)
 
 julia> matrix(GateCCP(1.989))
 8×8 Matrix{ComplexF64}:
@@ -49,15 +50,15 @@ julia> matrix(GateCCP(1.989))
 
 julia> c = push!(Circuit(), GateCCP(λ), 1, 2, 3)
 3-qubit circuit with 1 instructions:
-└── C₂P(λ) @ q[1:2], q[3]
+└── CCP(λ) @ q[1:2], q[3]
 
 julia> push!(c, GateCCP(π/8), 1, 2, 3)
 3-qubit circuit with 2 instructions:
-├── C₂P(λ) @ q[1:2], q[3]
-└── C₂P(π/8) @ q[1:2], q[3]
+├── CCP(λ) @ q[1:2], q[3]
+└── CCP(π/8) @ q[1:2], q[3]
 
 julia> power(GateCCP(λ), 2), inverse(GateCCP(λ))
-(C₂P(2λ), C₂P(-λ))
+(GateCCP(2λ), GateCCP(-λ))
 
 ```
 
@@ -79,7 +80,9 @@ julia> decompose(GateCCP(λ))
 """
 const GateCCP = typeof(Control(2, GateP(π)))
 
-function decompose!(circ::Circuit, g::GateCCP, qtargets, _)
+@definename GateCCP "CCP"
+
+function decompose!(circ::Circuit, g::GateCCP, qtargets, _, _)
     a, b, c = qtargets
     λ = getparam(g, :λ)
     push!(circ, GateCP(λ / 2), b, c)

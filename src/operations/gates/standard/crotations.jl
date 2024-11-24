@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -43,7 +44,7 @@ julia> @variables θ
  θ
 
 julia> GateCRX(θ), numcontrols(GateCRX(θ)), numtargets(GateCRX(θ))
-(CRX(θ), 1, 1)
+(GateCRX(θ), 1, 1)
 
 julia> matrix(GateCRX(1.989))
 4×4 Matrix{ComplexF64}:
@@ -62,7 +63,7 @@ julia> push!(c, GateCRX(π/8), 1, 2)
 └── CRX(π/8) @ q[1], q[2]
 
 julia> power(GateCRX(θ), 2), inverse(GateCRX(θ))
-(CRX(2θ), CRX(-θ))
+(GateCRX(2θ), GateCRX(-θ))
 
 ```
 
@@ -73,15 +74,17 @@ julia> decompose(GateCRX(θ))
 2-qubit circuit with 5 instructions:
 ├── P(π/2) @ q[2]
 ├── CX @ q[1], q[2]
-├── U((-1//2)*θ, 0, 0) @ q[2]
+├── U((-1//2)*θ,0,0) @ q[2]
 ├── CX @ q[1], q[2]
-└── U((1//2)*θ, -1π/2, 0) @ q[2]
+└── U((1//2)*θ,-1π/2,0) @ q[2]
 
 ```
 """
 const GateCRX = typeof(Control(GateRX(π)))
 
-function decompose!(circ::Circuit, g::GateCRX, qtargets, _)
+@definename GateCRX "CRX"
+
+function decompose!(circ::Circuit, g::GateCRX, qtargets, _, _)
     a, b = qtargets
     θ = g.op.θ
     push!(circ, GateP(π / 2), b)
@@ -121,7 +124,7 @@ julia> @variables θ
  θ
 
 julia> GateCRY(θ), numcontrols(GateCRY(θ)), numtargets(GateCRY(θ))
-(CRY(θ), 1, 1)
+(Control(GateRY(θ)), 1, 1)
 
 julia> matrix(GateCRY(1.989))
 4×4 Matrix{Float64}:
@@ -140,7 +143,7 @@ julia> push!(c, GateCRY(π/8), 1, 2)
 └── CRY(π/8) @ q[1], q[2]
 
 julia> power(GateCRY(θ), 2), inverse(GateCRY(θ))
-(CRY(2θ), CRY(-θ))
+(Control(GateRY(2θ)), Control(GateRY(-θ)))
 
 ```
 
@@ -158,7 +161,7 @@ julia> decompose(GateCRY(θ))
 """
 const GateCRY = typeof(Control(GateRY(π)))
 
-function decompose!(circ::Circuit, g::GateCRY, qtargets, _)
+function decompose!(circ::Circuit, g::GateCRY, qtargets, _, _)
     a, b = qtargets
     θ = g.op.θ
     push!(circ, GateRY(θ / 2), b)
@@ -197,7 +200,7 @@ julia> @variables θ
  θ
 
 julia> GateCRZ(θ), numcontrols(GateCRZ(θ)), numtargets(GateCRZ(θ))
-(CRZ(θ), 1, 1)
+(Control(GateRZ(θ)), 1, 1)
 
 julia> matrix(GateCRZ(1.989))
 4×4 Matrix{ComplexF64}:
@@ -216,7 +219,7 @@ julia> push!(c, GateCRZ(π/8), 1, 2)
 └── CRZ(π/8) @ q[1], q[2]
 
 julia> power(GateCRZ(θ), 2), inverse(GateCRZ(θ))
-(CRZ(2θ), CRZ(-θ))
+(Control(GateRZ(2θ)), Control(GateRZ(-θ)))
 
 ```
 
@@ -234,7 +237,7 @@ julia> decompose(GateCRZ(θ))
 """
 const GateCRZ = typeof(Control(GateRZ(π)))
 
-function decompose!(circ::Circuit, g::GateCRZ, qtargets, _)
+function decompose!(circ::Circuit, g::GateCRZ, qtargets, _, _)
     a, b = qtargets
     λ = g.op.λ
     push!(circ, GateRZ(λ / 2), b)

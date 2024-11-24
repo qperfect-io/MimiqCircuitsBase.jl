@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,6 +29,7 @@ List of gates provided by the library.
 [`GateS`](@ref), [`GateSDG`](@ref),
 [`GateT`](@ref), [`GateTDG`](@ref),
 [`GateSX`](@ref), [`GateSXDG`](@ref).
+[`GateSY`](@ref), [`GateSYDG`](@ref).
 
 ## Single qubit parametric gates
 
@@ -69,6 +71,12 @@ See [`GENERALIZED`](@ref) for a list of them.
 
 See [`OPERATIONS`](@ref) for a complete list of operations.
 
+## Noise channels
+
+These define a non-unitary quantum operation based on the Kraus representation.
+
+See [`NOISECHANNELS`](@ref) for a list of them.
+
 """
 const GATES = Type[
     GateU,
@@ -78,12 +86,16 @@ const GATES = Type[
     GateY,
     GateZ,
     GateH,
+    GateHXY,
+    GateHYZ,
     GateS,
     GateSDG,
     GateT,
     GateTDG,
     GateSX,
     GateSXDG,
+    GateSY,
+    GateSYDG,
     GateRX,
     GateRY,
     GateRZ,
@@ -118,6 +130,7 @@ const GATES = Type[
     GateC3X,
     GateCCP,
     GateCSWAP,
+    Delay
 ]
 
 """
@@ -141,7 +154,10 @@ For gate definitions and calls, see [`GateDecl`](@ref) and [`GateCall`](@ref)
 
 ## Non-unitary operations
 
-[`Measure`](@ref), [`Reset`](@ref)
+[`Measure`](@ref), [`MeasureX`](@ref), [`MeasureY`](@ref), [`MeasureZ`](@ref),
+[`MeasureXX`](@ref), [`MeasureYY`](@ref), [`MeasureZZ`](@ref)
+[`MeasureReset`](@ref), [`MeasureResetX`](@ref), [`MeasureResetY`](@ref), [`MeasureResetZ`](@ref),
+[`Reset`](@ref),
 
 ## Algorithms or complex gate builders
 
@@ -164,5 +180,49 @@ const GENERALIZED = [
     PhaseGradient,
     QFT,
     Diffusion,
-    PolynomialOracle
+    PolynomialOracle,
+    PauliString,
+    GateCustom,
+]
+
+
+"""
+    NOISECHANNELS
+
+List of noise channels provided by the library.
+
+## Not mixed-unitary noise channels
+
+[`Kraus`](@ref),
+[`AmplitudeDamping`](@ref),
+[`GeneralizedAmplitudeDamping`](@ref),
+[`PhaseAmplitudeDamping`](@ref),
+[`ThermalNoise`](@ref),
+[`Reset`](@ref),
+
+## Mixed-Unitary noise channels
+
+[`MixedUnitary`](@ref),
+[`PauliNoise`](@ref),
+[`PauliX`](@ref), [`PauliY`](@ref), [`PauliZ`](@ref),
+[`Depolarizing`](@ref),
+"""
+const NOISECHANNELS = Type[
+    Kraus,
+    MixedUnitary,
+    PauliNoise,
+    PauliX,
+    PauliY,
+    PauliZ,
+    Depolarizing,
+    AmplitudeDamping,
+    GeneralizedAmplitudeDamping,
+    PhaseAmplitudeDamping,
+    ThermalNoise,
+    Reset,
+    ResetX,
+    ResetY,
+    ProjectiveNoiseX,
+    ProjectiveNoiseY,
+    ProjectiveNoiseZ,
 ]

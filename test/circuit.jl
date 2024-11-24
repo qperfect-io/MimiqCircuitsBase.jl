@@ -1,3 +1,19 @@
+#
+# Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#     http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 @testset "Circuit" begin
     c = Circuit()
 
@@ -22,47 +38,6 @@
     end
 end
 
-#==
-function emplacedo(f, args...)
-    c = emplace!(Circuit(), args...)
-    f(c)
-end
-
-@testset "emplace!" begin
-    emplacedo(GateCX(), 1, 2) do c
-        @test length(c) == 1
-        @test numqubits(c) == 2
-        @test getoperation(c[1]) === GateCX()
-    end
-
-    emplacedo(GateCX(), [1], 2) do c
-        @test length(c) == 1
-        @test numqubits(c) == 2
-        @test getoperation(c[1]) === GateCX()
-    end
-
-    emplacedo(GateCX(), [1:4], 5) do c
-        @test length(c) == 4
-        @test numqubits(c) == 5
-        @test all(x -> getoperation(x) === GateCX(), c)
-    end
-
-    emplacedo(control(GateX()), [1], 2) do c
-        @test length(c) == 1
-        @test numqubits(c) == 2
-        @test getoperation(c[1]) === GateCX()
-    end
-
-    emplacedo(power(control(PolynomialOracle(1, 2, 3, 4)), 5), [1, 2], [3, 4, 5], [6, 7, 8, 9]) do c
-        @test length(c) == 1
-        @test numqubits(c) == 9
-        @test getoperation(c[1]) isa Control{2}
-        @test getoperation(getoperation(c[1])) isa Power{2}
-        @test getoperation(getoperation(getoperation(c[1]))) === PolynomialOracle(3, 4, 1, 2, 3, 4)
-    end
-end
-==#
-
 @testset "Circuit Symbolic Tests" begin
     @testset "Non-Symbolic Circuits" begin
         c = Circuit()
@@ -71,14 +46,14 @@ end
         push!(c, GateRX(rand()), 1)
         @test !issymbolic(c)
     end
-    
+
     @testset "Symbolic Circuits" begin
         @variables x y
         c = Circuit()
         push!(c, GateP(x), 1)
-        push!(c, GateU(rand(3)...),1)
+        push!(c, GateU(rand(3)...), 1)
         push!(c, GateCX(), 1, 2)
-        
+
         @test issymbolic(c)
     end
 
@@ -89,13 +64,13 @@ end
         push!(c, GateU(x, y, rand()), 1)
         push!(c, GateCX(), 1, 2)
 
-        c1 = evaluate(c, Dict(x=>rand()))
+        c1 = evaluate(c, Dict(x => rand()))
         @test issymbolic(c1)
 
-        c2  = evaluate(c, Dict(y=>rand()))
+        c2 = evaluate(c, Dict(y => rand()))
         @test issymbolic(c2)
 
-        c3 = evaluate(c, Dict(x=>rand(), y=>rand()))
+        c3 = evaluate(c, Dict(x => rand(), y => rand()))
         @test !issymbolic(c3)
     end
 
@@ -113,7 +88,7 @@ end
         @test !issymbolic(GateCX())
 
         @test !issymbolic(control(3, GateT()))
-        
+
         @test !issymbolic(GateCRX(rand()))
         @test issymbolic(GateCRX(x))
 
@@ -128,19 +103,19 @@ end
     @testset "Power" begin
         @variables x
 
-        @test !issymbolic(Power(GateX(),2))
+        @test !issymbolic(Power(GateX(), 2))
 
-        @test !issymbolic(Power(GateT(),1))
-        
-        @test !issymbolic(Power(GateXXplusYY(rand(),rand()),2))
-        @test issymbolic(Power(GateRX(x),2))
+        @test !issymbolic(Power(GateT(), 1))
 
-        @test issymbolic(Power(GateP(x),3))
-        @test !issymbolic(Power(GateP(rand()),3))
+        @test !issymbolic(Power(GateXXplusYY(rand(), rand()), 2))
+        @test issymbolic(Power(GateRX(x), 2))
 
-        @test !issymbolic(Power(GateU(rand(3)...),3))
-        @test issymbolic(Power(GateU(rand(2)..., x),2))
-        @test issymbolic(Power(GateU(x, rand(2)...),3))
+        @test issymbolic(Power(GateP(x), 3))
+        @test !issymbolic(Power(GateP(rand()), 3))
+
+        @test !issymbolic(Power(GateU(rand(3)...), 3))
+        @test issymbolic(Power(GateU(rand(2)..., x), 2))
+        @test issymbolic(Power(GateU(x, rand(2)...), 3))
     end
 
     @testset "Inverse" begin
@@ -149,8 +124,8 @@ end
         @test !issymbolic(Inverse(GateX()))
 
         @test !issymbolic(Inverse(GateT()))
-        
-        @test !issymbolic(Inverse(GateXXplusYY(rand(),rand())))
+
+        @test !issymbolic(Inverse(GateXXplusYY(rand(), rand())))
         @test issymbolic(Inverse(GateRX(x)))
 
         @test issymbolic(Inverse(GateP(x)))
@@ -164,17 +139,17 @@ end
     @testset "Combination" begin
         @variables x
 
-        @test !issymbolic(Inverse(Power(GateCX(),2)))
+        @test !issymbolic(Inverse(Power(GateCX(), 2)))
 
-        @test !issymbolic(Inverse(Power(Control(3,GateT()),3)))
-        
-        @test !issymbolic(Inverse(Control(3,Power(GateXXplusYY(rand(),rand()),2))))
+        @test !issymbolic(Inverse(Power(Control(3, GateT()), 3)))
 
-        @test issymbolic(Inverse(Control(3,Power(GateP(x),3))))
-        @test !issymbolic(Inverse(Control(3,Power(GateP(rand()),2))))
+        @test !issymbolic(Inverse(Control(3, Power(GateXXplusYY(rand(), rand()), 2))))
 
-        @test !issymbolic(Power(Inverse(Control(4,GateU(rand(3)...))),3))
-        @test issymbolic(Inverse(Power(GateU(rand(2)..., x),3)))
-        @test issymbolic(Inverse(Control(2,GateU(x, rand(2)...))))
+        @test issymbolic(Inverse(Control(3, Power(GateP(x), 3))))
+        @test !issymbolic(Inverse(Control(3, Power(GateP(rand()), 2))))
+
+        @test !issymbolic(Power(Inverse(Control(4, GateU(rand(3)...))), 3))
+        @test issymbolic(Inverse(Power(GateU(rand(2)..., x), 3)))
+        @test issymbolic(Inverse(Control(2, GateU(x, rand(2)...))))
     end
 end

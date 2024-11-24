@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,7 +46,7 @@ julia> c = push!(Circuit(), GateID(), 1)
 └── ID @ q[1]
 
 julia> power(GateID(), 2), inverse(GateID())
-(ID, ID)
+(GateID(), GateID())
 
 ```
 
@@ -54,7 +55,7 @@ julia> power(GateID(), 2), inverse(GateID())
 ```jldoctests
 julia> decompose(GateID())
 1-qubit circuit with 1 instructions:
-└── U(0, 0, 0) @ q[1]
+└── U(0,0,0) @ q[1]
 
 ```
 """
@@ -68,9 +69,10 @@ opname(::Type{GateID}) = "ID"
 
 _power(::GateID, _) = GateID()
 
-function decompose!(circ::Circuit, ::GateID, qtargets, _)
+function decompose!(circ::Circuit, ::GateID, qtargets, _, _)
     q = qtargets[1]
     push!(circ, GateU(0, 0, 0), q)
     return circ
 end
 
+isidentity(::GateID) = true

@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -56,7 +57,7 @@ julia> push!(c, GateX, 2)
 ```jldoctests
 julia> decompose(GateX())
 1-qubit circuit with 1 instructions:
-└── U(π, 0, π) @ q[1]
+└── U(π,0,π) @ q[1]
 
 ```
 """
@@ -70,7 +71,7 @@ opname(::Type{GateX}) = "X"
 
 _power(::GateX, pwr) = _power_idempotent(GateX(), GateID(), pwr)
 
-function decompose!(circ::Circuit, ::GateX, qtargets, _)
+function decompose!(circ::Circuit, ::GateX, qtargets, _, _)
     q = qtargets[1]
     push!(circ, GateU(π, 0, π), q)
     return circ
@@ -118,7 +119,7 @@ julia> push!(c, GateY, 2)
 ```jldoctests
 julia> decompose(GateY())
 1-qubit circuit with 1 instructions:
-└── U(π, π/2, π/2) @ q[1]
+└── U(π,π/2,π/2) @ q[1]
 
 ```
 """
@@ -132,7 +133,7 @@ opname(::Type{GateY}) = "Y"
 
 _power(::GateY, pwr) = _power_idempotent(GateY(), GateID(), pwr)
 
-function decompose!(circ::Circuit, ::GateY, qtargets, _)
+function decompose!(circ::Circuit, ::GateY, qtargets, _, _)
     q = qtargets[1]
     push!(circ, GateU(π, π / 2, π / 2), q)
     return circ
@@ -194,7 +195,7 @@ opname(::Type{GateZ}) = "Z"
 
 _power(::GateZ, pwr) = _power_idempotent(GateZ(), GateID(), pwr)
 
-function decompose!(circ::Circuit, ::GateZ, qtargets, _)
+function decompose!(circ::Circuit, ::GateZ, qtargets, _, _)
     q = qtargets[1]
     push!(circ, GateP(π), q)
     return circ

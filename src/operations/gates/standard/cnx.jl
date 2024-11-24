@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,7 +31,7 @@ Three-qubit, doubly-controlled ``X`` gate.
 
 ```jldoctests
 julia> GateCCX(), numcontrols(GateCCX()), numtargets(GateCCX())
-(C₂X, 2, 1)
+(Control(2, GateX()), 2, 1)
 
 julia> matrix(GateCCX())
 8×8 Matrix{Float64}:
@@ -48,7 +49,7 @@ julia> c = push!(Circuit(), GateCCX(), 1, 2, 3)
 └── C₂X @ q[1:2], q[3]
 
 julia> power(GateCCX(), 2), inverse(GateCCX())
-(C₂ID, C₂X)
+(Control(2, GateID()), Control(2, GateX()))
 
 ```
 
@@ -77,7 +78,7 @@ julia> decompose(GateCCX())
 """
 const GateCCX = typeof(Control(2, GateX()))
 
-function decompose!(circ::Circuit, ::GateCCX, qtargets, _)
+function decompose!(circ::Circuit, ::GateCCX, qtargets, _, _)
     a, b, c = qtargets
     push!(circ, GateH(), c)
 
@@ -120,7 +121,7 @@ Four qubit, triply-controlled ``X`` gate.
 
 ```jldoctests
 julia> GateC3X(), numcontrols(GateC3X()), numtargets(GateC3X())
-(C₃X, 3, 1)
+(Control(3, GateX()), 3, 1)
 
 julia> matrix(GateC3X())
 16×16 Matrix{Float64}:
@@ -146,7 +147,7 @@ julia> c = push!(Circuit(), GateC3X(), 1, 2, 3, 4)
 └── C₃X @ q[1:3], q[4]
 
 julia> power(GateC3X(), 2), inverse(GateC3X())
-(C₃ID, C₃X)
+(Control(3, GateID()), Control(3, GateX()))
 
 ```
 
@@ -180,7 +181,7 @@ julia> decompose(GateC3X())
 """
 const GateC3X = typeof(Control(3, GateX()))
 
-function decompose!(circ::Circuit, ::GateC3X, qtargets, _)
+function decompose!(circ::Circuit, ::GateC3X, qtargets, _, _)
     a, b, c, d = qtargets
 
     push!(circ, GateH(), d)

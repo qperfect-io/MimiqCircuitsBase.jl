@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,12 +30,12 @@ the two registers.
 ```jldoctests
 julia> c = push!(Circuit(), PolynomialOracle(5,5,1,2,3,4), 1:10...)
 10-qubit circuit with 1 instructions:
-└── PolynomialOracle(1, 2, 3, 4) @ q[1:5], q[6:10]
+└── PolynomialOracle(1,2,3,4) @ q[1:5], q[6:10]
 
 julia> push!(c, inverse(PolynomialOracle(5,5,1,2,3,4)), 1:10...)
 10-qubit circuit with 2 instructions:
-├── PolynomialOracle(1, 2, 3, 4) @ q[1:5], q[6:10]
-└── PolynomialOracle(1, 2, 3, 4) @ q[1:5], q[6:10]
+├── PolynomialOracle(1,2,3,4) @ q[1:5], q[6:10]
+└── PolynomialOracle(1,2,3,4) @ q[1:5], q[6:10]
 ```
 
 !!! warn
@@ -88,6 +89,6 @@ inverse(s::PolynomialOracle{NX,NY,N}) where {NX,NY,N} = s
 _power(s::PolynomialOracle{NX,NY,N}, pwr) where {NX,NY,N} = _power_idempotent(s, control(N - 1, GateID()), pwr)
 
 # decomposition requires auxiliary qubits
-function decompose!(::Circuit, ::PolynomialOracle{NX,NY,N}, _, _) where {NX,NY,N}
+function decompose!(::Circuit, ::PolynomialOracle{NX,NY,N}, _, _, _) where {NX,NY,N}
     error("Unknown decomposition for PolynomialOracle")
 end

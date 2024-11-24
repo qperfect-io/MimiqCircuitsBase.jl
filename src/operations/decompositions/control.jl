@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +18,7 @@
 # References
 # [1] Barenco, A. et al. Elementary gates for quantum computation. Phys. Rev. A 52, 3457–3467 (1995).
 
-function decompose!(circ::Circuit, control::Control{1}, qtargets, _)
+function decompose!(circ::Circuit, control::Control{1}, qtargets, _, _)
     op = getoperation(control)
     for inst in decompose(op)
         push!(circ, Control(getoperation(inst)), qtargets[1], [qtargets[i+1] for i in getqubits(inst)]...)
@@ -132,7 +133,7 @@ function _control_recursive_decompose!(circ::Circuit, control::Control{1}, qtarg
     push!(circ, control, qtargets...)
 end
 
-function decompose!(circ::Circuit, control::Control{N}, qtargets, _) where {N}
+function decompose!(circ::Circuit, control::Control{N}, qtargets, _, _) where {N}
     ncontrols = N
     op = getoperation(control)
     ntargets = numqubits(op)

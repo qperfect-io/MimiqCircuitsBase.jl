@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,7 +40,7 @@ See also [`GateS`](@ref), [`Control`](@ref).
 
 ```jldoctests
 julia> GateCS(), numcontrols(GateCS()), numtargets(GateCS())
-(CS, 1, 1)
+(GateCS(), 1, 1)
 
 julia> matrix(GateCS())
 4×4 Matrix{ComplexF64}:
@@ -53,7 +54,7 @@ julia> c = push!(Circuit(), GateCS(), 1, 2)
 └── CS @ q[1], q[2]
 
 julia> power(GateCS(), 2), inverse(GateCS())
-(CZ, C(S†))
+(GateCZ(), Control(Inverse(GateS())))
 
 ```
 
@@ -68,7 +69,9 @@ julia> decompose(GateCS())
 """
 const GateCS = typeof(Control(1, GateS()))
 
-function decompose!(circ::Circuit, ::GateCS, qtargets, _)
+@definename GateCS "CS"
+
+function decompose!(circ::Circuit, ::GateCS, qtargets, _, _)
     a, b = qtargets
     push!(circ, GateCP(π / 2), a, b)
     return circ
@@ -99,21 +102,21 @@ See also [`GateS`](@ref), [`Control`](@ref).
 
 ```jldoctests
 julia> GateCSDG(), numcontrols(GateCSDG()), numtargets(GateCSDG())
-(C(S†), 1, 1)
+(Control(Inverse(GateS())), 1, 1)
 
 julia> matrix(GateCSDG())
 4×4 Matrix{ComplexF64}:
  1.0+0.0im  0.0+0.0im  0.0+0.0im  0.0+0.0im
  0.0+0.0im  1.0+0.0im  0.0+0.0im  0.0+0.0im
- 0.0+0.0im  0.0+0.0im  1.0-0.0im  0.0-0.0im
- 0.0+0.0im  0.0+0.0im  0.0-0.0im  0.0-1.0im
+ 0.0+0.0im  0.0+0.0im  1.0+0.0im  0.0+0.0im
+ 0.0+0.0im  0.0+0.0im  0.0+0.0im  0.0-1.0im
 
 julia> c = push!(Circuit(), GateCSDG(), 1, 2)
 2-qubit circuit with 1 instructions:
 └── C(S†) @ q[1], q[2]
 
 julia> power(GateCSDG(), 2), inverse(GateCSDG())
-(C((S†)^2), CS)
+(Control((Inverse(GateS()))^2), GateCS())
 
 ```
 
@@ -128,7 +131,7 @@ julia> decompose(GateCSDG())
 """
 const GateCSDG = typeof(inverse(Control(1, GateS())))
 
-function decompose!(circ::Circuit, ::GateCSDG, qtargets, _)
+function decompose!(circ::Circuit, ::GateCSDG, qtargets, _, _)
     a, b = qtargets
     push!(circ, GateCP(-π / 2), a, b)
     return circ

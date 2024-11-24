@@ -1,17 +1,33 @@
+#
+# Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#     http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 @doc raw"""
-    GateDecl(name, args, instructions)
+    GateDecl(name, args, circuit)
 
-Define a new gate of given name, arguments and instructions.
+Define a new gate of given name, arguments and circuit.
 
 ### Examples
 
 A simple gate declaration, via the `@gatedecl` macro:
 ```jldoctests
-julia> decl = @gatedecl ansatz(θ) = begin
-           insts = Instruction[]
-           push!(insts, Instruction(GateX(), 1))
-           push!(insts, Instruction(GateRX(θ), 2))
-           return insts
+julia> @gatedecl ansatz(θ)  = begin
+           c = Circuit()
+           push!(c, GateX(), 1)
+           push!(c, GateRX(θ), 2)
+           return c
        end
 gate ansatz(θ) =
 ├── X @ q[1]
@@ -34,25 +50,33 @@ julia> decompose(decl(λ))
 struct GateDecl{N,M}
     name::Symbol
     arguments::NTuple{M,Symbolics.BasicSymbolic}
-    instructions::Vector{Instruction}
+    circuit::Circuit
 
-    function GateDecl(name, args, instructions)
+    function GateDecl(name, args, circuit)
         if !all(x -> SymbolicUtils.issym(x), args)
             throw(ArgumentError("All GateDecl arguments must be symbols."))
         end
 
-        if isempty(instructions)
+        if isempty(circuit)
             throw(ArgumentError("GateDecl instructions cannot be empty."))
         end
 
-        nq = 0
-        for inst in instructions
-            nq = max(nq, maximum(getqubits(inst)))
+        if numqubits(circuit) == 0
+            throw(ArgumentError("GateDecl instructions must act on qubits."))
         end
 
+        if numbits(circuit) != 0
+            throw(ArgumentError("GateDecl instructions cannot act on classical bits."))
+        end
+
+        if numzvars(circuit) != 0
+            throw(ArgumentError("GateDecl instructions cannot act on z-bits."))
+        end
+
+        nq = numqubits(circuit)
         np = length(args)
 
-        new{nq,np}(name, args, instructions)
+        return new{nq,np}(name, args, deepcopy(circuit))
     end
 end
 
@@ -61,7 +85,7 @@ macro gatedecl(decl)
     # check the syntax
     # should be `@gatedecl GateName(arg1, arg2, ...) = begin ... end``
 
-    if decl.head != :(=)
+    if decl.head != :(=) && decl.head != :function
         error("Wrong syntax for gate declaration")
     end
 
@@ -97,13 +121,13 @@ macro gatedecl(decl)
 
     append!(newbody.args, body.args)
 
-    instructions = eval(newbody)
+    circuit = eval(newbody)
 
-    if !(instructions isa Vector{Instruction})
-        error("GateDecl body must return a vector of instructions.")
+    if !(circuit isa Circuit)
+        error("GateDecl body must return a unitary circuit.")
     end
 
-    return :(GateDecl($(QuoteNode(name)), $vars, $instructions))
+    return esc(:($name = GateDecl($(QuoteNode(name)), $vars, $circuit)))
 end
 
 @doc raw"""
@@ -117,12 +141,15 @@ arguments.
 ## Examples
 
 ```jldoctests
-julia> decl = @gatedecl ansatz(θ) = begin
-           insts = Instruction[]
-           push!(insts, Instruction(GateX(), 1))
-           push!(insts, Instruction(GateRX(θ), 2))
-           return insts
-       end;
+julia> @gatedecl ansatz(θ) = begin
+           c = Circuit()
+           push!(c, GateX(), 1)
+           push!(c, GateRX(θ), 2)
+           return c
+       end
+gate ansatz(θ) =
+├── X @ q[1]
+└── RX(θ) @ q[2]
 
 
 julia> @variables λ;
@@ -153,23 +180,51 @@ opname(::Type{<:GateCall}) = "GateCall"
 
 numparams(::Type{<:GateCall{N,M}}) where {N,M} = M
 
-function decompose!(circ::Circuit, cl::GateCall, qtargets, ctargets)
+function decompose(cl::GateCall)
+    circ = Circuit()
     d = Dict(zip(cl._decl.arguments, cl._args))
-    for inst in cl._decl.instructions
+    for inst in cl._decl.circuit
         op = evaluate(getoperation(inst), d)
-        qubits = [qtargets[i] for i in getqubits(inst)]
-        bits = [ctargets[i] for i in getbits(inst)]
-        push!(circ, op, qubits..., bits...)
+        qubits = getqubits(inst)
+        push!(circ, op, qubits...)
     end
     return circ
+end
+
+function decompose!(circuit::Circuit, cl::GateCall, qtargets, _, _)
+    d = Dict(zip(cl._decl.arguments, cl._args))
+
+    for inst in cl._decl.circuit
+        op = evaluate(getoperation(inst), d)
+        inst_qubits = [qtargets[q] for q in getqubits(inst)]
+        push!(circuit, op, inst_qubits...)
+    end
+
+    return circuit
 end
 
 (decl::GateDecl)(args...) = GateCall(decl, args...)
 
 function Base.show(io::IO, d::GateDecl)
+    print(io, "GateDecl(", d.name, ", ", d.arguments, ", [")
+    c = d.circuit
+    print(io, c[1])
+
+    if length(c) > 1
+        for inst in c[2:end]
+            print(io, ", ", inst, ", ")
+        end
+    end
+
+    print(io, "])")
+
+    return nothing
+end
+
+function Base.show(io::IO, m::MIME"text/plain", d::GateDecl)
     compact = get(io, :compact, false)
     rows, _ = displaysize(io)
-    n = length(d.instructions)
+    n = length(d.circuit)
     if !compact
         print(io, "gate ", d.name, "(")
         join(io, d.arguments, ",")
@@ -178,24 +233,32 @@ function Base.show(io::IO, d::GateDecl)
         if rows - 4 <= 0
             print(io, "└── ...")
         elseif rows - 4 >= n
-            for g in d.instructions[1:end-1]
-                println(io, "├── ", g)
+            for g in d.circuit[1:end-1]
+                print(io, "├── ")
+                show(io, m, g)
+                print(io, '\n')
             end
-            print(io, "└── ", d.instructions[end])
+            print(io, "└── ")
+            show(io, m, d.circuit[end])
         else
             chunksize = div(rows - 6, 2)
 
-            for g in d.instructions[1:chunksize]
-                println(io, "├── ", g)
+            for g in d.circuit[1:chunksize]
+                print(io, "├── ")
+                show(io, m, g)
+                print(io, '\n')
             end
 
             println(io, "⋮   ⋮")
 
-            for g in d.instructions[end-chunksize:end-1]
-                println(io, "├── ", g)
+            for g in d.circuit[end-chunksize:end-1]
+                print(io, "├── ")
+                show(io, m, g)
+                print(io, '\n')
             end
 
-            print(io, "└── ", d.instructions[end])
+            print(io, "└── ")
+            show(io, m, d.circuit[end])
         end
     else
         print(io, "gate ", d.name, "(")
@@ -206,7 +269,7 @@ function Base.show(io::IO, d::GateDecl)
     nothing
 end
 
-function Base.show(io::IO, g::GateCall)
+function Base.show(io::IO, ::MIME"text/plain", g::GateCall)
     print(io, g._decl.name)
     if numparams(g) != 0
         print(io, '(')
@@ -214,4 +277,3 @@ function Base.show(io::IO, g::GateCall)
         print(io, ')')
     end
 end
-

@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,7 +41,7 @@ Two qubit controlled-Hadamard gate.
 
 ```jldoctests
 julia> GateCH(), numcontrols(GateCH), numtargets(GateCH)
-(CH, 1, 1)
+(GateCH(), 1, 1)
 
 julia> matrix(GateCH())
 4×4 Matrix{Float64}:
@@ -54,7 +55,7 @@ julia> c = push!(Circuit(), GateCH(), 1, 2)
 └── CH @ q[1], q[2]
 
 julia> power(GateCH(), 2), inverse(GateCH())
-(C(H^2), CH)
+(Control(GateH()^2), GateCH())
 
 ```
 
@@ -75,7 +76,9 @@ julia> decompose(GateCH())
 """
 const GateCH = Control{1,1,2,GateH}
 
-function decompose!(circ::Circuit, ::GateCH, qtargets, _)
+@definename GateCH "CH"
+
+function decompose!(circ::Circuit, ::GateCH, qtargets, _, _)
     a, b = qtargets
 
     push!(circ, GateS(), b)

@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -56,7 +57,7 @@ julia> push!(c, GateSWAP, 3, 4)
 └── SWAP @ q[3:4]
 
 julia> power(GateSWAP(), 2), inverse(GateSWAP())
-(Parallel(2, ID), SWAP)
+(Parallel(2, GateID()), GateSWAP())
 
 ```
 
@@ -81,7 +82,7 @@ opname(::Type{GateSWAP}) = "SWAP"
 
 _power(::GateSWAP, pwr) = _power_idempotent(GateSWAP(), parallel(2, GateID()), pwr)
 
-function decompose!(circ::Circuit, ::GateSWAP, qtargets, _)
+function decompose!(circ::Circuit, ::GateSWAP, qtargets, _, _)
     a, b = qtargets
     push!(circ, GateCX(), a, b)
     push!(circ, GateCX(), b, a)

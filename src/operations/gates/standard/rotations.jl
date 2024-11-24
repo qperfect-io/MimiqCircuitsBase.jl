@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -63,7 +64,7 @@ julia> push!(c, GateRX(π/2), 2)
 ```jldoctests; setup = :(@variables θ)
 julia> decompose(GateRX(θ))
 1-qubit circuit with 1 instructions:
-└── U(θ, -1π/2, π/2) @ q[1]
+└── U(θ,-1π/2,π/2) @ q[1]
 
 ```
 """
@@ -89,11 +90,13 @@ end
 
 _power(g::GateRX, pwr) = GateRX(g.θ * pwr)
 
-function decompose!(circ::Circuit, g::GateRX, qtargets, _)
+function decompose!(circ::Circuit, g::GateRX, qtargets, _, _)
     q = qtargets[1]
     push!(circ, GateU(g.θ, -π / 2, π / 2), q)
     return circ
 end
+
+isidentity(g::GateRX) = iszero(g.θ)
 
 @doc raw"""
     GateRY(θ)
@@ -144,7 +147,7 @@ julia> push!(c, GateRY(π/2), 2)
 ```jldoctests; setup=:(@variables θ)
 julia> decompose(GateRY(θ))
 1-qubit circuit with 1 instructions:
-└── U(θ, 0, 0) @ q[1]
+└── U(θ,0,0) @ q[1]
 
 ```
 """
@@ -170,11 +173,13 @@ end
 
 _power(g::GateRY, pwr) = GateRY(g.θ * pwr)
 
-function decompose!(circ::Circuit, g::GateRY, qtargets, _)
+function decompose!(circ::Circuit, g::GateRY, qtargets, _, _)
     q = qtargets[1]
     push!(circ, GateU(g.θ, 0, 0), q)
     return circ
 end
+
+isidentity(g::GateRY) = iszero(g.θ)
 
 @doc raw"""
     GateRZ(λ)
@@ -225,7 +230,7 @@ julia> push!(c, GateRZ(π/2), 2)
 ```jldoctests; setup = :(@variables θ)
 julia> decompose(GateRZ(θ))
 1-qubit circuit with 1 instructions:
-└── U(0, 0, θ, (-1//2)*θ) @ q[1]
+└── U(0,0,θ,(-1//2)*θ) @ q[1]
 
 ```
 """
@@ -251,11 +256,13 @@ end
 
 _power(g::GateRZ, pwr) = GateRZ(g.λ * pwr)
 
-function decompose!(circ::Circuit, g::GateRZ, qtargets, _)
+function decompose!(circ::Circuit, g::GateRZ, qtargets, _, _)
     q = qtargets[1]
     push!(circ, GateU(0, 0, g.λ, -g.λ / 2), q)
     return circ
 end
+
+isidentity(g::GateRZ) = iszero(g.λ)
 
 @doc raw"""
     GateR(θ, ϕ)
@@ -294,12 +301,12 @@ julia> matrix(GateR(2.023, 1.989))
 
 julia> c = push!(Circuit(), GateR(θ, ϕ), 1)
 1-qubit circuit with 1 instructions:
-└── R(θ, ϕ) @ q[1]
+└── R(θ,ϕ) @ q[1]
 
 julia> push!(c, GateR(π/2, π/4), 2)
 2-qubit circuit with 2 instructions:
-├── R(θ, ϕ) @ q[1]
-└── R(π/2, π/4) @ q[2]
+├── R(θ,ϕ) @ q[1]
+└── R(π/2,π/4) @ q[2]
 
 ```
 
@@ -308,7 +315,7 @@ julia> push!(c, GateR(π/2, π/4), 2)
 ```jldoctests; setup = :(@variables θ ϕ)
 julia> decompose(GateR(θ, ϕ))
 1-qubit circuit with 1 instructions:
-└── U3(θ, -1.5707963267948966 + ϕ, 1.5707963267948966 - ϕ) @ q[1]
+└── U3(θ,-1.5707963267948966 + ϕ,1.5707963267948966 - ϕ) @ q[1]
 
 ```
 """
@@ -323,7 +330,7 @@ opname(::Type{GateR}) = "R"
 
 _matrix(::Type{GateR}, θ, ϕ) = [cos(θ / 2) -im*cis(-ϕ)*sin(θ / 2); -im*cis(ϕ)*sin(θ / 2) cos(θ / 2)]
 
-function decompose!(circ::Circuit, g::GateR, qtargets, _)
+function decompose!(circ::Circuit, g::GateR, qtargets, _, _)
     a = qtargets[1]
     push!(circ, GateU3(g.θ, g.ϕ - π / 2, -g.ϕ + π / 2), a)
     return circ

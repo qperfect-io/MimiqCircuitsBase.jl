@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +17,9 @@
 
 
 """
-Check whether the circuit contains any symbolic (unevaluated) parameters.
+    issymbolic(obj)
+
+Checks whether the circuit contains any symbolic (unevaluated) parameters.
 
 This method examines each instruction in the circuit to determine if any parameter remains
 symbolic (i.e., unevaluated). It recursively checks through each instruction and its nested 
@@ -52,16 +55,17 @@ true
 ```
 """
 function issymbolic end
-    
-function issymbolic(op::Operation)
-    for param in getparams(op)
-        val = Symbolics.value(param)
-        if !isa(val, Number)
-            return true
-        end
-    end
-    return false
+
+function issymbolic(n::Num)
+    v = Symbolics.value(n)
+    return !(v isa Number) &&
+           !(v isa SymbolicUtils.BasicSymbolic{Irrational{:π}}) &&
+           !(v isa SymbolicUtils.BasicSymbolic{Irrational{:ℯ}})
 end
+
+issymbolic(n::Number) = false
+
+issymbolic(op::Operation) = any(issymbolic, getparams(op))
 
 issymbolic(inst::Instruction) = issymbolic(getoperation(inst))
 

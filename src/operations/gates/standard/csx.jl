@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,7 +40,7 @@ See also [`GateSX`](@ref), [`GateCSXDG`](@ref), [`Control`](@ref).
 
 ```jldoctests
 julia> GateCSX(), numcontrols(GateCSX()), numtargets(GateCSX())
-(CSX, 1, 1)
+(GateCSX(), 1, 1)
 
 julia> matrix(GateCSX())
 4×4 Matrix{ComplexF64}:
@@ -53,7 +54,7 @@ julia> c = push!(Circuit(), GateCSX(), 1, 2)
 └── CSX @ q[1], q[2]
 
 julia> power(GateCSX(), 2), inverse(GateCSX())
-(CX, C(SX†))
+(GateCX(), Control(Inverse(GateSX())))
 
 ```
 
@@ -70,7 +71,9 @@ julia> decompose(GateCSX())
 """
 const GateCSX = typeof(Control(1, GateSX()))
 
-function decompose!(circ::Circuit, ::GateCSX, qtargets, _)
+@definename GateCSX "CSX"
+
+function decompose!(circ::Circuit, ::GateCSX, qtargets, _, _)
     a, b = qtargets
     push!(circ, GateH(), b)
     push!(circ, Control(GateU1(π / 2)), a, b)
@@ -103,7 +106,7 @@ See also [`GateSX`](@ref), [`GateCSXDG`](@ref), [`Control`](@ref).
 
 ```jldoctests
 julia> GateCSXDG(), numcontrols(GateCSXDG()), numtargets(GateCSXDG())
-(C(SX†), 1, 1)
+(Control(Inverse(GateSX())), 1, 1)
 
 julia> matrix(GateCSXDG())
 4×4 Matrix{ComplexF64}:
@@ -117,7 +120,7 @@ julia> c = push!(Circuit(), GateCSXDG(), 1, 2)
 └── C(SX†) @ q[1], q[2]
 
 julia> power(GateCSXDG(), 2), inverse(GateCSXDG())
-(C((SX†)^2), CSX)
+(Control((Inverse(GateSX()))^2), GateCSX())
 
 ```
 
@@ -134,7 +137,7 @@ julia> decompose(GateCSXDG())
 """
 const GateCSXDG = typeof(inverse(GateCSX()))
 
-function decompose!(circ::Circuit, ::GateCSXDG, qtargets, _)
+function decompose!(circ::Circuit, ::GateCSXDG, qtargets, _, _)
     a, b = qtargets
     push!(circ, GateH(), b)
     push!(circ, Control(GateU1(-π / 2)), a, b)

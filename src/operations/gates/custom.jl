@@ -1,8 +1,19 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
-# See AUTHORS.md for the list of authors.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
-
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
 @doc raw"""
     struct GateCustom{N,T} <: AbstractGate{N}
@@ -11,7 +22,9 @@
 `T`.
 
 Use this to construct your own gates based on unitary matrices.
-Currently only N=1,2 (M=2,4) are recognised.
+
+!!! note
+    Only one and two qubits gates are supported.
 
 MIMIQ uses textbook convention for specifying gates.
 
@@ -103,7 +116,12 @@ struct GateCustom{N} <: AbstractGate{N}
 end
 
 function GateCustom(U::AbstractMatrix)
-    N = size(U, 1) >> 2 + 1
+    dim = size(U, 1)
+    if !isvalidpowerof2(dim)
+        throw(ArgumentError("Dimension of custom matrix has to be 2^n with n>=1."))
+    end
+    #N = size(U, 1) >> 2 + 1
+    N = Int(log2(dim))
     fU = float.(U)
     GateCustom{N}(fU)
 end
@@ -114,9 +132,7 @@ inverse(g::GateCustom) = GateCustom(inv(g.U))
 
 matrix(g::GateCustom) = g.U
 
-function _matrix(::Type{GateCustom{N}}, params...) where {N}
-    reshape(collect(params), 2^N, 2^N)
-end
+_matrix(::Type{GateCustom{N}}, U...) where {N} = reshape(collect(U), 2^N, 2^N)
 
 function unwrappedmatrix(g::GateCustom)
     return unwrapvalue.(g.U)
@@ -131,8 +147,40 @@ getparam(g::GateCustom, i) = g.U[i]
 getparams(g::GateCustom) = g.U
 
 function Base.show(io::IO, gate::GateCustom)
-    print(io, opname(gate), "(")
-    io1 = IOContext(io, :compact => true)
-    print(io1, gate.U)
+    print(io, "GateCustom", "(")
+    io1 = IOContext(io, :compact => get(io, :compact, false), :typeinfo => Array{Symbolics.Num})
+    print(io, _decomplex(matrix(gate)))
     print(io, ")")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", gate::GateCustom{N}) where {N}
+    U = _decomplex(matrix(gate))
+    if get(io, :compact, false)
+        print(io, opname(gate))
+        if get(io, :limit, false) && N > 1
+            print(io, "(…)")
+            return nothing
+        end
+        print(io, "([")
+
+        if N <= 1
+            join(io, map(x -> join(x, " "), eachrow(U)), "; ")
+        else
+            join(io, U[1:2], " ")
+            print(io, " … ")
+            join(io, U[end-1:end], " ")
+        end
+        print(io, "])")
+        return nothing
+    end
+
+    print(io, numqubits(gate), "-qubit ", opname(gate), ":\n")
+    a = axes(U, 1)
+    for i in a[1:end-1]
+        print("├── ")
+        join(io, U[i, :], " ")
+        print('\n')
+    end
+    print("└── ")
+    join(io, U[a[end], :], " ")
 end

@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,41 +16,48 @@
 #
 
 """
-    IfStatement(numbits, op, num)
+    IfStatement(op, bs::BitString)
 
-Applies the wrapper operation, only if the classical register is equal to `num`.
+Applies the provided operation only if the classical register matches the specified `BitString`.
 
-!!! warn
-    Currentely not supported by the state vector and MPS simulators.
+`IfStatement` enables conditional operations in a quantum circuit based on the state of a classical register. 
+If the classical register's state matches the `BitString`, the operation (`op`) is applied to the target qubits.
+
+## Arguments
+- `op`: The quantum operation to apply, such as `GateX()` or another gate.
+- `bs`: A `BitString` object representing the target state of the classical register that triggers `op`.
 
 ## Examples
 
-`push!(IfStatement(GateX(), 10), 1,1,2,3,4,5)` is the equivalent of OpenQASM 2.0
+### Basic Usage
+```julia
+julia> using MimiqCircuitsBase
 
-```
-creg c[5];
-if (c==10) x q[0];
-```
+# Define a condition as a BitString
+julia> condition = BitString("01011")
+5-bits BitString with integer value 26:
+  01011
 
-```jldoctest
-julia> IfStatement(10, GateX(), 999)
-IF(c == 999) X
+# Apply GateX only if the condition is met
+julia> if_statement = IfStatement(GateX(), condition)
+IF(c==01011) X
+
+# Add this conditional operation to a circuit
+julia> c = Circuit()
+julia> push!(c, if_statement, 1, 2, 3, 4, 5, 6)
+1-qubit circuit with 1 instructions:
+└── IF(c==01011) X @ q[1], c[2:6]
+
 ```
 """
-struct IfStatement{N,M,T<:Operation{M,0}} <: Operation{M,N}
-    op::Operation{M,0}
-    val::Num
+struct IfStatement{N,M,T<:Operation{N,0,0}} <: Operation{N,M,0}
+    op::T
+    bs::BitString
 
-    function IfStatement{N,M}(op, val) where {N,M}
-        new{N,M,T}(op, val)
-    end
-
-    function IfStatement(nb::Integer, op::T, val) where {T<:AbstractGate}
-        new{nb,numqubits(op),T}(op, val)
+    function IfStatement(op::T, bs::BitString) where {T<:AbstractGate}
+        new{numqubits(op),length(bs),T}(op, bs)
     end
 end
-
-IfStatement(op::T, val) where {T<:AbstractGate} = LazyExpr(IfStatement, LazyArg(), op, val)
 
 opname(::Type{<:IfStatement}) = "IF"
 
@@ -59,42 +67,33 @@ _power(::IfStatement, n) = error("Cannot elevate an IfStatement to any power.")
 
 getoperation(c::IfStatement) = c.op
 
-getcondition(c::IfStatement) = c.val
+getbitstring(c::IfStatement) = c.bs
 
 iswrapper(::Type{<:IfStatement}) = true
 
-function getunwrappedvalue(g::IfStatement)
-    v = Symbolics.value(getcondition(g))
-
-    if v isa Number
-        return v
-    elseif v isa SymbolicUtils.BasicSymbolic{Irrational{:π}}
-        return π
-    elseif v isa SymbolicUtils.BasicSymbolic{Irrational{:ℯ}}
-        return ℯ
-    end
-
-    vv = Symbolics.value(Symbolics.substitute(p, Dict()))
-
-    if vv isa Number
-        return vv
-    end
-
-    throw(UnexpectedSymbolics(string(g)))
-end
-
-function Base.show(io::IO, s::IfStatement)
-    print(io, opname(IfStatement), "(c == ", s.val, ") ", s.op)
-end
-
-function decompose!(circuit::Circuit, ifs::IfStatement{N, M, T}, qtargets, ctargets) where {N, M, T}
+function decompose!(circuit::Circuit, ifs::IfStatement{N,M,T}, qtargets, ctargets, _) where {N,M,T}
     decomposed = decompose(getoperation(ifs))
 
-    cond = getcondition(ifs)
+    bs = getbitstring(ifs)
 
     for inst in decomposed
-        push!(circuit, IfStatement(N, getoperation(inst), cond), qtargets[collect(getqubits(inst))]..., ctargets...)
+        push!(
+            circuit,
+            IfStatement(getoperation(inst), bs),
+            qtargets[collect(getqubits(inst))]...,
+            ctargets...
+        )
     end
 
     return circuit
+end
+
+function Base.show(io::IO, s::IfStatement)
+    sep = get(io, :compact, false) ? "," : ", "
+    print(io, "IfStatement(", getoperation(s), sep, getbitstring(s), ")")
+end
+
+function Base.show(io::IO, m::MIME"text/plain", s::IfStatement{N,M,T}) where {N,M,T}
+    print(io, opname(IfStatement), "(c==", to01(getbitstring(s)), ") ")
+    show(io, m, getoperation(s))
 end

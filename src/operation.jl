@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +16,7 @@
 #
 
 """
-    Operation{N,M}
+    Operation{N,M,L}
 
 Abstract supertype for all the quantum operations acting on `N` qubits and `M`
 classical bits.
@@ -29,19 +30,23 @@ classical bits.
 
 [`AbstractGate`](@ref)
 """
-abstract type Operation{N,M} end
+abstract type Operation{N,M,L} end
 
-numqubits(::Type{<:Operation{N,M}}) where {N,M} = N
+numqubits(::Type{<:Operation{N,M,L}}) where {N,M,L} = N
 
-numqubits(::Operation{N,M}) where {N,M} = N
+numqubits(::Operation{N,M,L}) where {N,M,L} = N
 
 opname(::T) where {T<:Operation} = opname(T)
 
 opname(::Type{T}) where {T<:Operation} = string(T)
 
-numbits(::Type{<:Operation{N,M}}) where {N,M} = M
+numbits(::Type{<:Operation{N,M,L}}) where {N,M,L} = M
 
-numbits(::Operation{N,M}) where {N,M} = M
+numbits(::Operation{N,M,L}) where {N,M,L} = M
+
+numzvars(::Type{<:Operation{N,M,L}}) where {N,M,L} = L
+
+numzvars(::Operation{N,M,L}) where {N,M,L} = L
 
 isunitary(::Type{T}) where {T<:Operation} = false
 
@@ -98,7 +103,7 @@ function hilbertspacedim end
 
 hilbertspacedim(N::Integer) = 1 << N
 
-hilbertspacedim(::Operation{N,M}) where {N,M} = 1 << N
+hilbertspacedim(::Operation{N,M,L}) where {N,M,L} = 1 << N
 
 hilbertspacedim(::Type{T}) where {T} = hilbertspacedim(T)
 
@@ -130,8 +135,8 @@ julia> qregsizes(QFT(4))
 [`cregsizes`](@ref), [`numqubits`](@ref), [`numbits`](@ref)
 """
 qregsizes(::T) where {T} = qregsizes(T)
-qregsizes(::Type{<:Operation{0,M}}) where {M} = ()
-qregsizes(::Type{<:Operation{N,M}}) where {N,M} = (N,)
+qregsizes(::Type{<:Operation{0,M,0}}) where {M} = ()
+qregsizes(::Type{<:Operation{N,M,L}}) where {N,M,L} = (N,)
 
 """
     cregsizes(operation)
@@ -144,8 +149,20 @@ Length of the classicalregisters the given operation acts on.
 [`qregsizes`](@ref), [`numqubits`](@ref), [`numbits`](@ref)
 """
 cregsizes(::T) where {T} = cregsizes(T)
-cregsizes(::Type{<:Operation{N,0}}) where {N} = ()
-cregsizes(::Type{<:Operation{N,M}}) where {N,M} = (M,)
+cregsizes(::Type{<:Operation{N,0,0}}) where {N} = ()
+cregsizes(::Type{<:Operation{N,M,L}}) where {N,M,L} = (M,)
+
+"""
+    zregsizes(operation)
+    zregsizes(operationtype)
+
+Length of the zregisters the given operation acts on.
+
+
+"""
+zregsizes(::T) where {T} = zregsizes(T)
+zregsizes(::Type{<:Operation{N,M,0}}) where {N,M} = ()
+zregsizes(::Type{<:Operation{N,M,L}}) where {N,M,L} = (L,)
 
 """
     parnames(operation)
@@ -260,7 +277,13 @@ function Base.:^(op::Operation, pwr)
     power(op, pwr)
 end
 
-function Base.show(io::IO, gate::Operation)
-    print(io, opname(gate))
+function Base.show(io::IO, ::MIME"text/plain", op::Operation)
+    print(io, opname(op))
 end
 
+"""
+    isidentity(operation)
+
+Check if the given operation is equivalent to an isidentity.
+"""
+isidentity(::Operation) = false

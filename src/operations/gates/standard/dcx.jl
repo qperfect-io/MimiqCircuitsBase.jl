@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,7 +49,7 @@ julia> c = push!(Circuit(), GateDCX(), 1, 2)
 └── DCX @ q[1:2]
 
 julia> power(GateDCX(), 2), inverse(GateDCX())
-(DCX†, DCX†)
+(Inverse(GateDCX()), Inverse(GateDCX()))
 
 ```
 
@@ -70,7 +71,7 @@ opname(::Type{GateDCX}) = "DCX"
 
 _power(::GateDCX, pwr) = _power_three_idempotent(GateDCX(), inverse(GateDCX()), GateID(), pwr)
 
-function decompose!(circ::Circuit, ::GateDCX, qtargets, _)
+function decompose!(circ::Circuit, ::GateDCX, qtargets, _, _)
     a, b = qtargets
     push!(circ, GateCX(), a, b)
     push!(circ, GateCX(), b, a)

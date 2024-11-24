@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,10 +32,10 @@ See also [`GateRYY`](@ref), [`GateRZZ`](@ref), [`GateRZX`](@ref),
 ```math
 \operatorname{R}_{XX}(\theta) =
 \begin{pmatrix}
-    \cos(\\frac{\theta}{2}) & 0 & 0 & -i\sin(\\frac{\theta}{2}) \\
-    0 & \cos(\frac{\theta}{2}) & -i\sin(\frac{\theta}{2}) & 0 \\
-    0 & -i\sin(\frac{\theta}{2}) & \cos(\frac{\theta}{2}) & 0 \\
-    -i\sin(\frac{\theta}{2}) & 0 & 0 & \cos(\frac{\theta}{2})
+    \cos\left(\frac{\theta}{2}\right) & 0 & 0 & -i\sin\left(\frac{\theta}{2}\right) \\
+    0 & \cos\left(\frac{\theta}{2}\right) & -i\sin\left(\frac{\theta}{2}\right) & 0 \\
+    0 & -i\sin\left(\frac{\theta}{2}\right) & \cos\left(\frac{\theta}{2}\right) & 0 \\
+    -i\sin\left(\frac{\theta}{2}\right) & 0 & 0 & \cos\left(\frac{\theta}{2}\right)
 \end{pmatrix}
 ```
 
@@ -98,7 +99,7 @@ _matrix(::Type{GateRXX}, θ) = [
 
 _power(g::GateRXX, pwr) = GateRXX(g.θ * pwr)
 
-function decompose!(circ::Circuit, g::GateRXX, qtargets, _)
+function decompose!(circ::Circuit, g::GateRXX, qtargets, _, _)
     a, b = qtargets
     θ = g.θ
     push!(circ, GateH(), a)
@@ -128,10 +129,10 @@ See also [`GateRXX`](@ref), [`GateRZZ`](@ref), [`GateRZX`](@ref),
 ```math
 \operatorname{R}_{YY}(\theta) =
 \begin{pmatrix}
-    \cos(\frac{\theta}{2}) & 0 & 0 & i\sin(\frac{\theta}{2}) \\
-    0 & \cos(\frac{\theta}{2}) & -i\sin(\frac{\theta}{2}) & 0 \\
-    0 & -i\sin(\\frac{\theta}{2}) & \cos(\frac{\theta}{2}) & 0 \\
-    i\sin(\frac{\theta}{2}) & 0 & 0 & \cos(\frac{\theta}{2})
+    \cos\left(\frac{\theta}{2}\right) & 0 & 0 & i\sin\left(\frac{\theta}{2}\right) \\
+    0 & \cos\left(\frac{\theta}{2}\right) & -i\sin\left(\frac{\theta}{2}\right) & 0 \\
+    0 & -i\sin\left(\frac{\theta}{2}\right) & \cos\left(\frac{\theta}{2}\right) & 0 \\
+    i\sin\left(\frac{\theta}{2}\right) & 0 & 0 & \cos\left(\frac{\theta}{2}\right)
 \end{pmatrix}
 ```
 
@@ -195,7 +196,7 @@ _matrix(::Type{GateRYY}, θ) = [
     im*sin(θ / 2) 0 0 cos(θ / 2)
 ]
 
-function decompose!(circ::Circuit, g::GateRYY, qtargets, _)
+function decompose!(circ::Circuit, g::GateRYY, qtargets, _, _)
     a, b = qtargets
     push!(circ, GateRX(π / 2), a)
     push!(circ, GateRX(π / 2), b)
@@ -287,7 +288,7 @@ _matrix(::Type{GateRZZ}, θ) = [
 
 _power(g::GateRZZ, pwr) = GateRZZ(g.θ * pwr)
 
-function decompose!(circ::Circuit, g::GateRZZ, qtargets, _)
+function decompose!(circ::Circuit, g::GateRZZ, qtargets, _, _)
     a, b = qtargets
     push!(circ, GateCX(), a, b)
     push!(circ, GateRZ(g.θ), b)
@@ -375,7 +376,7 @@ _matrix(::Type{GateRZX}, θ) = [
     0 0 im*sin(θ / 2) cos(θ / 2)
 ]
 
-function decompose!(circ::Circuit, g::GateRZX, qtargets, _)
+function decompose!(circ::Circuit, g::GateRZX, qtargets, _, _)
     a, b = qtargets
     push!(circ, GateH(), b)
     push!(circ, GateCX(), a, b)
@@ -427,12 +428,12 @@ julia> matrix(GateXXplusYY(θ, β))
 
 julia> c = push!(Circuit(), GateXXplusYY(θ, β), 1, 2)
 2-qubit circuit with 1 instructions:
-└── XXplusYY(θ, β) @ q[1:2]
+└── XXplusYY(θ,β) @ q[1:2]
 
 julia> push!(c, GateXXplusYY(π/2, 0), 1, 2)
 2-qubit circuit with 2 instructions:
-├── XXplusYY(θ, β) @ q[1:2]
-└── XXplusYY(π/2, 0) @ q[1:2]
+├── XXplusYY(θ,β) @ q[1:2]
+└── XXplusYY(π/2,0) @ q[1:2]
 
 ```
 
@@ -474,7 +475,7 @@ _matrix(::Type{GateXXplusYY}, θ, β) = [
     0 0 0 1
 ]
 
-function decompose!(circ::Circuit, g::GateXXplusYY, qperfect, _)
+function decompose!(circ::Circuit, g::GateXXplusYY, qperfect, _, _)
     a, b = qperfect
     push!(circ, GateRZ(g.β), a)
     push!(circ, GateRZ(-π / 2), b)
@@ -535,12 +536,12 @@ julia> matrix(GateXXminusYY(θ, β))
 
 julia> c = push!(Circuit(), GateXXminusYY(θ, β), 1, 2)
 2-qubit circuit with 1 instructions:
-└── XXminusYY(θ, β) @ q[1:2]
+└── XXminusYY(θ,β) @ q[1:2]
 
 julia> push!(c, GateXXminusYY(π/2, 0.0), 1, 2)
 2-qubit circuit with 2 instructions:
-├── XXminusYY(θ, β) @ q[1:2]
-└── XXminusYY(π/2, 0π) @ q[1:2]
+├── XXminusYY(θ,β) @ q[1:2]
+└── XXminusYY(π/2,0π) @ q[1:2]
 
 ```
 
@@ -582,7 +583,7 @@ _matrix(::Type{GateXXminusYY}, θ, β) = [
     -im*sin(θ / 2)*cis(β) 0 0 cos(θ / 2)
 ]
 
-function decompose!(circ::Circuit, g::GateXXminusYY, qtargets, _)
+function decompose!(circ::Circuit, g::GateXXminusYY, qtargets, _, _)
     a, b = qtargets
     push!(circ, GateRZ(-g.β), b)
     push!(circ, GateRZ(-π / 2), a)

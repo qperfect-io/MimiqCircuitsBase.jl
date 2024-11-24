@@ -1,6 +1,6 @@
-
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,9 +41,9 @@ julia> GateS()
 S
 
 julia> matrix(GateS())
-2×2 Matrix{ComplexF64}:
- 1.0+0.0im  0.0+0.0im
- 0.0+0.0im  0.0+1.0im
+2×2 Matrix{Complex{Int64}}:
+ 1+0im  0+0im
+ 0+0im  0+1im
 
 julia> c = push!(Circuit(), GateS(), 1)
 1-qubit circuit with 1 instructions:
@@ -55,7 +55,7 @@ julia> push!(c, GateS, 2)
 └── S @ q[2]
 
 julia> power(GateS(), 2), inverse(GateS())
-(Z, S†)
+(GateZ(), Inverse(GateS()))
 
 ```
 
@@ -64,7 +64,7 @@ julia> power(GateS(), 2), inverse(GateS())
 ```jldoctests
 julia> decompose(GateS())
 1-qubit circuit with 1 instructions:
-└── U(0, 0, π/2) @ q[1]
+└── U(0,0,π/2) @ q[1]
 
 ```
 """
@@ -72,11 +72,13 @@ const GateS = typeof(power(GateZ(), 1 // 2))
 
 @definename GateS "S"
 
-function decompose!(circ::Circuit, ::GateS, qtargets, _)
+function decompose!(circ::Circuit, ::GateS, qtargets, _, _)
     q = qtargets[1]
     push!(circ, GateU(0, 0, π / 2), q)
     return circ
 end
+
+@generated _matrix(::Type{GateS}) = [1 0; 0 im]
 
 @doc raw"""
     GateSDG()
@@ -88,7 +90,7 @@ See also [`GateS`](@ref), [`GateZ`](@ref), [`Power`](@ref), [`Inverse`](@ref)
 ## Matrix representation
 
 ```math
-\operatorname S^\dagger =
+\operatorname{S}^\dagger =
 \begin{pmatrix}
     1 & 0 \\
     0 & -i
@@ -102,9 +104,9 @@ julia> GateSDG()
 S†
 
 julia> matrix(GateSDG())
-2×2 adjoint(::Matrix{ComplexF64}) with eltype ComplexF64:
- 1.0-0.0im  0.0-0.0im
- 0.0-0.0im  0.0-1.0im
+2×2 Matrix{Complex{Int64}}:
+ 1+0im  0+0im
+ 0+0im  0-1im
 
 julia> c = push!(Circuit(), GateSDG(), 1)
 1-qubit circuit with 1 instructions:
@@ -116,7 +118,7 @@ julia> push!(c, GateSDG, 2)
 └── S† @ q[2]
 
 julia> power(GateSDG(), 2), inverse(GateSDG())
-((S†)^2, S)
+((Inverse(GateS()))^2, GateS())
 
 ```
 
@@ -125,14 +127,16 @@ julia> power(GateSDG(), 2), inverse(GateSDG())
 ```jldoctests
 julia> decompose(GateSDG())
 1-qubit circuit with 1 instructions:
-└── U(0, 0, -1π/2) @ q[1]
+└── U(0,0,-1π/2) @ q[1]
 
 ```
 """
 const GateSDG = typeof(inverse(GateS()))
 
-function decompose!(circ::Circuit, ::GateSDG, qtargets, _)
+function decompose!(circ::Circuit, ::GateSDG, qtargets, _, _)
     q = qtargets[1]
     push!(circ, GateU(0, 0, -π / 2), q)
     return circ
 end
+
+@generated _matrix(::Type{GateSDG}) = [1 0; 0 -im]

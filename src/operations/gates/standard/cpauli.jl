@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,7 +43,7 @@ Two qubit Controlled-``X`` gate (or CNOT).
 
 ```jldoctests
 julia> GateCX(), numcontrols(GateCX()), numtargets(GateCX())
-(CX, 1, 1)
+(GateCX(), 1, 1)
 
 julia> matrix(GateCX())
 4×4 Matrix{Float64}:
@@ -56,7 +57,7 @@ julia> c = push!(Circuit(), GateCX(), 1, 2)
 └── CX @ q[1], q[2]
 
 julia> power(GateCX(), 2), inverse(GateCX())
-(CID, CX)
+(Control(GateID()), GateCX())
 
 ```
 
@@ -71,7 +72,9 @@ julia> decompose(GateCX())
 """
 const GateCX = typeof(Control(GateX()))
 
-function decompose!(circ::Circuit, ::GateCX, qtarget, _)
+@definename GateCX "CX"
+
+function decompose!(circ::Circuit, ::GateCX, qtarget, _, _)
     return push!(circ, GateCX(), qtarget...)
 end
 
@@ -102,7 +105,7 @@ Two qubit Controlled-``Y`` gate.
 
 ```jldoctests
 julia> GateCY(), numcontrols(GateCY()), numtargets(GateCY())
-(CY, 1, 1)
+(GateCY(), 1, 1)
 
 julia> matrix(GateCY())
 4×4 Matrix{ComplexF64}:
@@ -116,7 +119,7 @@ julia> c = push!(Circuit(), GateCY(), 1, 2)
 └── CY @ q[1], q[2]
 
 julia> power(GateCY(), 2), inverse(GateCY())
-(CID, CY)
+(Control(GateID()), GateCY())
 
 ```
 
@@ -133,7 +136,9 @@ julia> decompose(GateCY())
 """
 const GateCY = typeof(Control(GateY()))
 
-function decompose!(circ::Circuit, ::GateCY, qtargets, _)
+@definename GateCY "CY"
+
+function decompose!(circ::Circuit, ::GateCY, qtargets, _, _)
     a, b = qtargets
     push!(circ, GateSDG(), b)
     push!(circ, GateCX(), a, b)
@@ -167,7 +172,7 @@ Two qubit Controlled-``Z`` gate.
 
 ```jldoctests
 julia> GateCZ(), numcontrols(GateCZ()), numtargets(GateCZ())
-(CZ, 1, 1)
+(GateCZ(), 1, 1)
 
 julia> matrix(GateCZ())
 4×4 Matrix{Float64}:
@@ -181,7 +186,7 @@ julia> c = push!(Circuit(), GateCZ(), 1, 2)
 └── CZ @ q[1], q[2]
 
 julia> power(GateCZ(), 2), inverse(GateCZ())
-(CID, CZ)
+(Control(GateID()), GateCZ())
 
 ```
 
@@ -197,7 +202,9 @@ julia> decompose(GateCZ())
 """
 const GateCZ = typeof(Control(GateZ()))
 
-function decompose!(circ::Circuit, ::GateCZ, qtargets, _)
+@definename GateCZ "CZ"
+
+function decompose!(circ::Circuit, ::GateCZ, qtargets, _, _)
     a, b = qtargets
     push!(circ, GateH(), b)
     push!(circ, GateCX(), a, b)

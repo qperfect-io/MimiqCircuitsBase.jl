@@ -1,12 +1,13 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -38,12 +39,12 @@ of the target circuit.
 """
 function decompose! end
 
-function decompose!(circuit::Circuit, g::Operation, qtargets, ctargets)
-    push!(circuit, g, qtargets..., ctargets...)
+function decompose!(circuit::Circuit, g::Operation, qtargets, ctargets, ztargets)
+    push!(circuit, g, qtargets..., ctargets..., ztargets...)
 end
 
 function decompose!(circuit::Circuit, inst::Instruction)
-    return decompose!(circuit, getoperation(inst), getqubits(inst), getbits(inst))
+    return decompose!(circuit, getoperation(inst), getqubits(inst), getbits(inst), getztargets(inst))
 end
 
 function _checkdecompose!(circuit::Circuit, inst::Instruction{N,M,T}, issupported::Function) where {N,M,T}
@@ -67,7 +68,21 @@ issupported_default(::Type{<:Reset}) = true
 issupported_default(::Type{<:IfStatement{N,M,T}}) where {N,M,T} = issupported_default(T)
 issupported_default(::Type{<:AbstractGate}) = false
 issupported_default(::Type{<:GateCustom}) = true
-issupported_default(::Type{MeasureReset}) = false
+issupported_default(::Type{<:Amplitude}) = true
+issupported_default(::Type{<:Not}) = true
+issupported_default(::Type{<:ExpectationValue}) = true
+issupported_default(::Type{T}) where {T<:Union{MeasureReset,MeasureResetX, MeasureResetY, MeasureResetZ}} = false
+issupported_default(::Type{T}) where {T<:Union{MeasureX, MeasureY}} = false
+issupported_default(::Type{T}) where {T<:Union{MeasureXX, MeasureYY, MeasureZZ}} = false
+issupported_default(::Type{T}) where {T<:Union{Detector, ObservableInclude, ShiftCoordinates, QubitCoordinates, Tick, }} = true
+issupported_default(::Type{ResetX}) = false
+issupported_default(::Type{ResetY}) = false
+issupported_default(::Type{<:AbstractKrausChannel}) = true
+issupported_default(::Type{<:AbstractOperator}) = true
+issupported_default(::Type{T}) where {T<:Union{SchmidtRank,BondDim,VonNeumannEntropy}} = true
+issupported_default(::Type{<:Detector}) = true
+issupported_default(::Type{<:QubitCoordinates}) = true
+issupported_default(::Type{<:ShiftCoordinates}) = true
 
 function decompose!(circuit::Circuit, todecompose::Circuit; issupported=issupported_default)
     for inst in todecompose
@@ -81,6 +96,8 @@ function decompose(circuit::Circuit; kwargs...)
     return decompose!(Circuit(), circuit; kwargs...)
 end
 
-decompose(g::Operation{N,M}) where {N,M} = decompose!(Circuit(), g, 1:N, 1:M)
+decompose(g::Operation{N,M,L}) where {N,M,L} = decompose!(Circuit(), g, 1:N, 1:M, 1:L)
 
 decompose(inst::Instruction) = decompose!(Circuit(), inst)
+
+

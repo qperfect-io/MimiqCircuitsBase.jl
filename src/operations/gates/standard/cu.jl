@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,7 +46,7 @@ julia> @variables θ ϕ λ γ
  γ
 
 julia> GateCU(θ, ϕ, λ, γ), numcontrols(GateCU(θ, ϕ, λ, γ)), numtargets(GateCU(θ, ϕ, λ, γ))
-(CU(θ, ϕ, λ, γ), 1, 1)
+(GateCU(θ, ϕ, λ, γ), 1, 1)
 
 julia> matrix(GateCU(2.023, 0.5, 0.1, 0.2))
 4×4 Matrix{ComplexF64}:
@@ -56,15 +57,15 @@ julia> matrix(GateCU(2.023, 0.5, 0.1, 0.2))
 
 julia> c = push!(Circuit(), GateCU(θ, ϕ, λ, γ), 1, 2)
 2-qubit circuit with 1 instructions:
-└── CU(θ, ϕ, λ, γ) @ q[1], q[2]
+└── CU(θ,ϕ,λ,γ) @ q[1], q[2]
 
 julia> push!(c, GateCU(π/8, π/2, π/4, π/7), 1, 2)
 2-qubit circuit with 2 instructions:
-├── CU(θ, ϕ, λ, γ) @ q[1], q[2]
-└── CU(π/8, π/2, π/4, π/7) @ q[1], q[2]
+├── CU(θ,ϕ,λ,γ) @ q[1], q[2]
+└── CU(π/8,π/2,π/4,π/7) @ q[1], q[2]
 
 julia> power(GateCU(θ, ϕ, λ, γ), 2), inverse(GateCU(θ, ϕ, λ, γ))
-(C(U(θ, ϕ, λ, γ)^2), CU(-θ, -λ, -ϕ, -γ))
+(Control(GateU(θ, ϕ, λ, γ)^2), GateCU(-θ, -λ, -ϕ, -γ))
 
 ```
 
@@ -77,15 +78,17 @@ julia> decompose(GateCU(θ, λ, ϕ, γ))
 ├── P((1//2)*(λ + ϕ)) @ q[1]
 ├── P((1//2)*(-λ + ϕ)) @ q[2]
 ├── CX @ q[1], q[2]
-├── U((-1//2)*θ, 0, (1//2)*(-λ - ϕ)) @ q[2]
+├── U((-1//2)*θ,0,(1//2)*(-λ - ϕ)) @ q[2]
 ├── CX @ q[1], q[2]
-└── U((1//2)*θ, λ, 0) @ q[2]
+└── U((1//2)*θ,λ,0) @ q[2]
 
 ```
 """
 const GateCU = typeof(Control(1, GateU(π, π, π, π)))
 
-function decompose!(circ::Circuit, g::GateCU, qtargets, _)
+@definename GateCU "CU"
+
+function decompose!(circ::Circuit, g::GateCU, qtargets, _, _)
     c, t = qtargets
     op = getoperation(g)
 

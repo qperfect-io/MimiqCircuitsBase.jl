@@ -1,6 +1,6 @@
-
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ julia> push!(c, GateT, 2)
 └── T @ q[2]
 
 julia> power(GateT(), 2), power(GateT(), 4), inverse(GateT())
-(S, Z, T†)
+(GateS(), GateZ(), Inverse(GateT()))
 
 ```
 
@@ -64,7 +64,7 @@ julia> power(GateT(), 2), power(GateT(), 4), inverse(GateT())
 ```jldoctests
 julia> decompose(GateT())
 1-qubit circuit with 1 instructions:
-└── U(0, 0, π/4) @ q[1]
+└── U(0,0,π/4) @ q[1]
 
 ```
 """
@@ -72,11 +72,13 @@ const GateT = typeof(power(GateS(), 1 // 2))
 
 @definename GateT "T"
 
-function decompose!(circ::Circuit, ::GateT, qtargets, _)
+function decompose!(circ::Circuit, ::GateT, qtargets, _, _)
     q = qtargets[1]
     push!(circ, GateU(0, 0, π / 4), q)
     return circ
 end
+
+@generated _matrix(::Type{GateT}) = [1 0; 0 exp(im * π / 4)]
 
 @doc raw"""
     GateTDG()
@@ -88,7 +90,7 @@ See also [`GateT`](@ref)
 ## Matrix Representation
 
 ```math
-\operatorname T^\dagger =
+\operatorname{T}^\dagger =
 \begin{pmatrix}
     1 & 0 \\
     0 & \exp(\frac{-i\pi}{4})
@@ -102,9 +104,9 @@ julia> GateTDG()
 T†
 
 julia> matrix(GateTDG())
-2×2 adjoint(::Matrix{ComplexF64}) with eltype ComplexF64:
- 1.0-0.0im       0.0-0.0im
- 0.0-0.0im  0.707107-0.707107im
+2×2 Matrix{ComplexF64}:
+ 1.0+0.0im       0.0+0.0im
+ 0.0+0.0im  0.707107-0.707107im
 
 julia> c = push!(Circuit(), GateTDG(), 1)
 1-qubit circuit with 1 instructions:
@@ -116,7 +118,7 @@ julia> push!(c, GateTDG, 2)
 └── T† @ q[2]
 
 julia> power(GateTDG(), 2), power(GateTDG(), 4), inverse(GateTDG())
-((T†)^2, (T†)^4, T)
+((Inverse(GateT()))^2, (Inverse(GateT()))^4, GateT())
 
 ```
 
@@ -125,14 +127,16 @@ julia> power(GateTDG(), 2), power(GateTDG(), 4), inverse(GateTDG())
 ```jldoctests
 julia> decompose(GateTDG())
 1-qubit circuit with 1 instructions:
-└── U(0, 0, -1π/4) @ q[1]
+└── U(0,0,-1π/4) @ q[1]
 
 ```
 """
 const GateTDG = typeof(inverse(GateT()))
 
-function decompose!(circ::Circuit, ::GateTDG, qtargets, _)
+function decompose!(circ::Circuit, ::GateTDG, qtargets, _, _)
     q = qtargets[1]
     push!(circ, GateU(0, 0, -π / 4), q)
     return circ
 end
+
+@generated _matrix(::Type{GateTDG}) = [1 0; 0 exp(-im * π / 4)]

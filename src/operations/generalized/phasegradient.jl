@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -60,7 +61,7 @@ function _phasegradientpow_decompose!(circ, P, N, qtargets)
 end
 
 # standard decomposition
-decompose!(circ::Circuit, ::PhaseGradient{N}, qtargets, _) where {N} = _phasegradientpow_decompose!(circ, 1, N, qtargets)
+decompose!(circ::Circuit, ::PhaseGradient{N}, qtargets, _, _) where {N} = _phasegradientpow_decompose!(circ, 1, N, qtargets)
 
 # specialization for power
-decompose!(circ::Circuit, ::Power{P,N,PhaseGradient{N}}, qtargets, _) where {P,N} = _phasegradientpow_decompose!(circ, P, N, qtargets)
+decompose!(circ::Circuit, ::Power{P,N,PhaseGradient{N}}, qtargets, _, _) where {P,N} = _phasegradientpow_decompose!(circ, P, N, qtargets)

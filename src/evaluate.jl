@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -43,7 +44,11 @@ function evaluate(g, rules...)
     return evaluate(g, d)
 end
 
-function evaluate(g::T, d::Dict) where {T<:AbstractGate}
+function evaluate(g::Num, d::Dict=Dict())
+    return Symbolics.substitute(g, d)
+end
+
+function evaluate(g::T, d::Dict=Dict()) where {T<:AbstractOperator}
     args = [Symbolics.substitute(getparam(g, n), d) for n in parnames(T)]
     return T(args...)
 end
@@ -63,10 +68,21 @@ function evaluate(g::GateCustom, d::Dict=Dict())
     GateCustom(Unew)
 end
 
+function evaluate(g::Operator, d::Dict=Dict())
+    Onew = map(g.O) do x
+        Symbolics.substitute(x, d)
+    end
+    Operator(Onew)
+end
+
 function evaluate(g::GateCall{N,M}, d::Dict=Dict()) where {N,M}
     decl = g._decl
     args = map(x -> Symbolics.substitute(x, d), g._args)
     return GateCall(decl, args...)
+end
+
+function evaluate(ev::ExpectationValue, d::Dict=Dict())
+    return ExpectationValue(evaluate(getoperation(ev), d))
 end
 
 evaluate(g::Operation, ::Dict) = g
@@ -75,7 +91,8 @@ function evaluate(inst::Instruction, d::Dict)
     return Instruction(
         evaluate(getoperation(inst), d),
         getqubits(inst),
-        getbits(inst)
+        getbits(inst),
+        getztargets(inst)
     )
 end
 
@@ -94,3 +111,11 @@ function evaluate!(circ::Circuit, d::Dict)
     return circ
 end
 
+# Pauli Strings will not be evaluated, since the stored string is not a parameter.
+function evaluate(g::PauliString{N}, _::Dict=Dict()) where {N}
+    return g
+end
+
+function evaluate(g::T, _::Dict=Dict()) where {T<:AbstractKrausChannel}
+    return g
+end

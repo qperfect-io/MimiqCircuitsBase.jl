@@ -3,3 +3,4 @@ test/Manifest.toml
 benchmark/Manifest.toml
 benchmark/*.md
 benchmark/*.json
+.DS_Store

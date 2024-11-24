@@ -1,5 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -82,18 +83,51 @@ function _power_idempotent(obj, idobj, pwr)
     end
 end
 
+function isvalidpowerof2(dim::Int)
+    return dim >= 2 && (dim & (dim - 1)) == 0
+end
+
 # defines the name for an aliased operation see for example GateS, that is shown
 # as "GateS" even if it is an alias for power(GateZ(), 1//2)
 macro definename(T, name)
     return esc(quote
         opname(::Type{$T}) = $name
         isopalias(::Type{$T}) = true
-        Base.show(io::IO, ::$T) = print(io, opname($T))
+        function Base.show(io::IO, op::$T)
+            sep = get(io, :compact, false) ? "," : ", "
+            print(io, $T, "(")
+            join(io, map(x -> _displaypi(getparam(op, x)), parnames(op)), sep)
+            print(io, ")")
+            return nothing
+        end
+        function Base.show(io::IO, ::MIME"text/plain", op::$T)
+            if numparams($T) == 0
+                print(io, $name)
+                return nothing
+            end
+            sep = get(io, :compact, false) ? "," : ", "
+            print(io, $name, "(")
+            join(io, map(x -> _displaypi(getparam(op, x)), parnames(op)), sep)
+            print(io, ")")
+            return nothing
+        end
     end)
 end
 
 # prints the name of an operation nad wraps it in parentheses if the operation
 # is a wrapper (but not if it is aliased)
+@generated function _show_wrapped_parens(io::IO, m, op::T) where {T}
+    if iswrapper(T) && !isopalias(T)
+        return quote
+            print(io, '(')
+            show(io, m, op)
+            print(io, ')')
+        end
+    else
+        return :(show(io, m, op))
+    end
+end
+
 @generated function _print_wrapped_parens(io::IO, op::T) where {T}
     if iswrapper(T) && !isopalias(T)
         return :(print(io, '(', op, ')'))
@@ -134,4 +168,5 @@ end
 unwrapvalue(g::Real) = g
 
 unwrapvalue(g::Complex{<:Real}) = g
+
 unwrapvalue(g::Complex{Num}) = complex(unwrapvalue(real(g)), unwrapvalue(imag(g)))
