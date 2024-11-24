@@ -36,7 +36,7 @@ gate ansatz(θ) =
 julia> @variables λ;
 
 
-julia> decompose(decl(λ))
+julia> decompose(ansatz(λ))
 2-qubit circuit with 2 instructions:
 ├── X @ q[1]
 └── RX(λ) @ q[2]
@@ -155,7 +155,7 @@ gate ansatz(θ) =
 julia> @variables λ;
 
 
-julia> decl(λ)
+julia> ansatz(λ)
 ansatz(λ)
 
 ```
