@@ -332,7 +332,6 @@ Compute the highest index of q-targets in the given vector of instructions or ci
 ## Examples
 
 ```jldoctests
-
 julia> c = Circuit()
 empty circuit
 
@@ -363,7 +362,6 @@ Compute the highest index of c-targets in the given circuit.
 ## Examples
 
 ```jldoctests
-
 julia> c = Circuit()
 empty circuit
 
@@ -392,7 +390,6 @@ Compute the highest index of z-targets in the given circuit.
 ## Examples
 
 ```jldoctests
-
 julia> c = Circuit()
 empty circuit
 

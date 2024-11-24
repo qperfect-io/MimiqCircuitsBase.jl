@@ -29,7 +29,6 @@ See Also [`MeasureYY`](@ref), [`MeasureXX`](@ref)
 ## Examples
 
 ```jldoctests
-
 julia> c = Circuit()
 empty circuit
 
@@ -74,7 +73,6 @@ See Also [`MeasureYY`](@ref), [`MeasureZZ`](@ref)
 ## Examples
 
 ```jldoctests
-
 julia> c = Circuit()
 empty circuit
 
@@ -121,7 +119,6 @@ See Also [`MeasureXX`](@ref), [`MeasureZZ`](@ref)
 ## Examples
 
 ```jldoctests
-
 julia> c = Circuit()
 empty circuit
 
