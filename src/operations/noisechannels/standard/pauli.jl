@@ -80,7 +80,7 @@ struct PauliNoise{N} <: AbstractKrausChannel{N}
             throw(ArgumentError("Lists of probabilities and Paulis must have the same length."))
         end
 
-        if all(x -> !(x isa Symbolics.Num) && (x < 0 || x > 1), p)
+        if any(x -> !(x isa Symbolics.Num) && (x < 0 || x > 1), p)
             throw(ArgumentError("All probabilities should be between 0 and 1."))
         end
 
@@ -144,12 +144,15 @@ function krausoperators(pauli::PauliNoise)
     return RescaledGate.(gates, scales)
 end
 
-function Base.show(io::IO, pauli::PauliNoise)
-    compact = get(io, :compact, false)
-    sep = compact ? "," : ", "
-    print(io, opname(pauli), "(")
-    io1 = IOContext(io, :compact => true)
-    join(io1, map(x -> "($(x[1])$sep$(x[2]))", zip(probabilities(pauli), unitarygates(pauli))), sep)
+function Base.show(io::IO, ::MIME"text/plain", pauli::PauliNoise)
+    if get(io, :compact, false)
+        print(io, opname(pauli), "(...)")
+        return nothing
+    end
+    ps = probabilities(pauli)
+    gs = unitarygates(pauli)
+    print(io, "PauliNoise(")
+    print(io, join(["($(p), pauli\"$g\")" for (p, g) in zip(ps, gs)], ", "))
     print(io, ")")
 end
 

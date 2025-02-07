@@ -1,7 +1,7 @@
 name: Documenter
 on:
   push:
-    tags: [v*-public]
+    tags: [v*]
 
 jobs:
   Documenter:
@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         julia-version:
-          - '1' # latest stable
+          - "1" # latest stable
         julia-arch:
           - x64
         os:

@@ -64,11 +64,11 @@ qregsizes(::Barrier{N}) where {N} = (N,)
 
 # barriers are no-ops, so
 # barriers are their own inverse
-inverse(::Barrier{N}) where {N} = Barrier{N}()
+inverse(::Barrier{N}) where {N} = Barrier(N)
 
 # barriers are no-ops, so
 # power doesn't do anything
-_power(::Barrier{N}, _) where {N} = Barrier{N}()
+_power(::Barrier{N}, _) where {N} = Barrier(N)
 
 isunitary(::Type{<:Barrier}) = true
 

@@ -85,6 +85,6 @@ qregsizes(::Diffusion{N}) where {N} = (N,)
 function decompose!(circ::Circuit, ::Diffusion{N}, qubits, _, _) where {N}
     push!(circ, GateRY(pi / 2), qubits)
     push!(circ, control(N - 1, GateZ()), qubits...)
-    push!(circ, GateRY(pi / 2), qubits)
+    push!(circ, GateRY(- pi / 2), qubits)
     return circ
 end

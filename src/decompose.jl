@@ -83,6 +83,7 @@ issupported_default(::Type{T}) where {T<:Union{SchmidtRank,BondDim,VonNeumannEnt
 issupported_default(::Type{<:Detector}) = true
 issupported_default(::Type{<:QubitCoordinates}) = true
 issupported_default(::Type{<:ShiftCoordinates}) = true
+issupported_default(::Type{<:PolynomialOracle}) = true
 
 function decompose!(circuit::Circuit, todecompose::Circuit; issupported=issupported_default)
     for inst in todecompose
