@@ -52,15 +52,15 @@ and for any number of Pauli strings.
 ```jldoctests
 julia> push!(Circuit(), PauliNoise([0.8, 0.1, 0.1], ["I","X","Y"]), 1)
 1-qubit circuit with 1 instructions:
-└── PauliNoise((0.8,pauli"I"),(0.1,pauli"X"),(0.1,pauli"Y")) @ q[1]
+└── PauliNoise(...) @ q[1]
 
 julia> push!(Circuit(), PauliNoise([0.9, 0.1], ["XY","II"]), 1, 2)
 2-qubit circuit with 1 instructions:
-└── PauliNoise((0.9,pauli"XY"),(0.1,pauli"II")) @ q[1:2]
+└── PauliNoise(...) @ q[1:2]
 
 julia> push!(Circuit(), PauliNoise([0.5, 0.2, 0.2, 0.1], ["IXIX","XYXY","ZZZZ","IXYZ"]), 1, 2, 3, 4)
 4-qubit circuit with 1 instructions:
-└── PauliNoise((0.5,pauli"IXIX"),(0.2,pauli"XYXY"),(0.2,pauli"ZZZZ"),(0.1,pauli"IXYZ")) @ q[1:4]
+└── PauliNoise(...) @ q[1:4]
 ```
 """
 struct PauliNoise{N} <: AbstractKrausChannel{N}

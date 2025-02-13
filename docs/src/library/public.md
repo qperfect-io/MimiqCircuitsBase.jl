@@ -66,16 +66,6 @@ Pages   = [
 ]
 ```
 
-#### Global phase
-
-```@autodocs
-Modules = [MimiqCircuitsBase]
-Private = false
-Pages   = [
-    "operations/gphase.jl"
-]
-```
-
 #### Standard Gates
 
 ```@autodocs

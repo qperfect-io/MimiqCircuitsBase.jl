@@ -144,7 +144,7 @@ function decompose!(circ::Circuit, control::Control{N}, qtargets, _, _) where {N
     if ntargets != 1 || ncontrols == 1
         # do not decompose the control gates, but just decompose the internal
         # gate and then apply the resulting gates with controls
-        newcirc = decompose!(Circuit(), op, targets, [])
+        newcirc = decompose!(Circuit(), op, targets, [], [])
 
         for inst in newcirc
             push!(circ, Control(N, getoperation(inst)), controls..., getqubits(inst)...)
