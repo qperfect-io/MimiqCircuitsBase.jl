@@ -1,10 +1,10 @@
 name = "MimiqCircuitsBase"
 uuid = "3a95eabf-73f4-453e-aae8-8a11a27ac032"
 authors = ["Guido Masella <guido.masella@gmail.com>"]
-version = "0.13.5"
+version = "0.14.0"
 
 [deps]
-BiMaps = "02e1a8d2-c0bf-449f-9d6e-85b4cfc6bdab"
+Bijections = "e2ed5e7c-b2de-5872-ae92-c73ca462fb04"
 CodecZlib = "944b1d66-785c-5afd-91f1-9de20f533193"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Measures = "442fdcdd-2543-5da2-b0f3-8c86c306513e"

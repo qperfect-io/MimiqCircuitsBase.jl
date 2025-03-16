@@ -1,6 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
-# Copyright © 2023-2024 QPerfect. All Rights Reserved.
+# Copyright © 2023-2025 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,6 +35,32 @@ function _checkpushtargets(targets, N, type="qubit")
     end
 
     nothing
+end
+
+
+function Base.push!(instructions::Vector{Instruction}, g::Operation{N,M,L}, targets::Vararg{Any,K}) where {N,M,L,K}
+
+    # Check if the operation is an AbstractOperator but not a Gate
+    if g isa AbstractOperator && !(g isa AbstractGate)
+        throw(ArgumentError("Cannot add an AbstractOperator $(typeof(g)) that is not a AbstractGate to the circuit."))
+    end
+
+    if N + M + L != K
+        throw(ArgumentError("Wrong number of targets: given $(K) total for $N qubits, $M bits, and $L zvars operation"))
+    end
+
+    _checkpushtargets(targets[1:N], N, "qubit")
+    _checkpushtargets(targets[N+1:N+M], M, "bit")
+    _checkpushtargets(targets[N+M+1:K], L, "zvar")
+
+    for tgs in shortestzip(targets...)
+        qts = tgs[1:N]
+        cts = tgs[N+1:N+M]
+        zts = tgs[N+M+1:end]
+        push!(instructions, Instruction(g, Tuple(qts), Tuple(cts), Tuple(zts); checks=false))
+    end
+
+    return instructions
 end
 
 """
@@ -87,27 +113,7 @@ julia> push!(c, GateH(), 8)
 ```
 """
 function Base.push!(c::Circuit, g::Operation{N,M,L}, targets::Vararg{Any,K}) where {N,M,L,K}
-
-    # Check if the operation is an AbstractOperator but not a Gate
-    if g isa AbstractOperator && !(g isa AbstractGate)
-        throw(ArgumentError("Cannot add an AbstractOperator $(typeof(g)) that is not a AbstractGate to the circuit."))
-    end
-
-    if N + M + L != K
-        throw(ArgumentError("Wrong number of targets: given $(K) total for $N qubits, $M bits, and $L zvars operation"))
-    end
-
-    _checkpushtargets(targets[1:N], N, "qubit")
-    _checkpushtargets(targets[N+1:N+M], M, "bit")
-    _checkpushtargets(targets[N+M+1:K], L, "zvar")
-
-    for tgs in shortestzip(targets...)
-        qts = tgs[1:N]
-        cts = tgs[N+1:N+M]
-        zts = tgs[N+M+1:end]
-        push!(c, Instruction(g, Tuple(qts), Tuple(cts), Tuple(zts); checks=false))
-    end
-
+    push!(c._instructions, g, targets...)
     return c
 end
 

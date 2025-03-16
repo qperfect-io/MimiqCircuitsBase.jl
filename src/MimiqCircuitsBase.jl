@@ -1,6 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
-# Copyright © 2023-2024 QPerfect. All Rights Reserved.
+# Copyright © 2023-2025 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 
 module MimiqCircuitsBase
 
-using BiMaps
 using LinearAlgebra
 using ProtoBuf
 using Symbolics
@@ -25,6 +24,7 @@ import Symbolics: inverse
 using Reexport
 using Statistics
 using Random
+using Bijections: Bijection
 
 # documentation of function
 include("docstrings.jl")
@@ -412,6 +412,8 @@ include("evaluate.jl")
 export issymbolic
 include("symbolics.jl")
 
+include("instruction_extra.jl")
+
 export GATES
 export OPERATIONS
 export GENERALIZED
@@ -475,6 +477,10 @@ include("recipes.jl")
 
 export draw
 include("circuit/draw.jl")
+
+# Export Aliases for shorter gate names
+include("aliases.jl")
+export Aliases
 
 # NOTE: disable precompilation when profiling runtime performance, as
 # it can lead to wrong traces

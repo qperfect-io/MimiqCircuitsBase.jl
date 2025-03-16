@@ -1,6 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
-# Copyright © 2023-2024 QPerfect. All Rights Reserved.
+# Copyright © 2023-2025 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -145,7 +145,7 @@ function fromproto(g::circuit_pb.Symbol)
     return Symbolics.Sym{Real}(Symbol(g.value))
 end
 
-const GATEMAP = BiMap(Dict(
+const GATEMAP = Bijection(Dict(
     GateID => circuit_pb.GateType.GateID,
     GateX => circuit_pb.GateType.GateX,
     GateY => circuit_pb.GateType.GateY,
@@ -182,7 +182,7 @@ function fromproto(op::circuit_pb.Gate)
 end
 
 function toproto(g::T) where {T<:AbstractGate}
-    type = getleft(GATEMAP, T, nothing)
+    type = get(GATEMAP, T, nothing)
     params = toproto.(getparams(g))
 
     if isnothing(type)
@@ -193,7 +193,7 @@ function toproto(g::T) where {T<:AbstractGate}
 end
 
 function fromproto(g::circuit_pb.SimpleGate)
-    T = getright(GATEMAP, g.mtype, nothing)
+    T = get(inv(GATEMAP), g.mtype, nothing)
     isnothing(T) && error(lazy"Unsupported ProtoBuf SimpleGate type $(g.mtype).")
     params = map(fromproto, g.parameters)
     return T(params...)
@@ -307,7 +307,7 @@ function fromproto(g::circuit_pb.PauliString)
     return PauliString(g.pauli)
 end
 
-const OPERATORMAP = BiMap(Dict(
+const OPERATORMAP = Bijection(Dict(
     SigmaMinus => circuit_pb.OperatorType.SigmaMinus,
     SigmaPlus => circuit_pb.OperatorType.SigmaPlus,
     Projector0 => circuit_pb.OperatorType.Projector0,
@@ -328,14 +328,14 @@ function fromproto(op::circuit_pb.Operator)
 end
 
 function toproto(g::T) where {T<:AbstractOperator}
-    type = getleft(OPERATORMAP, T.name.wrapper, nothing)
+    type = get(OPERATORMAP, T.name.wrapper, nothing)
     isnothing(type) && error(lazy"Not defined ProtoBuf conversion of type $(T).")
     params = toproto.(getparams(g))
     return circuit_pb.SimpleOperator(type, collect(params))
 end
 
 function fromproto(g::circuit_pb.SimpleOperator)
-    T = getright(OPERATORMAP, g.mtype, nothing)
+    T = get(inv(OPERATORMAP), g.mtype, nothing)
     isnothing(T) && error(lazy"Unsupported ProtoBuf SimpleOperator type $(g.mtype).")
     params = map(fromproto, g.parameters)
     return T(params...)
@@ -363,7 +363,7 @@ function fromproto(g::circuit_pb.RescaledGate)
     return RescaledGate(op, scale)
 end
 
-const KRAUSCHANNELMAP = BiMap(Dict(
+const KRAUSCHANNELMAP = Bijection(Dict(
     ResetX => circuit_pb.KrausChannelType.ResetX,
     ResetY => circuit_pb.KrausChannelType.ResetY,
     Reset => circuit_pb.KrausChannelType.ResetZ,
@@ -384,14 +384,14 @@ function fromproto(op::circuit_pb.KrausChannel)
 end
 
 function toproto(g::T) where {T<:AbstractKrausChannel}
-    type = getleft(KRAUSCHANNELMAP, T, nothing)
+    type = get(KRAUSCHANNELMAP, T, nothing)
     isnothing(type) && error(lazy"Not defined ProtoBuf conversion of type $(T).")
     params = toproto.(getparams(g))
     return circuit_pb.SimpleKrausChannel(type, collect(params))
 end
 
 function fromproto(g::circuit_pb.SimpleKrausChannel)
-    T = getright(KRAUSCHANNELMAP, g.mtype, nothing)
+    T = get(inv(KRAUSCHANNELMAP), g.mtype, nothing)
     isnothing(T) && error(lazy"Unsupported ProtoBuf SimpleKrausChannel type $(g.mtype).")
     params = map(fromproto, g.parameters)
     return T(params...)
@@ -436,7 +436,7 @@ function fromproto(g::circuit_pb.PauliChannel)
     return PauliNoise(probs, strings)
 end
 
-const OPERATIONMAP = BiMap(Dict(
+const OPERATIONMAP = Bijection(Dict(
     MeasureX => circuit_pb.OperationType.MeasureX,
     MeasureY => circuit_pb.OperationType.MeasureY,
     MeasureZ => circuit_pb.OperationType.MeasureZ,
@@ -457,14 +457,14 @@ function fromproto(op::circuit_pb.Operation)
 end
 
 function toproto(g::T) where {T<:Operation}
-    type = getleft(OPERATIONMAP, T, nothing)
+    type = get(OPERATIONMAP, T, nothing)
     isnothing(type) && error(lazy"Not defined ProtoBuf conversion of type $(T).")
     params = toproto.(getparams(g))
     return circuit_pb.SimpleOperation(type, collect(params))
 end
 
 function fromproto(g::circuit_pb.SimpleOperation)
-    T = getright(OPERATIONMAP, g.mtype, nothing)
+    T = get(inv(OPERATIONMAP), g.mtype, nothing)
     isnothing(T) && error(lazy"Unsupported ProtoBuf SimpleOperation type $(g.mtype).")
     params = map(fromproto, g.parameters)
     return T(params...)
@@ -528,14 +528,14 @@ function toproto(g::Number, ::Type{circuit_pb.Note})
     return circuit_pb.Note(OneOf(:double_note, Float64(g)))
 end
 
-const ANNOTATIONMAP = BiMap(Dict(
+const ANNOTATIONMAP = Bijection(Dict(
     QubitCoordinates => circuit_pb.AnnotationType.QubitCoordinates,
     ShiftCoordinates => circuit_pb.AnnotationType.ShiftCoordinates,
     Tick => circuit_pb.AnnotationType.Tick,
 ))
 
 function toproto(g::T) where {T<:AbstractAnnotation}
-    type = getleft(ANNOTATIONMAP, T, nothing)
+    type = get(ANNOTATIONMAP, T, nothing)
     isnothing(type) && error(lazy"Not defined ProtoBuf conversion of type $(T).")
     notes = map(x -> toproto(x, circuit_pb.Note), getnotes(g))
 
@@ -550,7 +550,7 @@ function toproto(g::T) where {T<:AbstractAnnotation}
 end
 
 function fromproto(g::circuit_pb.SimpleAnnotation)
-    T = getright(ANNOTATIONMAP, g.mtype, nothing)
+    T = get(inv(ANNOTATIONMAP), g.mtype, nothing)
     isnothing(T) && error(lazy"Unsupported ProtoBuf SimpleAnnotation type $(g.mtype).")
     notes = map(x -> fromproto(x), g.notes)
 

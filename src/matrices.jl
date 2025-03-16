@@ -1,6 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
-# Copyright © 2023-2024 QPerfect. All Rights Reserved.
+# Copyright © 2023-2025 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,4 +34,37 @@ function umatrixpi(θ, ϕ, λ, γ=0.0)
         cispi(γ)*cosθ2 -cispi(λ + γ)*sinθ2
         cispi(ϕ + γ)*sinθ2 cispi(ϕ + λ + γ)*cosθ2
     ]
+end
+
+function _swapcrosses!(M::Matrix, n, m)
+    M[:, n], M[:, m] = M[:, m], M[:, n]
+    M[n, :], M[m, :] = M[m, :], M[n, :]
+    return M
+end
+
+function _reorder_qubits_matrix!(M::Matrix, qubits, nq=maximum(qubits))
+    fullqubits = [qubits; [qu for qu in 1:nq if qu ∉ qubits]]
+    fullM = M
+
+    for _ in 1:(nq-length(qubits))
+        fullM = kron(fullM, Matrix(I, 2, 2))
+    end
+
+    if issorted(qubits)
+        return fullM
+    end
+
+    # TODO: Change here when bitstring thing is fixed
+    qperm = nq .+ 1 .- reverse(sortperm(collect(fullqubits)))
+
+    ints = map(0:(2^nq-1)) do i
+        bs = BitString(nq, i)
+        return bitstring_to_integer(bs[qperm])
+    end
+
+    perm = sortperm(ints)
+    Base.permuterows!(fullM, perm)
+    Base.permutecols!(fullM, perm)
+
+    return fullM
 end

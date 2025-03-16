@@ -1,6 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
-# Copyright © 2023-2024 QPerfect. All Rights Reserved.
+# Copyright © 2023-2025 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -156,6 +156,20 @@ parnames(::Type{Control{N,M,L,T}}) where {N,M,L,T} = parnames(T)
 
 # access directly the parameters of the wrapped gate
 getparam(c::Control, name::Symbol) = getparam(getoperation(c), name)
+
+# function needed for the Aliases module to name Control gates correctly
+function _opname(::Type{<:Control{N,M,L,T}}) where {N,M,L,T}
+    if iswrapper(T) && !isopalias(T)
+        op = "($(opname(T)))"
+    else
+        op = opname(T)
+    end
+    if N == 1
+        return "C$(op)"
+    else
+        return "C$(N)$(op)"
+    end
+end
 
 function opname(::Type{<:Control{N,M,L,T}}) where {N,M,L,T}
     if iswrapper(T) && !isopalias(T)

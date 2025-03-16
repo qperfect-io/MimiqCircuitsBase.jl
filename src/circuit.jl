@@ -1,6 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
-# Copyright © 2023-2024 QPerfect. All Rights Reserved.
+# Copyright © 2023-2025 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -120,6 +120,7 @@ Base.isempty(c::Circuit) = isempty(c._instructions)
 Base.getindex(c::Circuit, i::Integer) = getindex(c._instructions, i)
 Base.getindex(c::Circuit, i) = Circuit(getindex(c._instructions, i))
 Base.eltype(::Circuit) = Instruction
+Base.keys(c::Circuit) = keys(c._instructions)
 
 """
     push!(circuit::Circuit, instruction::Instruction)
