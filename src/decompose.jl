@@ -71,10 +71,10 @@ issupported_default(::Type{<:GateCustom}) = true
 issupported_default(::Type{<:Amplitude}) = true
 issupported_default(::Type{<:Not}) = true
 issupported_default(::Type{<:ExpectationValue}) = true
-issupported_default(::Type{T}) where {T<:Union{MeasureReset,MeasureResetX, MeasureResetY, MeasureResetZ}} = false
-issupported_default(::Type{T}) where {T<:Union{MeasureX, MeasureY}} = false
-issupported_default(::Type{T}) where {T<:Union{MeasureXX, MeasureYY, MeasureZZ}} = false
-issupported_default(::Type{T}) where {T<:Union{Detector, ObservableInclude, ShiftCoordinates, QubitCoordinates, Tick, }} = true
+issupported_default(::Type{T}) where {T<:Union{MeasureReset,MeasureResetX,MeasureResetY,MeasureResetZ}} = false
+issupported_default(::Type{T}) where {T<:Union{MeasureX,MeasureY}} = false
+issupported_default(::Type{T}) where {T<:Union{MeasureXX,MeasureYY,MeasureZZ}} = false
+issupported_default(::Type{T}) where {T<:Union{Detector,ObservableInclude,ShiftCoordinates,QubitCoordinates,Tick,}} = true
 issupported_default(::Type{ResetX}) = false
 issupported_default(::Type{ResetY}) = false
 issupported_default(::Type{<:AbstractKrausChannel}) = true
@@ -84,6 +84,10 @@ issupported_default(::Type{<:Detector}) = true
 issupported_default(::Type{<:QubitCoordinates}) = true
 issupported_default(::Type{<:ShiftCoordinates}) = true
 issupported_default(::Type{<:PolynomialOracle}) = true
+issupported_default(::Type{<:RPauli}) = false
+issupported_default(::Type{<:GateRNZ}) = false
+issupported_default(::Type{<:Block}) = false
+issupported_default(::Type{<:Repeat}) = false
 
 function decompose!(circuit::Circuit, todecompose::Circuit; issupported=issupported_default)
     for inst in todecompose
@@ -100,5 +104,3 @@ end
 decompose(g::Operation{N,M,L}) where {N,M,L} = decompose!(Circuit(), g, 1:N, 1:M, 1:L)
 
 decompose(inst::Instruction) = decompose!(Circuit(), inst)
-
-

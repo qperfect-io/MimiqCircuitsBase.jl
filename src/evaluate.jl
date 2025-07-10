@@ -119,3 +119,8 @@ end
 function evaluate(g::T, _::Dict=Dict()) where {T<:AbstractKrausChannel}
     return g
 end
+
+function evaluate(g::RPauli, d::Dict=Dict())
+    θ = Symbolics.substitute(g.θ, d)
+    return RPauli(g.pauli, θ)
+end

@@ -51,6 +51,7 @@ export qregsizes
 export cregsizes
 export zregsizes
 export iswrapper
+export listvars
 include("operation.jl")
 
 # instructions apply quantum operations to specific qubits
@@ -147,6 +148,12 @@ export Parallel
 export numrepeats
 export parallel
 include("operations/parallel.jl")
+
+export Block
+include("operations/block.jl")
+
+export Repeat
+include("operations/repeat.jl")
 
 export GateU
 include("operations/gates/standard/u.jl")
@@ -276,6 +283,9 @@ export PauliString
 export @pauli_str
 include("operations/generalized/paulistrings.jl")
 
+export GateRNZ
+include("operations/generalized/rnz.jl")
+
 # other non-gate type instructions
 export Barrier
 include("operations/barrier.jl")
@@ -391,10 +401,31 @@ include("operations/annotations.jl")
 export Not
 include("operations/classical/not.jl")
 
+# complex algebra
+export Add
+export Multiply
+export Pow
+include("operations/complex.jl")
+
+# Pauli Rotation
+export RPauli
+include("operations/generalized/rpauli.jl")
+
 # decomposition
 export decompose
 export decompose!
 include("decompose.jl")
+
+# hamiltonians
+export Hamiltonian
+export getcoefficient
+export push_lietrotter!
+export push_suzukitrotter!
+export push_expval!
+export add_terms!
+export HamiltonianTerm
+export push_yoshidatrotter!
+include("hamiltonian.jl")
 
 # macros
 export @circuit
@@ -453,16 +484,22 @@ function _generateproto(fname)
 end
 
 _generateproto("bitvector.proto")
+_generateproto("pauli.proto")
+_generateproto("hamiltonian.proto")
 _generateproto("qcsresults.proto")
 _generateproto("circuit.proto")
 
 include("proto/bitvector_pb.jl")
+include("proto/pauli_pb.jl")
+include("proto/hamiltonian_pb.jl")
 include("proto/circuit_pb.jl")
 include("proto/qcsresults_pb.jl")
 
 include("proto/bitstring.jl")
-include("proto/circuit.jl")
+include("proto/pauli.jl")
+include("proto/hamiltonian.jl")
 include("proto/qcsresults.jl")
+include("proto/circuit.jl")
 
 export saveproto
 export loadproto

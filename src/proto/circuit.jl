@@ -177,19 +177,37 @@ const GATEMAP = Bijection(Dict(
     GateXXminusYY => circuit_pb.GateType.GateXXminusYY,
 ))
 
-function fromproto(op::circuit_pb.Gate)
-    fromproto(op.gate[])
+const GENERALIZEDGATEMAP = Bijection(Dict(
+    QFT => circuit_pb.GeneralizedType.QFT,
+    PhaseGradient => circuit_pb.GeneralizedType.PhaseGradient,
+    PolynomialOracle => circuit_pb.GeneralizedType.PolynomialOracle,
+    Diffusion => circuit_pb.GeneralizedType.Diffusion,
+    GateRNZ => circuit_pb.GeneralizedType.GateRNZ,
+))
+
+function fromproto(op::circuit_pb.Gate, declcache=nothing)
+    oop = op.gate[]
+    if oop isa circuit_pb.CachedGateCall || oop isa circuit_pb.Power || oop isa circuit_pb.Control || oop isa circuit_pb.Inverse || oop isa circuit_pb.Parallel
+        return fromproto(oop, declcache)
+    end
+    return fromproto(oop)
 end
 
 function toproto(g::T) where {T<:AbstractGate}
     type = get(GATEMAP, T, nothing)
     params = toproto.(getparams(g))
 
-    if isnothing(type)
-        return circuit_pb.Generalized(opname(g), collect(params), Int64[qregsizes(g)...])
-    end
+    if !isnothing(type)
+        return circuit_pb.SimpleGate(type, collect(params))
+    else
+        mtype = get(GENERALIZEDGATEMAP, T.name.wrapper, nothing)
 
-    return circuit_pb.SimpleGate(type, collect(params))
+        if isnothing(mtype)
+            error(lazy"Not defined ProtoBuf conversion of type $(T).")
+        end
+
+        return circuit_pb.Generalized(mtype, collect(params), Int64[qregsizes(g)...])
+    end
 end
 
 function fromproto(g::circuit_pb.SimpleGate)
@@ -203,16 +221,18 @@ function fromproto(g::circuit_pb.Generalized)
     params = map(fromproto, g.args)
     rs = g.qregsizes
 
-    if g.name == "QFT"
+    if g.mtype == circuit_pb.GeneralizedType.QFT
         return QFT(rs..., params...)
-    elseif g.name == "PhaseGradient"
+    elseif g.mtype == circuit_pb.GeneralizedType.PhaseGradient
         return PhaseGradient(rs..., params...)
-    elseif g.name == "PolynomialOracle"
+    elseif g.mtype == circuit_pb.GeneralizedType.PolynomialOracle
         return PolynomialOracle(rs..., params...)
-    elseif g.name == "Diffusion"
+    elseif g.mtype == circuit_pb.GeneralizedType.Diffusion
         return Diffusion(rs..., params...)
+    elseif g.mtype == circuit_pb.GeneralizedType.GateRNZ
+        return GateRNZ(rs[1], params[1])
     else
-        error("Unknown generalized gate: $(g.name)")
+        error("Unknown generalized gate: $(g.mtype)")
     end
 end
 
@@ -227,16 +247,16 @@ function fromproto(g::circuit_pb.CustomGate)
     return GateCustom(U)
 end
 
-function toproto(decl::GateDecl)
-    instructions = map(toproto, decl.circuit)
+function toproto(decl::GateDecl, declcache=nothing)
+    instructions = map(inst -> toproto(inst, declcache), decl.instructions)
     args = map(toproto, decl.arguments)
     return circuit_pb.GateDecl(string(decl.name), collect(args), instructions)
 end
 
-function fromproto(decl::circuit_pb.GateDecl)
-    instructions = map(fromproto, decl.instructions)
+function fromproto(decl::circuit_pb.GateDecl, declcache=nothing)
+    instructions = map(inst -> fromproto(inst, declcache), decl.instructions)
     args = map(fromproto, decl.args)
-    return GateDecl(Symbol(decl.name), Tuple(args), Circuit(instructions))
+    return GateDecl(Symbol(decl.name), Tuple(args), instructions)
 end
 
 function toproto(cl::GateCall)
@@ -245,24 +265,49 @@ function toproto(cl::GateCall)
     return circuit_pb.GateCall(decl, args)
 end
 
+function toproto(cl::GateCall, declcache)
+    declid = objectid(cl._decl)
+
+    if !haskey(declcache[1], declid)
+        declcache[1][declid] = toproto_declaration(cl._decl, declcache)
+        push!(declcache[2], declid)
+    end
+
+    args = collect(map(toproto, cl._args))
+    return circuit_pb.CachedGateCall(declid, args)
+end
+
 function fromproto(cl::circuit_pb.GateCall)
     decl = fromproto(cl.decl)
     args = map(fromproto, cl.args)
     return GateCall(decl, args...)
 end
 
-function toproto(g::Control{N}) where {N}
-    op = circuit_pb.Gate(_build_oneof(g.op))
+function fromproto(cl::circuit_pb.CachedGateCall, declcache)
+    declid = cl.id
+
+    if !haskey(declcache, declid)
+        error("Gate declaration with id $(declid) not found in cache.")
+    end
+
+    decl = declcache[declid]
+    args = map(fromproto, cl.args)
+
+    return GateCall(decl, args...)
+end
+
+function toproto(g::Control{N}, declcache=nothing) where {N}
+    op = circuit_pb.Gate(_build_oneof(g.op, declcache))
     return circuit_pb.Control(op, N)
 end
 
-function fromproto(g::circuit_pb.Control)
-    op = fromproto(g.operation)
+function fromproto(g::circuit_pb.Control, declcache=nothing)
+    op = fromproto(g.operation, declcache)
     return Control(g.numcontrols, op)
 end
 
-function toproto(g::Power{P}) where {P}
-    op = circuit_pb.Gate(_build_oneof(g.op))
+function toproto(g::Power{P}, declcache=nothing) where {P}
+    op = circuit_pb.Gate(_build_oneof(g.op, declcache))
 
     if P isa Rational
         return circuit_pb.Power(op, OneOf(:rational_val, toproto(P)))
@@ -273,19 +318,19 @@ function toproto(g::Power{P}) where {P}
     return circuit_pb.Power(op, OneOf(:double_val, Float64(P)))
 end
 
-function fromproto(g::circuit_pb.Power)
-    op = fromproto(g.operation)
+function fromproto(g::circuit_pb.Power, declcache=nothing)
+    op = fromproto(g.operation, declcache)
     power = fromproto(g.power[])
     return Power(op, power)
 end
 
-function toproto(g::Inverse)
-    op = circuit_pb.Gate(_build_oneof(g.op))
+function toproto(g::Inverse, declcache=nothing)
+    op = circuit_pb.Gate(_build_oneof(g.op, declcache))
     return circuit_pb.Inverse(op)
 end
 
-function fromproto(g::circuit_pb.Inverse)
-    op = fromproto(g.operation)
+function fromproto(g::circuit_pb.Inverse, declcache=nothing)
+    op = fromproto(g.operation, declcache)
     return Inverse(op)
 end
 
@@ -299,12 +344,12 @@ function fromproto(g::circuit_pb.Parallel)
     return Parallel(g.numrepeats, op)
 end
 
-function toproto(g::PauliString{N}) where {N}
-    return circuit_pb.PauliString(N, g.pauli)
+function toproto(g::RPauli)
+    return circuit_pb.RPauli(toproto(g.pauli), toproto(g.θ))
 end
 
-function fromproto(g::circuit_pb.PauliString)
-    return PauliString(g.pauli)
+function fromproto(g::circuit_pb.RPauli)
+    return RPauli(fromproto(g.pauli), fromproto(g.theta))
 end
 
 const OPERATORMAP = Bijection(Dict(
@@ -323,8 +368,14 @@ const OPERATORMAP = Bijection(Dict(
     DiagonalOp => circuit_pb.OperatorType.DiagonalOp,
 ))
 
-function fromproto(op::circuit_pb.Operator)
-    fromproto(op.operator[])
+function fromproto(op::circuit_pb.Operator, declcache=nothing)
+    oop = op.operator[]
+
+    if oop isa circuit_pb.RescaledGate
+        return fromproto(oop, declcache)
+    end
+
+    return fromproto(op.operator[])
 end
 
 function toproto(g::T) where {T<:AbstractOperator}
@@ -352,13 +403,13 @@ function fromproto(g::circuit_pb.CustomOperator)
     return Operator(transpose(U))
 end
 
-function toproto(g::RescaledGate)
-    op = circuit_pb.Gate(_build_oneof(getoperation(g)))
+function toproto(g::RescaledGate, declcache=nothing)
+    op = circuit_pb.Gate(_build_oneof(getoperation(g), declcache))
     return circuit_pb.RescaledGate(op, toproto(getscale(g)))
 end
 
-function fromproto(g::circuit_pb.RescaledGate)
-    op = fromproto(g.operation)
+function fromproto(g::circuit_pb.RescaledGate, declcache=nothing)
+    op = fromproto(g.operation, declcache)
     scale = fromproto(g.scale)
     return RescaledGate(op, scale)
 end
@@ -379,11 +430,15 @@ const KRAUSCHANNELMAP = Bijection(Dict(
     ProjectiveNoiseZ => circuit_pb.KrausChannelType.ProjectiveNoiseZ,
 ))
 
-function fromproto(op::circuit_pb.KrausChannel)
-    fromproto(op.krauschannel[])
+function fromproto(op::circuit_pb.KrausChannel, declcache=nothing)
+    oop = op.krauschannel[]
+    if oop isa circuit_pb.MixedUnitaryChannel
+        return fromproto(oop, declcache)
+    end
+    fromproto(oop)
 end
 
-function toproto(g::T) where {T<:AbstractKrausChannel}
+function toproto(g::T,) where {T<:AbstractKrausChannel}
     type = get(KRAUSCHANNELMAP, T, nothing)
     isnothing(type) && error(lazy"Not defined ProtoBuf conversion of type $(T).")
     params = toproto.(getparams(g))
@@ -415,13 +470,13 @@ function fromproto(g::circuit_pb.DepolarizingChannel)
     return Depolarizing(g.numqubits, fromproto(g.probability))
 end
 
-function toproto(g::MixedUnitary{N}) where {N}
-    rgs = toproto.(krausoperators(g))
+function toproto(g::MixedUnitary{N}, declcache=nothing) where {N}
+    rgs = map(op -> toproto(op, declcache), krausoperators(g))
     return circuit_pb.MixedUnitaryChannel(rgs)
 end
 
-function fromproto(g::circuit_pb.MixedUnitaryChannel)
-    return MixedUnitary(fromproto.(g.operators))
+function fromproto(g::circuit_pb.MixedUnitaryChannel, declcache=nothing)
+    return MixedUnitary(map(x -> fromproto(x, declcache), g.operators))
 end
 
 function toproto(g::PauliNoise{N}) where {N}
@@ -450,17 +505,39 @@ const OPERATIONMAP = Bijection(Dict(
     SchmidtRank => circuit_pb.OperationType.SchmidtRank,
     VonNeumannEntropy => circuit_pb.OperationType.VonNeumannEntropy,
     Not => circuit_pb.OperationType.Not,
+    Pow => circuit_pb.OperationType.Pow,
 ))
 
-function fromproto(op::circuit_pb.Operation)
-    return fromproto(op.operation[])
+const GENERALIZEDOPERATIONMAP = Bijection(Dict(
+    Barrier => circuit_pb.GeneralizedOperationType.Barrier,
+    Add => circuit_pb.GeneralizedOperationType.Add,
+    Multiply => circuit_pb.GeneralizedOperationType.Multiply,
+))
+
+function fromproto(op::circuit_pb.Operation, declcache)
+    oop = op.operation[]
+    if oop isa circuit_pb.CachedGateCall
+        return fromproto(oop, declcache)
+    else
+        return fromproto(oop)
+    end
 end
 
 function toproto(g::T) where {T<:Operation}
     type = get(OPERATIONMAP, T, nothing)
-    isnothing(type) && error(lazy"Not defined ProtoBuf conversion of type $(T).")
     params = toproto.(getparams(g))
-    return circuit_pb.SimpleOperation(type, collect(params))
+
+    if !isnothing(type)
+        return circuit_pb.SimpleOperation(type, collect(params))
+    else
+        mtype = get(GENERALIZEDOPERATIONMAP, T.name.wrapper, nothing)
+
+        if !isnothing(mtype)
+            return circuit_pb.GeneralizedOperation(mtype, numqubits(g), numbits(g), numzvars(g), collect(params))
+        else
+            error(lazy"Not defined ProtoBuf conversion of type $(T).")
+        end
+    end
 end
 
 function fromproto(g::circuit_pb.SimpleOperation)
@@ -468,6 +545,23 @@ function fromproto(g::circuit_pb.SimpleOperation)
     isnothing(T) && error(lazy"Unsupported ProtoBuf SimpleOperation type $(g.mtype).")
     params = map(fromproto, g.parameters)
     return T(params...)
+end
+
+function fromproto(g::circuit_pb.GeneralizedOperation)
+    nq = g.numqubits
+    nb = g.numbits
+    nz = g.numzvars
+    params = map(fromproto, g.parameters)
+
+    if g.mtype == circuit_pb.GeneralizedOperationType.Barrier
+        return Barrier(nq)
+    elseif g.mtype == circuit_pb.GeneralizedOperationType.Add
+        return Add(nz, params...)
+    elseif g.mtype == circuit_pb.GeneralizedOperationType.Multiply
+        return Multiply(nz, params...)
+    else
+        error(lazy"Unsupported ProtoBuf GeneralizedOperation type $(g.mtype).")
+    end
 end
 
 function toproto(g::Amplitude)
@@ -478,42 +572,17 @@ function fromproto(g::circuit_pb.Amplitude)
     return Amplitude(fromproto(g.bs))
 end
 
-function toproto(g::ExpectationValue{N,T}) where {N,T}
-    op = circuit_pb.Operator(_build_oneof(g.op))
+function toproto(g::ExpectationValue{N,T}, declcache=nothing) where {N,T}
+    op = circuit_pb.Operator(_build_oneof(g.op, declcache))
     return circuit_pb.ExpectationValue(op)
 end
 
-function fromproto(g::circuit_pb.ExpectationValue)
-    op = fromproto(g.operator)
-    return ExpectationValue(op)
-end
-
-function toproto(::Barrier{N}) where {N}
-    return circuit_pb.Barrier(N)
-end
-
-function fromproto(g::circuit_pb.Barrier)
-    Barrier(g.numqubits)
-end
-
-function toproto(a::Detector{N}) where {N}
-    notes = map(x -> toproto(x, circuit_pb.Note), getnotes(a))
-    return circuit_pb.Detector(N, notes)
-end
-
-function fromproto(g::circuit_pb.Detector)
-    notes = map(x -> fromproto(x), g.notes)
-    Detector(g.numqubits, notes)
-end
-
-function toproto(a::ObservableInclude)
-    notes = map(x -> toproto(x, circuit_pb.Note), getnotes(a))
-    return circuit_pb.ObservableInclude(numbits(a), notes)
-end
-
-function fromproto(g::circuit_pb.ObservableInclude)
-    notes = map(x -> fromproto(x), g.notes)
-    ObservableInclude(g.numbits, notes)
+function fromproto(g::circuit_pb.ExpectationValue, declcache=nothing)
+    oop = g.operator
+    if oop isa circuit_pb.RescaledGate
+        return ExpectationValue(fromproto(oop, declcache))
+    end
+    return ExpectationValue(fromproto(oop))
 end
 
 function fromproto(g::circuit_pb.Note)
@@ -534,19 +603,33 @@ const ANNOTATIONMAP = Bijection(Dict(
     Tick => circuit_pb.AnnotationType.Tick,
 ))
 
+const GENERALIZEDANNOTATIONMAP = Bijection(Dict(
+    Detector => circuit_pb.GeneralizedAnnotationType.Detector,
+    ObservableInclude => circuit_pb.GeneralizedAnnotationType.ObservableInclude,
+))
+
 function toproto(g::T) where {T<:AbstractAnnotation}
     type = get(ANNOTATIONMAP, T, nothing)
-    isnothing(type) && error(lazy"Not defined ProtoBuf conversion of type $(T).")
     notes = map(x -> toproto(x, circuit_pb.Note), getnotes(g))
 
-    if T == Tick
-        if !isempty(notes)
-            @warn "Ignoring notes for Tick annotation."
+    if !isnothing(type)
+        if T == Tick
+            if !isempty(notes)
+                @warn "Ignoring notes for Tick annotation."
+            end
+            return circuit_pb.SimpleAnnotation(type, [])
+        else
+            return circuit_pb.SimpleAnnotation(type, notes)
         end
-        return circuit_pb.SimpleAnnotation(type, [])
-    end
+    else
+        mtype = get(GENERALIZEDANNOTATIONMAP, T.name.wrapper, nothing)
 
-    return circuit_pb.SimpleAnnotation(type, notes)
+        if isnothing(mtype)
+            error(lazy"Not defined ProtoBuf conversion of type $(T).")
+        end
+
+        return circuit_pb.GeneralizedAnnotation(mtype, numqubits(g), numbits(g), numzvars(g), notes)
+    end
 end
 
 function fromproto(g::circuit_pb.SimpleAnnotation)
@@ -565,38 +648,106 @@ function fromproto(g::circuit_pb.SimpleAnnotation)
     return T(notes)
 end
 
-function toproto(g::IfStatement{N}) where {N}
-    op = circuit_pb.Operation(_build_oneof(getoperation(g)))
+function fromproto(g::circuit_pb.GeneralizedAnnotation)
+    notes = map(x -> fromproto(x), g.notes)
+    nq = g.numqubits
+    nb = g.numbits
+    nz = g.numzvars
+
+    if g.mtype == circuit_pb.GeneralizedAnnotationType.Detector
+        return Detector(nb, notes...)
+    elseif g.mtype == circuit_pb.GeneralizedAnnotationType.ObservableInclude
+        return ObservableInclude(nb, notes...)
+    else
+        error("Unknown generalized annotation: $(g.mtype)")
+    end
+end
+
+function toproto(g::IfStatement{N}, declcache=nothing) where {N}
+    op = circuit_pb.Operation(_build_oneof(getoperation(g), declcache))
     bs = toproto(g.bs)
     return circuit_pb.IfStatement(op, bs)
 end
 
-function fromproto(c::circuit_pb.IfStatement)
-    return IfStatement(fromproto(c.operation), fromproto(c.bitstring))
+function fromproto(c::circuit_pb.IfStatement, declcache=nothing)
+    op = fromproto(c.operation, declcache)
+    return IfStatement(op, fromproto(c.bitstring))
 end
 
-function toproto(inst::Instruction)
-    op = circuit_pb.Operation(_build_oneof(getoperation(inst)))
+function toproto(s::String)
+    return circuit_pb.Arg(OneOf(:symbol_value, circuit_pb.Symbol(s)))
+end
+
+function toproto(r::Repeat, declcache=nothing)
+    op = circuit_pb.Operation(_build_oneof(getoperation(r), declcache))
+    return circuit_pb.Repeat(numrepeats(r), op)
+end
+
+function fromproto(r::circuit_pb.Repeat, declcache=nothing)
+    op = fromproto(r.operation, declcache)
+    return Repeat(r.numrepeats, op)
+end
+
+function toproto(inst::Instruction, declcache=nothing)
+    op = circuit_pb.Operation(_build_oneof(getoperation(inst), declcache))
     return circuit_pb.Instruction(op, Int64[getqubits(inst)...], Int64[getbits(inst)...,], Int64[getztargets(inst)...])
 end
 
-function fromproto(inst::circuit_pb.Instruction)
-    op = fromproto(inst.operation)
+function fromproto(inst::circuit_pb.Instruction, declcache=nothing)
+    op = fromproto(inst.operation, declcache)
     return Instruction(op, inst.qtargets..., inst.ctargets..., inst.ztargets...)
 end
 
 function toproto(circuit::Circuit)
-    instructions = map(toproto, circuit)
-    return circuit_pb.Circuit(instructions)
+    declorder = UInt64[]
+    declcache = Dict{UInt64,circuit_pb.Declaration}()
+    instructions = map(inst -> toproto(inst, (declcache, declorder)), circuit)
+    return circuit_pb.Circuit(instructions, declcache, declorder)
 end
 
 function fromproto(c::circuit_pb.Circuit)
-    instructions = map(fromproto, c.instructions)
+    declcache = Dict()
+
+    for k in c.declorder
+        declcache[k] = fromproto(c.decls[k], declcache)
+    end
+
+    instructions = map(inst -> fromproto(inst, declcache), c.instructions)
     return Circuit(instructions)
 end
 
-function _build_oneof(gop)
-    op = toproto(gop)
+function toproto(block::Block, declcache=nothing)
+    instructions = map(inst -> toproto(inst, declcache), block)
+    return circuit_pb.Block(numqubits(block), numbits(block), numzvars(block), instructions)
+end
+
+function fromproto(block::circuit_pb.Block, declcache=nothing)
+    instructions = map(inst -> fromproto(inst, declcache), block.instructions)
+    return Block(block.numqubits, block.numbits, block.numzvars, instructions)
+end
+
+function fromproto(block::circuit_pb.Declaration, declcache=nothing)
+    decl = block.decl[]
+    if decl isa circuit_pb.GateDecl
+        return fromproto(decl, declcache)
+    elseif decl isa circuit_pb.Block
+        return fromproto(decl, declcache)
+    end
+
+    error("Unknown declaration type: $(block.decl)")
+end
+
+function toproto_declaration(decl, declcache=nothing)
+    return circuit_pb.Declaration(_build_oneof(decl, declcache))
+end
+
+function _build_oneof(gop, declcache=nothing)
+    op = if !isnothing(declcache) && (gop isa GateCall || gop isa MixedUnitary || gop isa RescaledGate || gop isa Power || gop isa Control || gop isa Inverse || gop isa Parallel || gop isa ExpectationValue || gop isa IfStatement || gop isa Block || gop isa Repeat || gop isa GateDecl)
+        toproto(gop, declcache)
+    else
+        toproto(gop)
+    end
+
     op isa circuit_pb.SimpleGate ? OneOf(:simplegate, op) :
     op isa circuit_pb.CustomGate ? OneOf(:customgate, op) :
     op isa circuit_pb.Generalized ? OneOf(:generalized, op) :
@@ -605,7 +756,7 @@ function _build_oneof(gop)
     op isa circuit_pb.Inverse ? OneOf(:inverse, op) :
     op isa circuit_pb.Parallel ? OneOf(:parallel, op) :
     op isa circuit_pb.GateCall ? OneOf(:gatecall, op) :
-    op isa circuit_pb.PauliString ? OneOf(:paulistring, op) :
+    op isa pauli_pb.PauliString ? OneOf(:paulistring, op) :
     op isa circuit_pb.SimpleOperator ? OneOf(:simpleoperator, op) :
     op isa circuit_pb.CustomOperator ? OneOf(:customoperator, op) :
     op isa circuit_pb.RescaledGate ? OneOf(:rescaledgate, op) :
@@ -616,11 +767,15 @@ function _build_oneof(gop)
     op isa circuit_pb.PauliChannel ? OneOf(:paulichannel, op) :
     op isa circuit_pb.SimpleOperation ? OneOf(:simpleoperation, op) :
     op isa circuit_pb.IfStatement ? OneOf(:ifstatement, op) :
-    op isa circuit_pb.Barrier ? OneOf(:barrier, op) :
+    op isa circuit_pb.GeneralizedOperation ? OneOf(:generalizedoperation, op) :
     op isa circuit_pb.Amplitude ? OneOf(:amplitude, op) :
     op isa circuit_pb.ExpectationValue ? OneOf(:expectationvalue, op) :
-    op isa circuit_pb.Detector ? OneOf(:detector, op) :
-    op isa circuit_pb.ObservableInclude ? OneOf(:observableinc, op) :
     op isa circuit_pb.SimpleAnnotation ? OneOf(:simpleannotation, op) :
+    op isa circuit_pb.GeneralizedAnnotation ? OneOf(:generalizedannotation, op) :
+    op isa circuit_pb.CachedGateCall ? OneOf(:cachedgatecall, op) :
+    op isa circuit_pb.RPauli ? OneOf(:rpauli, op) :
+    op isa circuit_pb.Repeat ? OneOf(:repeat, op) :
+    op isa circuit_pb.Block ? OneOf(:block, op) :
+    op isa circuit_pb.GateDecl ? OneOf(:gatedecl, op) :
     throw(ArgumentError(lazy"Cannot wrap a `$(typeof(op))` into a ProtoBuf `OneOf`."))
 end

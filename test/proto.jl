@@ -71,11 +71,16 @@ using ProtoBuf: ProtoEncoder, ProtoDecoder, encode, decode
         # barrier
         push!(c, Barrier(3), 1, 2, 121)
 
-        # algorithm
+        # generalized
         push!(c, QFT(4), 1:4...)
         push!(c, PhaseGradient(4), 1:4...)
         push!(c, Diffusion(4), 1:4...)
         push!(c, PolynomialOracle(2, 2, 1, 2, 3, 4), 1:2..., 3:4...)
+        push!(c, GateRNZ(4,2.4), 1:4...)
+
+        # special
+        push!(c, PauliString("XYZI"), 1:4...)
+        push!(c, RPauli("XYZI", 4), 1:4...)
 
         # Delay
         push!(c, Delay(0.5), 1)

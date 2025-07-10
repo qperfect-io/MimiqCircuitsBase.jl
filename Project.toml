@@ -1,7 +1,7 @@
 name = "MimiqCircuitsBase"
 uuid = "3a95eabf-73f4-453e-aae8-8a11a27ac032"
 authors = ["Guido Masella <guido.masella@gmail.com>"]
-version = "0.14.0"
+version = "0.17.2"
 
 [deps]
 Bijections = "e2ed5e7c-b2de-5872-ae92-c73ca462fb04"

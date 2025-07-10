@@ -173,7 +173,7 @@ The `before=true` option is mostly used for `Measure`.
 julia> c = push!(Circuit(), Measure(), 1:3, 1:3);
 
 julia> add_noise!(c, Measure(), PauliX(0.1); before=true)
-3-qubit circuit with 6 instructions:
+3-qubit, 3-bit circuit with 6 instructions:
 ├── PauliX(0.1) @ q[1]
 ├── M @ q[1], c[1]
 ├── PauliX(0.1) @ q[2]

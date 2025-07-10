@@ -174,7 +174,14 @@ or on multiple groups of qubits (registers).
 Usually they are initialized with the number of qubits they operate on, or with
 the size of each group of qubits they act on
 
+## QFT related
 [`QFT`](@ref), [`PhaseGradient`](@ref)
+
+## Pauli strings
+[`PauliString`](@ref), [`RPauli`](@ref), [`GateRNZ`](@ref)
+
+## Custom Gates
+[`GateCustom`](@ref)
 """
 const GENERALIZED = [
     PhaseGradient,
@@ -183,6 +190,8 @@ const GENERALIZED = [
     PolynomialOracle,
     PauliString,
     GateCustom,
+    GateRNZ,
+    RPauli,
 ]
 
 

@@ -94,7 +94,7 @@ c <| Measure(1, 1)
 c <| Measure(2:4, 2:4)
 '''
 """
-<|(arg1::Any, ag2::Any) = arg1 * arg2
+<|(arg1::Any, arg2::Any) = arg1 * arg2
 
 export *
 export <|

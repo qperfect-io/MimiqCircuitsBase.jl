@@ -33,7 +33,7 @@ julia> c = Circuit()
 empty circuit
 
 julia> push!(c, MeasureZZ(), 1, 2, 1)
-2-qubit circuit with 1 instructions:
+2-qubit, 1-bit circuit with 1 instructions:
 └── MZZ @ q[1:2], c[1]
 ```
 """
@@ -77,7 +77,7 @@ julia> c = Circuit()
 empty circuit
 
 julia> push!(c, MeasureXX(), 1, 2, 1)
-2-qubit circuit with 1 instructions:
+2-qubit, 1-bit circuit with 1 instructions:
 └── MXX @ q[1:2], c[1]
 ```
 """
@@ -123,7 +123,7 @@ julia> c = Circuit()
 empty circuit
 
 julia> push!(c, MeasureYY(), 1, 2, 1)
-2-qubit circuit with 1 instructions:
+2-qubit, 1-bit circuit with 1 instructions:
 └── MYY @ q[1:2], c[1]
 ```
 """

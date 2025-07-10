@@ -48,6 +48,11 @@ numzvars(::Type{<:Operation{N,M,L}}) where {N,M,L} = L
 
 numzvars(::Operation{N,M,L}) where {N,M,L} = L
 
+# operations that do not act on the quantum register are no-ops
+# no-ops are just like identiity operations, so they are unitary
+isunitary(::Type{<:Operation{0,N,M}}) where {N,M} = true
+
+# any other operation is not unitary
 isunitary(::Type{T}) where {T<:Operation} = false
 
 """
@@ -264,6 +269,16 @@ getparam(GateU(π/8, 3.1, sqrt(2)))
 function getparams end
 
 getparams(g::Operation) = map(x -> getparam(g, x), parnames(g))
+
+function listvars(op::Operation)
+    vars = Symbolics.Num[]
+    for p in getparams(op)
+        if p isa Num
+            append!(vars, Symbolics.get_variables(p))
+        end
+    end
+    return unique(vars)
+end
 
 function power(op::Operation, n)
     if isone(n)

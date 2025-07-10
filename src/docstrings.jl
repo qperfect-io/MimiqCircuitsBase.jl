@@ -62,7 +62,7 @@ julia> numbits(Measure())
 1
 
 julia> c = Circuit(); push!(c, Measure(), 1, 1); push!(c, Measure(),1,3)
-1-qubit circuit with 2 instructions:
+1-qubit, 3-bit circuit with 2 instructions:
 ├── M @ q[1], c[1]
 └── M @ q[1], c[3]
 

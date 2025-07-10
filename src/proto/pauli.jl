@@ -1,6 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
-# Copyright © 2023-2025 QPerfect. All Rights Reserved.
+# Copyright © 2023-2024 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,23 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-using Test
 
-# TODO: simplify this to have one function to test all classical operations
-@testset "Not" begin
-    @testset "ProtoBuf" begin
-        @testset "toproto / fromproto" begin
-            using MimiqCircuitsBase: toproto, fromproto, circuit_pb
-
-            backforth = fromproto(toproto(Not()))
-            @test backforth isa Not
-        end
-
-        @testset "saveproto / loadproto" begin
-            g = Not()
-            c = push!(Circuit(), g, 3)
-            testsaveloadproto(c)
-        end
-    end
+function toproto(g::PauliString{N}) where {N}
+    return pauli_pb.PauliString(N, g.pauli)
 end
 
+function fromproto(g::pauli_pb.PauliString)
+    return PauliString(g.pauli)
+end

@@ -102,9 +102,9 @@ function _power(g::GateU, pwr)
     Up = matrix(g)^pwr
 
     γ = angle(Up[1, 1])
-    θ = 2 * acos(abs(Up[1, 1]))
-    ϕ = angle(Up[2, 1] / sin(θ / 2)) - γ
-    λ = angle(-Up[1, 2] / sin(θ / 2)) - γ
+    θ = 2 * acos(clamp(abs(Up[1, 1]), -1, 1))
+    ϕ = sin(θ / 2) ≈ 0 ? 0.0 : angle(Up[2, 1] / sin(θ / 2)) - γ  
+    λ = sin(θ / 2) ≈ 0 ? 0.0 : angle(-Up[1, 2] / sin(θ / 2)) - γ
 
     return GateU(θ, ϕ, λ, γ)
 end

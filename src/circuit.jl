@@ -34,7 +34,6 @@ Operation can be added one by one to a circuit with the
 julia> c = Circuit()
 empty circuit
 
-
 julia> push!(c, GateH(), 1)
 1-qubit circuit with 1 instructions:
 └── H @ q[1]
@@ -58,7 +57,7 @@ julia> push!(c, Barrier(2), 1, 3)
 └── Barrier @ q[1,3]
 
 julia> push!(c, Measure(), 1, 1)
-3-qubit circuit with 5 instructions:
+3-qubit, 1-bit circuit with 5 instructions:
 ├── H @ q[1]
 ├── CX @ q[1], q[2]
 ├── RX(π/4) @ q[1]
@@ -337,7 +336,7 @@ julia> c = Circuit()
 empty circuit
 
 julia> push!(c, Measure(), 1:2, 1:2)
-2-qubit circuit with 2 instructions:
+2-qubit, 2-bit circuit with 2 instructions:
 ├── M @ q[1], c[1]
 └── M @ q[2], c[2]
 
@@ -367,7 +366,7 @@ julia> c = Circuit()
 empty circuit
 
 julia> push!(c, Measure(), 1:2, 1:2)
-2-qubit circuit with 2 instructions:
+2-qubit, 2-bit circuit with 2 instructions:
 ├── M @ q[1], c[1]
 └── M @ q[2], c[2]
 
@@ -376,10 +375,12 @@ julia> numbits(c)
 
 ```
 """
-function numbits(c::Circuit)
-    isempty(c) && return 0
-    return maximum(Iterators.map(g -> maximum(getbits(g), init=0), c))
+function numbits(insts::Vector{<:Instruction})
+    isempty(insts) && return 0
+    return maximum(Iterators.map(g -> maximum(getbits(g), init=0), insts))
 end
+
+numbits(c::Circuit) = numbits(c._instructions)
 
 @doc raw"""
     numzvars(insts::Vector{<:Instruction})
@@ -395,7 +396,7 @@ julia> c = Circuit()
 empty circuit
 
 julia> push!(c, Amplitude(bs"01"), 1:2)
-0-qubit circuit with 2 instructions:
+2-vars circuit with 2 instructions:
 ├── Amplitude(bs"01") @ z[1]
 └── Amplitude(bs"01") @ z[2]
 
@@ -404,6 +405,14 @@ julia> numzvars(c)
 
 ```
 """
+function getparams(c::Circuit)
+    return reduce(vcat, getparams.(c._instructions))
+end
+
+function listvars(c::Circuit)
+    return unique(reduce(vcat, listvars.(c._instructions); init = Symbolics.Num[]))
+end
+
 function numzvars(insts::Vector{<:Instruction})
     isempty(insts) && return 0
     return maximum(Iterators.map(g -> maximum(getztargets(g), init=0), insts))
@@ -438,50 +447,102 @@ function Base.show(io::IO, c::Circuit)
     return nothing
 end
 
+function _print_instcontainer_header_numbers(io::IO, c)
+    nq = numqubits(c)
+    nc = numbits(c)
+    nz = numzvars(c)
+    oneprinted = false
+    if nq != 0
+        print(io, "$nq-qubit")
+        oneprinted = true
+    end
+    if nc != 0
+        if oneprinted
+            print(io, ", ")
+        end
+        print(io, "$nc-bit")
+        oneprinted = true
+    end
+    if nz != 0
+        if oneprinted
+            print(io, ", ")
+        end
+        print(io, "$nz-vars")
+        oneprinted = true
+    end
+    if oneprinted
+        print(io, " ")
+    end
+end
+
+function _print_instcontainer_header(io::IO, c::Circuit)
+    _print_instcontainer_header_numbers(io, c)
+    print(io, "circuit with $(length(c)) instructions")
+end
+
+_show_instruction(io::IO, m::MIME, inst; _...) = show(io, m, inst)
+
+function _show_instructions(io::IO, m::MIME, c)
+    rows = first(displaysize(io))
+    indent = get(io, :indent, 0)
+    last = get(io, :last, false)
+
+    indentstr = last ? "    "^indent : "│   "^indent
+    n = length(c)
+
+    if isempty(c)
+        return nothing
+    end
+
+    if rows - 4 <= 0
+        print(io, indentstr, "└── ...")
+    elseif rows - 4 >= n
+        for g in c[1:end-1]
+            print(io, indentstr, "├── ")
+            _show_instruction(io, m, g)
+            print(io, '\n')
+        end
+        print(io, indentstr, "└── ")
+        _show_instruction(io, m, c[end], last=true)
+    else
+        chunksize = div(rows - 6, 2)
+
+        for g in c[1:chunksize]
+            print(io, indentstr, "├── ")
+            _show_instruction(io, m, g)
+            print(io, '\n')
+        end
+
+        println(io, indentstr, "⋮   ⋮")
+
+        for g in c[end-chunksize:end-1]
+            print(io, indentstr, "├── ")
+            _show_instruction(io, m, g)
+            print(io, '\n')
+        end
+
+        print(io, indentstr, "└── ")
+        _show_instruction(io, m, c[end])
+    end
+end
+
 function Base.show(io::IO, m::MIME"text/plain", c::Circuit)
     compact = get(io, :compact, false)
-    rows, _ = displaysize(io)
-    n = length(c)
+
     if !compact && !isempty(c)
-        println(io, "$(numqubits(c))-qubit circuit with $(n) instructions:")
+        _print_instcontainer_header(io, c)
+        print(io, ":\n")
 
-        if rows - 4 <= 0
-            print(io, "└── ...")
-        elseif rows - 4 >= n
-            for g in c._instructions[1:end-1]
-                print(io, "├── ")
-                show(io, m, g)
-                print(io, '\n')
-            end
-            print(io, "└── ")
-            show(io, m, c._instructions[end])
-        else
-            chunksize = div(rows - 6, 2)
-
-            for g in c._instructions[1:chunksize]
-                print(io, "├── ")
-                show(io, m, g)
-                print(io, '\n')
-            end
-
-            println(io, "⋮   ⋮")
-
-            for g in c._instructions[end-chunksize:end-1]
-                print(io, "├── ")
-                show(io, m, g)
-                print(io, '\n')
-            end
-
-            print(io, "└── ")
-            show(io, m, c._instructions[end])
-        end
+        _show_instructions(io, m, c)
     else
         if isempty(c)
             print(io, "empty circuit")
         else
-            print(io, "$(numqubits(c))-qubit circuit with $(length(c)) instructions")
+            _print_instcontainer_header(io, c)
         end
     end
 
     nothing
 end
+
+Base.copy(c::Circuit) = Circuit(copy(c._instructions))

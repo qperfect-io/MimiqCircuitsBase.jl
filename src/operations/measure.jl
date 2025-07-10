@@ -37,11 +37,11 @@ julia> Measure()
 M
 
 julia> c = push!(Circuit(), Measure, 1, 1)
-1-qubit circuit with 1 instructions:
+1-qubit, 1-bit circuit with 1 instructions:
 └── M @ q[1], c[1]
 
 julia> push!(c, Measure(), 3, 4)
-3-qubit circuit with 2 instructions:
+3-qubit, 4-bit circuit with 2 instructions:
 ├── M @ q[1], c[1]
 └── M @ q[3], c[4]
 ```
@@ -74,17 +74,17 @@ julia> Measure()
 M
 
 julia> decompose(MeasureX())
-1-qubit circuit with 3 instructions:
+1-qubit, 1-bit circuit with 3 instructions:
 ├── H @ q[1]
 ├── M @ q[1], c[1]
 └── H @ q[1]
 
 julia> c = push!(Circuit(), Measure, 1, 1)
-1-qubit circuit with 1 instructions:
+1-qubit, 1-bit circuit with 1 instructions:
 └── M @ q[1], c[1]
 
 julia> push!(c, Measure(), 3, 4)
-3-qubit circuit with 2 instructions:
+3-qubit, 4-bit circuit with 2 instructions:
 ├── M @ q[1], c[1]
 └── M @ q[3], c[4]
 ```
@@ -131,17 +131,17 @@ julia> MeasureY()
 MeasureY
 
 julia> decompose(MeasureY())
-1-qubit circuit with 3 instructions:
+1-qubit, 1-bit circuit with 3 instructions:
 ├── HYZ @ q[1]
 ├── M @ q[1], c[1]
 └── HYZ @ q[1]
 
 julia> c = push!(Circuit(), MeasureY, 1, 1)
-1-qubit circuit with 1 instructions:
+1-qubit, 1-bit circuit with 1 instructions:
 └── MeasureY @ q[1], c[1]
 
 julia> push!(c, MeasureY(), 3, 4)
-3-qubit circuit with 2 instructions:
+3-qubit, 4-bit circuit with 2 instructions:
 ├── MeasureY @ q[1], c[1]
 └── MeasureY @ q[3], c[4]
 ```

@@ -162,7 +162,6 @@ julia> getztargets(inst)
 
 [`getbit`](@ref), [`getqubits`](@ref), [`getbits`](@ref)
 """
-
 function getztargets end
 
 
@@ -375,3 +374,6 @@ function Base.show(io::IO, m::MIME"text/plain", g::Instruction)
     end
 end
 
+getparams(inst::Instruction) = getparams(getoperation(inst))
+
+listvars(inst::Instruction) = listvars(getoperation(inst))

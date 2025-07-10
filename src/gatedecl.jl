@@ -50,35 +50,37 @@ julia> decompose(ansatz(λ))
 struct GateDecl{N,M}
     name::Symbol
     arguments::NTuple{M,Symbolics.BasicSymbolic}
-    circuit::Circuit
+    instructions::Vector{<:Instruction}
 
-    function GateDecl(name, args, circuit)
+    function GateDecl(name, args, instructions)
         if !all(x -> SymbolicUtils.issym(x), args)
             throw(ArgumentError("All GateDecl arguments must be symbols."))
         end
 
-        if isempty(circuit)
+        if isempty(instructions)
             throw(ArgumentError("GateDecl instructions cannot be empty."))
         end
 
-        if numqubits(circuit) == 0
+        if numqubits(instructions) == 0
             throw(ArgumentError("GateDecl instructions must act on qubits."))
         end
 
-        if numbits(circuit) != 0
+        if numbits(instructions) != 0
             throw(ArgumentError("GateDecl instructions cannot act on classical bits."))
         end
 
-        if numzvars(circuit) != 0
+        if numzvars(instructions) != 0
             throw(ArgumentError("GateDecl instructions cannot act on z-bits."))
         end
 
-        nq = numqubits(circuit)
+        nq = numqubits(instructions)
         np = length(args)
 
-        return new{nq,np}(name, args, deepcopy(circuit))
+        return new{nq,np}(name, args, copy(instructions))
     end
 end
+
+GateDecl(name, args, circuit::Circuit) = GateDecl(name, args, circuit._instructions)
 
 # TODO: check for undefined parameters
 macro gatedecl(decl)
@@ -127,7 +129,9 @@ macro gatedecl(decl)
         error("GateDecl body must return a unitary circuit.")
     end
 
-    return esc(:($name = GateDecl($(QuoteNode(name)), $vars, $circuit)))
+    instructions = circuit._instructions
+
+    return esc(:($name = GateDecl($(QuoteNode(name)), $vars, $instructions)))
 end
 
 @doc raw"""
@@ -183,7 +187,7 @@ numparams(::Type{<:GateCall{N,M}}) where {N,M} = M
 function decompose(cl::GateCall)
     circ = Circuit()
     d = Dict(zip(cl._decl.arguments, cl._args))
-    for inst in cl._decl.circuit
+    for inst in cl._decl.instructions
         op = evaluate(getoperation(inst), d)
         qubits = getqubits(inst)
         push!(circ, op, qubits...)
@@ -194,7 +198,7 @@ end
 function decompose!(circuit::Circuit, cl::GateCall, qtargets, _, _)
     d = Dict(zip(cl._decl.arguments, cl._args))
 
-    for inst in cl._decl.circuit
+    for inst in cl._decl.instructions
         op = evaluate(getoperation(inst), d)
         inst_qubits = [qtargets[q] for q in getqubits(inst)]
         push!(circuit, op, inst_qubits...)
@@ -207,7 +211,7 @@ end
 
 function Base.show(io::IO, d::GateDecl)
     print(io, "GateDecl(", d.name, ", ", d.arguments, ", [")
-    c = d.circuit
+    c = d.instructions
     print(io, c[1])
 
     if length(c) > 1
@@ -223,43 +227,13 @@ end
 
 function Base.show(io::IO, m::MIME"text/plain", d::GateDecl)
     compact = get(io, :compact, false)
-    rows, _ = displaysize(io)
-    n = length(d.circuit)
+
     if !compact
         print(io, "gate ", d.name, "(")
         join(io, d.arguments, ",")
         println(io, ") =")
 
-        if rows - 4 <= 0
-            print(io, "└── ...")
-        elseif rows - 4 >= n
-            for g in d.circuit[1:end-1]
-                print(io, "├── ")
-                show(io, m, g)
-                print(io, '\n')
-            end
-            print(io, "└── ")
-            show(io, m, d.circuit[end])
-        else
-            chunksize = div(rows - 6, 2)
-
-            for g in d.circuit[1:chunksize]
-                print(io, "├── ")
-                show(io, m, g)
-                print(io, '\n')
-            end
-
-            println(io, "⋮   ⋮")
-
-            for g in d.circuit[end-chunksize:end-1]
-                print(io, "├── ")
-                show(io, m, g)
-                print(io, '\n')
-            end
-
-            print(io, "└── ")
-            show(io, m, d.circuit[end])
-        end
+        _show_instructions(io, m, d.instructions)
     else
         print(io, "gate ", d.name, "(")
         join(io, d.arguments, ",")

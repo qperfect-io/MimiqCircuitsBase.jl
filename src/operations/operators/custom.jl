@@ -48,7 +48,7 @@ Operators can be used for expectation values:
 
 ```jldoctests
 julia> push!(Circuit(), ExpectationValue(Operator([0 1; 0 0])), 1, 1)
-1-qubit circuit with 1 instructions:
+1-qubit, 1-vars circuit with 1 instructions:
 └── ⟨Operator([0.0 1.0; 0.0 0.0])⟩ @ q[1], z[1]
 ```
 """

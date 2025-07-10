@@ -52,7 +52,7 @@ julia> c = Circuit()
 empty circuit
 
 julia> push!(c,detector,1,2)
-0-qubit circuit with 1 instructions:
+2-bit circuit with 1 instructions:
 └── Detector(1.0,0.5) @ c[1:2]
 ```
 """
@@ -154,7 +154,7 @@ julia> c = Circuit()
 empty circuit
 
 julia> push!(c, shift)
-0-qubit circuit with 1 instructions:
+circuit with 1 instructions:
 └── ShiftCoordinates(1.0,2.0)
 ```
 """
@@ -208,7 +208,7 @@ julia> c = Circuit()
 empty circuit
 
 julia> push!(c, obs_include,1,2)
-0-qubit circuit with 1 instructions:
+2-bit circuit with 1 instructions:
 └── ObservableInclude(1,2) @ c[1:2]
 ```
 """
@@ -262,7 +262,7 @@ julia> c = Circuit()
 empty circuit
 
 julia> push!(c, tick)
-0-qubit circuit with 1 instructions:
+circuit with 1 instructions:
 └── Tick()
 ```
 """

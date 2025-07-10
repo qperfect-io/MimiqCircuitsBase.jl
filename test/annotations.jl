@@ -22,7 +22,7 @@ using Test
         @testset "toproto / fromproto" begin
             using MimiqCircuitsBase: toproto, fromproto, circuit_pb
 
-            @test toproto(Detector(13, rand(7))) isa circuit_pb.Detector
+            @test toproto(Detector(13, rand(7))) isa circuit_pb.GeneralizedAnnotation
 
             notes = [98.123, 0.2334, 0.654]
             nb = 13
@@ -123,7 +123,7 @@ end
         @testset "toproto / fromproto" begin
             using MimiqCircuitsBase: toproto, fromproto, circuit_pb
 
-            @test toproto(ObservableInclude(13, rand(0:454, 7))) isa circuit_pb.ObservableInclude
+            @test toproto(ObservableInclude(13, rand(0:454, 7))) isa circuit_pb.GeneralizedAnnotation
 
             notes = [98, 2, 3]
             nb = 13

@@ -38,7 +38,7 @@ julia> DiagonalOp(1,0.5)
 D(1, 0.5)
 
 julia> push!(Circuit(), ExpectationValue(DiagonalOp(1,0.5)), 1, 2)
-1-qubit circuit with 1 instructions:
+1-qubit, 2-vars circuit with 1 instructions:
 └── ⟨D(1,0.5)⟩ @ q[1], z[2]
 ```
 """

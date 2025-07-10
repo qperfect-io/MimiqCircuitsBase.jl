@@ -36,7 +36,13 @@ filelist = [
     "noisefunctions.jl",
     "rescaledgate.jl",
     "annotations.jl",
-    "classical.jl"
+    "classical.jl",
+    "complex.jl",
+    "rpauli.jl",
+    "hamiltonian.jl",
+    "block.jl",
+    "repeat.jl",
+    "listvars.jl",
 ]
 
 @testset "MimiqCircuitsBase.jl" begin

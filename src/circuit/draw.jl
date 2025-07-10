@@ -498,10 +498,17 @@ function draw!(circuit::AsciiCircuit, g::Operation{N,M,L}, qubits, bits, zvars) 
 
     if !isempty(zvars)
         zvarstr = join(string.(zvars), ",")
-        drawdoublevline!(circuit.canvas, stoprow, midcol, zvarrow - stoprow + 1)
-        drawtext!(circuit.canvas, zvarstr, zvarrow + 1, midcol)
-        setcurrentcol!(circuit, max(endcol, midcol + length(zvarstr)))
+        zvar_start_col = midcol - length(zvarstr) ÷ 2
+
+        if isempty(bits)
+            drawdoublevline!(circuit.canvas, stoprow, midcol, zvarrow - stoprow + 1)
+        else
+            nothing
     end
+
+        drawtext!(circuit.canvas, zvarstr, zvarrow + 1, zvar_start_col)
+        setcurrentcol!(circuit, max(endcol, zvar_start_col + length(zvarstr)))
+end
 
     return circuit
 end

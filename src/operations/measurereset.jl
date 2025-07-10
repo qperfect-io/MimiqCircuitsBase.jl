@@ -32,16 +32,16 @@ julia> MeasureReset()
 MR
 
 julia> decompose(MeasureReset())
-1-qubit circuit with 2 instructions:
+1-qubit, 1-bit circuit with 2 instructions:
 ├── M @ q[1], c[1]
 └── IF(c==1) X @ q[1], c[1]
 
 julia> c = push!(Circuit(), MeasureReset(), 1, 1)
-1-qubit circuit with 1 instructions:
+1-qubit, 1-bit circuit with 1 instructions:
 └── MR @ q[1], c[1]
 
 julia> push!(c, MeasureReset(), 3, 4)
-3-qubit circuit with 2 instructions:
+3-qubit, 4-bit circuit with 2 instructions:
 ├── MR @ q[1], c[1]
 └── MR @ q[3], c[4]
 ```
@@ -84,17 +84,17 @@ julia> MeasureResetX()
 MRX
 
 julia> decompose(MeasureResetX())
-1-qubit circuit with 3 instructions:
+1-qubit, 1-bit circuit with 3 instructions:
 ├── H @ q[1]
 ├── MR @ q[1], c[1]
 └── H @ q[1]
 
 julia> c = push!(Circuit(), MeasureResetX(), 1, 1)
-1-qubit circuit with 1 instructions:
+1-qubit, 1-bit circuit with 1 instructions:
 └── MRX @ q[1], c[1]
 
 julia> push!(c, MeasureResetX(), 3, 4)
-3-qubit circuit with 2 instructions:
+3-qubit, 4-bit circuit with 2 instructions:
 ├── MRX @ q[1], c[1]
 └── MRX @ q[3], c[4]
 ```
@@ -139,18 +139,17 @@ julia> MeasureResetY()
 MRY
 
 julia> decompose(MeasureResetY())
-1-qubit circuit with 3 instructions:
+1-qubit, 1-bit circuit with 3 instructions:
 ├── HYZ @ q[1]
 ├── MR @ q[1], c[1]
 └── HYZ @ q[1]
 
-
 julia> c = push!(Circuit(), MeasureResetY(), 1, 1)
-1-qubit circuit with 1 instructions:
+1-qubit, 1-bit circuit with 1 instructions:
 └── MRY @ q[1], c[1]
 
 julia> push!(c, MeasureResetY(), 3, 4)
-3-qubit circuit with 2 instructions:
+3-qubit, 4-bit circuit with 2 instructions:
 ├── MRY @ q[1], c[1]
 └── MRY @ q[3], c[4]
 ```

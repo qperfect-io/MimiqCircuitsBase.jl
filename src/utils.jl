@@ -170,3 +170,7 @@ unwrapvalue(g::Real) = g
 unwrapvalue(g::Complex{<:Real}) = g
 
 unwrapvalue(g::Complex{Num}) = complex(unwrapvalue(real(g)), unwrapvalue(imag(g)))
+
+function listsymbols(g)
+    Symbolics.get_variables(g; sort=true)
+end

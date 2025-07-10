@@ -17,51 +17,46 @@
 """
     saveproto(fname, c::Circuit)
     saveproto(fname, c::QCSResults)
+    saveproto(fname, h::Hamiltonian)
 
-Serialize a `Circuit` or a `QCSResults` object to a ProtoBuf file.
+Serialize a `Circuit`, a `QCSResults`, or a `Hamiltonian`, object to a
+ProtoBuf file.
 """
 function saveproto end
-
-function saveproto(fname, c::Circuit)
-    iobuffer = IOBuffer()
-    e = ProtoEncoder(iobuffer)
-    encode(e, toproto(c))
-
-    open(fname, "w") do io
-        write(io, take!(iobuffer))
-    end
-end
-
-function saveproto(fname, c::QCSResults)
-    iobuffer = IOBuffer()
-    e = ProtoEncoder(iobuffer)
-    encode(e, toproto(c))
-
-    open(fname, "w") do io
-        write(io, take!(iobuffer))
-    end
-end
 
 """
     loadproto(fname, Circuit)
     loadproto(fname, QCSResults)
 
-Deserialize a `Circuit` or a `QCSResults` object from a ProtoBuf file.
+Deserialize a `Circuit`, a `QCSResults`, or a `Hamiltonian` object from a
+ProtoBuf file.
 """
 function loadproto end
 
-function loadproto(fname, ::Type{Circuit})
-    open(fname, "r") do io
-        d = ProtoDecoder(io)
-        proto = decode(d, circuit_pb.Circuit)
-        return fromproto(proto)
+for (T, PT) in [(Circuit, circuit_pb.Circuit), (QCSResults, qcsresults_pb.QCSResults), (Hamiltonian, hamiltonian_pb.Hamiltonian)]
+    eval(quote
+        function saveproto(io::IO, c::$T)
+            iobuffer = IOBuffer()
+            e = ProtoEncoder(iobuffer)
+            encode(e, toproto(c))
+            write(io, take!(iobuffer))
+        end
+        function loadproto(io::IO, ::Type{$T})
+            d = ProtoDecoder(io)
+            proto = decode(d, $(PT))
+            return fromproto(proto)
+        end
+    end)
+end
+
+function saveproto(fname, c)
+    open(fname, "w") do io
+        saveproto(io, c)
     end
 end
 
-function loadproto(fname, ::Type{QCSResults})
+function loadproto(fname, T::Type)
     open(fname, "r") do io
-        d = ProtoDecoder(io)
-        proto = decode(d, qcsresults_pb.QCSResults)
-        return fromproto(proto)
+        loadproto(io, T)
     end
 end
