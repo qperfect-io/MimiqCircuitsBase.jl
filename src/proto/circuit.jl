@@ -187,7 +187,7 @@ const GENERALIZEDGATEMAP = Bijection(Dict(
 
 function fromproto(op::circuit_pb.Gate, declcache=nothing)
     oop = op.gate[]
-    if oop isa circuit_pb.CachedGateCall || oop isa circuit_pb.Power || oop isa circuit_pb.Control || oop isa circuit_pb.Inverse || oop isa circuit_pb.Parallel
+    if hasmethod(fromproto, Tuple{typeof(oop), typeof(declcache)})
         return fromproto(oop, declcache)
     end
     return fromproto(oop)
@@ -516,7 +516,7 @@ const GENERALIZEDOPERATIONMAP = Bijection(Dict(
 
 function fromproto(op::circuit_pb.Operation, declcache)
     oop = op.operation[]
-    if oop isa circuit_pb.CachedGateCall
+    if hasmethod(fromproto, Tuple{typeof(oop), typeof(declcache)})
         return fromproto(oop, declcache)
     else
         return fromproto(oop)

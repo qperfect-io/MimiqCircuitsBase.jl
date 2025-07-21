@@ -115,20 +115,21 @@ numqubits(::Type{<:Block{N}}) where {N} = N
 numbits(::Type{<:Block{N,M}}) where {N,M} = M
 numzvars(::Type{<:Block{N,M,L}}) where {N,M,L} = L
 
-function _check_instruction_block(instruction::Instruction, nq, nc, nz)
-    nqi = numqubits(instruction)
-    if nq != nqi
-        throw(ArgumentError("Qubits out of range for a block, expected maximum $nq, got $nqi"))
+function _check_instruction_block(inst::Instruction, nq, nc, nz)
+    qt = getqubits(inst)
+    ct = getbits(inst)
+    zt = getztargets(inst)
+
+    if any(x -> x > nq, qt)
+        throw(ArgumentError("Qubits out of range, expected maximum $nq"))
     end
 
-    nci = numbits(instruction)
-    if nc != nci
-        throw(ArgumentError("Bits out of range for a block, expected maximum $nc, got $nci"))
+    if any(x -> x > nc, ct)
+        throw(ArgumentError("Bits out of range, expected maximum $nc"))
     end
 
-    nzi = numzvars(instruction)
-    if nz != nzi
-        throw(ArgumentError("Z variables out of range for a block, expected maximum $nz, got $nzi"))
+    if any(x -> x > nz, zt)
+        throw(ArgumentError("Z variables out of range, expected maximum $nz."))
     end
 end
 
@@ -139,6 +140,10 @@ function Base.push!(c::Block, instruction::Instruction)
 end
 
 function _check_instruction_block(::Operation{N,M,L}, targets, nq, nc, nz) where {N,M,L}
+    if length(targets) != N + M + L
+        throw(ArgumentError("Invalid number of targets, expected $N qubits, $M bits, and $L variables"))
+    end
+
     qt = targets[1:N]
     ct = targets[N+1:N+M]
     zt = targets[N+M+1:N+M+L]
@@ -198,7 +203,7 @@ function Base.show(io::IO, m::MIME"text/plain", c::Block)
         _show_instructions(io, m, c)
     else
         if isempty(c)
-            print(io, "empty circuit")
+            print(io, "empty block")
         else
             _print_instcontainer_header(io, c)
         end
@@ -219,4 +224,4 @@ function decompose!(circuit::Circuit, b::Block, qtargets, ctargets, ztargets)
     return circuit
 end
 
-isunitary(b::Block{N,0,L}) where {N,L} = all(x -> isunitary(x) for inst in b)
+isunitary(b::Block{N,M,L}) where {N,M,L} = all(x -> isunitary(x), b)

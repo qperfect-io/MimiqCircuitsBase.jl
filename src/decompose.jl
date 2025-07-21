@@ -47,7 +47,7 @@ function decompose!(circuit::Circuit, inst::Instruction)
     return decompose!(circuit, getoperation(inst), getqubits(inst), getbits(inst), getztargets(inst))
 end
 
-function _checkdecompose!(circuit::Circuit, inst::Instruction{N,M,T}, issupported::Function) where {N,M,T}
+function _checkdecompose!(circuit, inst::Instruction, issupported::Function)
     # PERF: speed here can be highly improved
     if issupported(getoperation(inst))
         push!(circuit, inst)
@@ -57,7 +57,62 @@ function _checkdecompose!(circuit::Circuit, inst::Instruction{N,M,T}, issupporte
             _checkdecompose!(circuit, inst2, issupported)
         end
     end
+    return circuit
 end
+
+function _checkdecompose!(circuit, inst::Instruction{N,M,L,<:Repeat}, issupported::Function) where {N,M,L}
+    rp = getoperation(inst)
+    op = getoperation(rp)
+    nr = numrepeats(rp)
+
+    if issupported(op)
+        if issupported(rp)
+            push!(circuit, inst)
+        else
+            for _ in 1:nr
+                push!(circuit, op, getqubits(inst)..., getbits(inst)..., getztargets(inst)...)
+            end
+        end
+    else
+        decomposed = decompose(op)
+        block = Block(numqubits(op), numbits(op), numzvars(op))
+
+        for inst2 in decomposed
+            _checkdecompose!(block, inst2, issupported)
+        end
+
+        newop = Repeat(nr, block)
+
+        if issupported(newop)
+            push!(circuit, newop, getqubits(inst)..., getbits(inst)..., getztargets(inst)...)
+        else
+            for _ in 1:nr
+                push!(circuit, newop, getqubits(inst)..., getbits(inst)..., getztargets(inst)...)
+            end
+        end
+    end
+
+    return circuit
+end
+
+function _checkdecompose!(circuit, inst::Instruction{N,M,<:Block}, issupported::Function) where {N,M}
+    block = getoperation(inst)
+
+    if issupported(block)
+        push!(circuit, inst)
+    else
+        decomposed = decompose(block)
+        newblock = Block(numqubits(block), numbits(block), numzvars(block))
+        for inst2 in decomposed
+            _checkdecompose!(newblock, inst2, issupported)
+        end
+        push!(circuit, newblock, getqubits(inst)..., getbits(inst)..., getztargets(inst)...)
+    end
+
+    return circuit
+end
+
+
 
 issupported_default(::T) where {T<:Operation} = issupported_default(T)
 issupported_default(::Type{GateU}) = true
