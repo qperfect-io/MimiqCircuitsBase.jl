@@ -30,7 +30,7 @@ julia> Reset()
 Reset
 
 julia> c = push!(Circuit(), Reset, 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── Reset @ q[1]
 
 julia> push!(c, Reset(), 3)
@@ -72,13 +72,11 @@ julia> ResetX()
 ResetX
 
 julia> decompose(ResetX())
-1-qubit circuit with 3 instructions:
-├── H @ q[1]
-├── Reset @ q[1]
-└── H @ q[1]
+1-qubit circuit with 1 instruction:
+└── ResetX @ q[1]
 
 julia> c = push!(Circuit(), ResetX, 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── ResetX @ q[1]
 
 julia> push!(c, ResetX(), 3)
@@ -100,12 +98,14 @@ function krausoperators(::ResetX)
         Operator(1 / sqrt(2) .* [0 1; 0 1])]
 end
 
-function decompose!(circ::Circuit, ::ResetX, qtargets, _, _)
+matches(::CanonicalRewrite, ::ResetX) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::ResetX, qtargets, _, _)
     q = qtargets[1]
-    push!(circ, GateH(), q)
-    push!(circ, Reset(), q)
-    push!(circ, GateH(), q)
-    return circ
+    push!(builder, GateH(), q)
+    push!(builder, Reset(), q)
+    push!(builder, GateH(), q)
+    return builder
 end
 
 function Base.show(io::IO, ::ResetX)
@@ -129,13 +129,11 @@ julia> ResetY()
 ResetY
 
 julia> decompose(ResetY())
-1-qubit circuit with 3 instructions:
-├── HYZ @ q[1]
-├── Reset @ q[1]
-└── HYZ @ q[1]
+1-qubit circuit with 1 instruction:
+└── ResetY @ q[1]
 
 julia> c = push!(Circuit(), ResetY, 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── ResetY @ q[1]
 
 julia> push!(c, ResetY(), 3)
@@ -157,12 +155,14 @@ function krausoperators(::ResetY)
         Operator(1 / sqrt(2) .* [0 1; 0 im])]
 end
 
-function decompose!(circ::Circuit, ::ResetY, qtargets, _, _)
+matches(::CanonicalRewrite, ::ResetY) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::ResetY, qtargets, _, _)
     q = qtargets[1]
-    push!(circ, GateHYZ(), q)
-    push!(circ, Reset(), q)
-    push!(circ, GateHYZ(), q)
-    return circ
+    push!(builder, GateHYZ(), q)
+    push!(builder, Reset(), q)
+    push!(builder, GateHYZ(), q)
+    return builder
 end
 
 function Base.show(io::IO, ::ResetY)

@@ -53,7 +53,7 @@ julia> matrix(GateU(2.023, 0.5, 0.1))
  0.743864+0.406375im   0.437915+0.299594im
 
 julia> c = push!(Circuit(), GateU(θ, ϕ, λ), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── U(θ,ϕ,λ) @ q[1]
 
 julia> push!(c, GateU(π/8, π/2, π/4), 2)
@@ -72,7 +72,7 @@ Since ``U`` gate, is the most general single qubit unitary matrix, all other mat
 
 ```jldoctests; setup = :(@variables λ θ ϕ γ)
 julia> decompose(GateU(θ, λ, ϕ))
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── U(θ,λ,ϕ) @ q[1]
 
 ```
@@ -103,7 +103,7 @@ function _power(g::GateU, pwr)
 
     γ = angle(Up[1, 1])
     θ = 2 * acos(clamp(abs(Up[1, 1]), -1, 1))
-    ϕ = sin(θ / 2) ≈ 0 ? 0.0 : angle(Up[2, 1] / sin(θ / 2)) - γ  
+    ϕ = sin(θ / 2) ≈ 0 ? 0.0 : angle(Up[2, 1] / sin(θ / 2)) - γ
     λ = sin(θ / 2) ≈ 0 ? 0.0 : angle(-Up[1, 2] / sin(θ / 2)) - γ
 
     return GateU(θ, ϕ, λ, γ)
@@ -121,3 +121,8 @@ function Base.show(io::IO, ::MIME"text/plain", gate::GateU)
     print(io, ")")
 end
 
+matches(::CanonicalRewrite, ::GateU) = false
+
+function decompose_step!(builder, ::CanonicalRewrite, g::GateU, qtargets, _, _)
+    throw(DecompositionError("`GateU` does not have a canonical decomposition."))
+end

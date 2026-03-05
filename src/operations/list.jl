@@ -159,9 +159,19 @@ For gate definitions and calls, see [`GateDecl`](@ref) and [`GateCall`](@ref)
 [`MeasureReset`](@ref), [`MeasureResetX`](@ref), [`MeasureResetY`](@ref), [`MeasureResetZ`](@ref),
 [`Reset`](@ref),
 
+## Classical bits (c-register) and complex variables (z-register) operations
+
+[`Amplitude`](@ref), [`Not`](@ref), [`ExpectationValue`](@ref), [`Multiply`](@ref),
+[`Add`](@ref), [`Pow`](@ref)
+
+## Entanglement and entropies
+
+[`SchmidtRank`](@ref), [`BondDim`](@ref), [`VonNeumannEntropy`](@ref)
+
 ## Algorithms or complex gate builders
 
 See [`GENERALIZED`](@ref) for a complete list of generalized gates or algorithms.
+
 """
 const OPERATIONS = nothing
 

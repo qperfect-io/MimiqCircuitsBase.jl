@@ -49,7 +49,7 @@ julia> matrix(GateRX(1.989))
       0.0-0.838487im  0.544922+0.0im
 
 julia> c = push!(Circuit(), GateRX(θ), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── RX(θ) @ q[1]
 
 julia> push!(c, GateRX(π/2), 2)
@@ -63,7 +63,7 @@ julia> push!(c, GateRX(π/2), 2)
 
 ```jldoctests; setup = :(@variables θ)
 julia> decompose(GateRX(θ))
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── U(θ,-1π/2,π/2) @ q[1]
 
 ```
@@ -90,10 +90,12 @@ end
 
 _power(g::GateRX, pwr) = GateRX(g.θ * pwr)
 
-function decompose!(circ::Circuit, g::GateRX, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateRX) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, g::GateRX, qtargets, _, _)
     q = qtargets[1]
-    push!(circ, GateU(g.θ, -π / 2, π / 2), q)
-    return circ
+    push!(builder, GateU(g.θ, -π / 2, π / 2), q)
+    return builder
 end
 
 isidentity(g::GateRX) = iszero(g.θ)
@@ -132,7 +134,7 @@ julia> matrix(GateRY(1.989))
  0.838487   0.544922
 
 julia> c = push!(Circuit(), GateRY(θ), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── RY(θ) @ q[1]
 
 julia> push!(c, GateRY(π/2), 2)
@@ -146,7 +148,7 @@ julia> push!(c, GateRY(π/2), 2)
 
 ```jldoctests; setup=:(@variables θ)
 julia> decompose(GateRY(θ))
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── U(θ,0,0) @ q[1]
 
 ```
@@ -173,10 +175,12 @@ end
 
 _power(g::GateRY, pwr) = GateRY(g.θ * pwr)
 
-function decompose!(circ::Circuit, g::GateRY, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateRY) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, g::GateRY, qtargets, _, _)
     q = qtargets[1]
-    push!(circ, GateU(g.θ, 0, 0), q)
-    return circ
+    push!(builder, GateU(g.θ, 0, 0), q)
+    return builder
 end
 
 isidentity(g::GateRY) = iszero(g.θ)
@@ -215,7 +219,7 @@ julia> matrix(GateRZ(1.989))
       0.0+0.0im       0.544922+0.838487im
 
 julia> c = push!(Circuit(), GateRZ(θ), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── RZ(θ) @ q[1]
 
 julia> push!(c, GateRZ(π/2), 2)
@@ -229,7 +233,7 @@ julia> push!(c, GateRZ(π/2), 2)
 
 ```jldoctests; setup = :(@variables θ)
 julia> decompose(GateRZ(θ))
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── U(0,0,θ,(-1//2)*θ) @ q[1]
 
 ```
@@ -256,10 +260,12 @@ end
 
 _power(g::GateRZ, pwr) = GateRZ(g.λ * pwr)
 
-function decompose!(circ::Circuit, g::GateRZ, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateRZ) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, g::GateRZ, qtargets, _, _)
     q = qtargets[1]
-    push!(circ, GateU(0, 0, g.λ, -g.λ / 2), q)
-    return circ
+    push!(builder, GateU(0, 0, g.λ, -g.λ / 2), q)
+    return builder
 end
 
 isidentity(g::GateRZ) = iszero(g.λ)
@@ -300,7 +306,7 @@ julia> matrix(GateR(2.023, 1.989))
  0.77458+0.344239im   0.53059+0.0im
 
 julia> c = push!(Circuit(), GateR(θ, ϕ), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── R(θ,ϕ) @ q[1]
 
 julia> push!(c, GateR(π/2, π/4), 2)
@@ -314,8 +320,8 @@ julia> push!(c, GateR(π/2, π/4), 2)
 
 ```jldoctests; setup = :(@variables θ ϕ)
 julia> decompose(GateR(θ, ϕ))
-1-qubit circuit with 1 instructions:
-└── U3(θ,-1.5707963267948966 + ϕ,1.5707963267948966 - ϕ) @ q[1]
+1-qubit circuit with 1 instruction:
+└── U(θ,-1.5707963267948966 + ϕ,1.5707963267948966 - ϕ) @ q[1]
 
 ```
 """
@@ -330,7 +336,9 @@ opname(::Type{GateR}) = "R"
 
 _matrix(::Type{GateR}, θ, ϕ) = [cos(θ / 2) -im*cis(-ϕ)*sin(θ / 2); -im*cis(ϕ)*sin(θ / 2) cos(θ / 2)]
 
-function decompose!(circ::Circuit, g::GateR, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateR) = true
+
+function decompose_step!(circ, ::CanonicalRewrite, g::GateR, qtargets, _, _)
     a = qtargets[1]
     push!(circ, GateU3(g.θ, g.ϕ - π / 2, -g.ϕ + π / 2), a)
     return circ

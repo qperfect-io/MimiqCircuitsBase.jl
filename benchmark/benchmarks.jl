@@ -1,150 +1,97 @@
 #
-# Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
-# Copyright © 2023-2025 QPerfect. All Rights Reserved.
+# Copyright © 2025-2026 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-using MimiqCircuitsBase
-using BenchmarkTools
-using Random
 
-include("circuits.jl")
+# MimiqCircuitsBase.jl Benchmark Suite
+# ====================================
+#
+# This file defines the SUITE variable required by PkgBenchmark.
+#
+# Run with:
+#     using PkgBenchmark
+#     results = benchmarkpkg("MimiqCircuitsBase")
+#     export_markdown("benchmark_results.md", results)
+#
+# Or directly:
+#     julia --project=benchmark benchmark/run_benchmarks.jl
+
+using BenchmarkTools
+using MimiqCircuitsBase
+using Random
+using LinearAlgebra
+using Graphs
+
+const HAS_SYMBOLICS = true
+
+# ===== #
+# Setup #
+# ===== #
 
 const SUITE = BenchmarkGroup()
 
-SUITE["circuit"] = BenchmarkGroup()
+# Fixed seed for reproducibility
+const RNG = MersenneTwister(42)
 
-# build the example circuits
-SUITE["circuit"]["examples"] = BenchmarkGroup()
+# Create symbolic variables
+@variables θ ϕ λ γ
 
-let group = SUITE["circuit"]["examples"]
+# ================ #
+# Helper Functions #
+# ================ #
 
-    for nqubits in [4, 32, 64]
-        for d in [1, 8, 16]
-            group["QCBM", nqubits, d] = @benchmarkable build_qcbm($nqubits, $d)
-        end
-        group["AQFT", nqubits] = @benchmarkable build_aqft($nqubits)
-        group["GHZ", nqubits] = @benchmarkable build_aqft($nqubits)
-        group["Parametric", nqubits] = @benchmarkable build_parametric($nqubits)
-        group["Ansatz3", nqubits] = @benchmarkable build_ansatz3($nqubits)
-    end
+include("circuits.jl")
+using .BenchmarkCircuits
 
-    for d in [1, 10, 100]
-        group["Google", 15, d] = @benchmarkable build_googlesupremacy($d; nc=3, nr=2)
-        group["Google", 54, d] = @benchmarkable build_googlesupremacy($d)
-    end
+"""
+    random_unitary_circuit(n_qubits, depth; rng=RNG)
+
+Alias for `random_circuit` with `measure=false`.
+"""
+random_unitary_circuit(n, d; kwargs...) = random_circuit(n, d; measure=false, kwargs...)
+
+"""
+    symbolic_variational_ansatz(n_qubits, n_layers)
+
+Helper to create a variational ansatz with symbolic parameters (θ, ϕ) reusing them cyclically,
+mimicking the behavior of the old benchmark function.
+"""
+function symbolic_variational_ansatz(n_qubits, n_layers)
+    n_rots = n_qubits * 2 * (n_layers + 1) # RY, RZ per qubit per layer + final
+    # Alternating θ, ϕ
+    params = [isodd(i) ? θ : ϕ for i in 1:n_rots]
+    return variational_ansatz(n_qubits, n_layers; parameter_values=params)
 end
 
+# Include individual benchmark files
+include("benchmarks/construction.jl")
+include("benchmarks/iteration.jl")
+include("benchmarks/metadata.jl")
+include("benchmarks/instruction.jl")
+include("benchmarks/matrix.jl")
+include("benchmarks/decomposition.jl")
+include("benchmarks/transforms.jl")
+include("benchmarks/dag.jl")
+include("benchmarks/noise.jl")
+include("benchmarks/proto.jl")
+include("benchmarks/symbolic.jl")
+include("benchmarks/bitstring.jl")
+include("benchmarks/workflows.jl")
+include("benchmarks/allocations.jl")
+include("benchmarks/advanced.jl")
+include("benchmarks/hamiltonian.jl")
+include("benchmarks/comprehensive_decomposition.jl")
 
-SUITE["circuit"]["setparameters"] = BenchmarkGroup()
-SUITE["circuit"]["getparameters"] = BenchmarkGroup()
-
-let group = SUITE["circuit"]
-    for nq in [4, 16, 32, 64]
-        # getparameters
-        group["getparameters"]["Parametric", nq] = @benchmarkable getparameters(c) setup = (c = build_parametric($nq))
-        group["getparameters"]["Ansatz3", nq] = @benchmarkable getparameters(c) setup = (c = build_ansatz3($nq))
-
-        # setparameters!
-        group["setparameters"]["Parametric", nq] = @benchmarkable setparameters!(c, params) setup = (c = build_parametric($nq); params = Dict(:λ => rand()))
-        group["setparameters"]["Ansatz3", nq] = @benchmarkable setparameters!(c, params) setup = (
-            c = build_ansatz3($nq);
-            params = Dict(
-                :θ1 => rand(),
-                :θ2 => rand(),
-                :θ3 => rand()
-            )
-        )
-    end
-end
-
-# push single gates into circuits
-SUITE["circuit"]["push"] = BenchmarkGroup()
-
-let group = SUITE["circuit"]["push"]
-    for optype in MimiqCircuitsBase.OPERATION_TYPES
-        if optype <: AbstractGate
-            group[opname(optype)] = @benchmarkable push!(c, ($optype(params...)), qubits...) setup = (c = Circuit(); params = rand(numparams($optype)); qubits = collect(1:numqubits($optype)))
-        else
-            group[opname(optype)] = @benchmarkable push!(c, $optype, qubits..., clbits...) setup = (c = Circuit(); qubits = collect(1:numqubits($optype)); clbits = collect(1:numbits($optype)))
-        end
-    end
-
-end
-
-# iterate over circuits
-SUITE["circuit"]["iteration"] = BenchmarkGroup()
-
-@noinline function apply_instruction(inst::Instruction)
-    s = 0
-
-    for q in getqubits(inst)
-        s += q
-    end
-
-    for c in getbits(inst)
-        s += c
-    end
-
-    return s
-end
-
-function iterate_circuit(c::Circuit)
-    s = 0
-    for inst in c
-        s += apply_instruction(inst)
-    end
-    return s
-end
-
-let group = SUITE["circuit"]["iteration"]
-    for d in [1, 10, 100]
-        group["Google", 15, d] = @benchmarkable iterate_circuit(c) setup = (c = build_googlesupremacy($d; nc=3, nr=2))
-        group["Google", 54, d] = @benchmarkable iterate_circuit(c) setup = (c = build_googlesupremacy($d))
-    end
-end
-
-SUITE["circuit"]["append"] = BenchmarkGroup()
-
-let group = SUITE["circuit"]["append"]
-    group["samequbits"] = @benchmarkable append!(c, other) setup = (c = build_googlesupremacy(1); other = build_googlesupremacy(2))
-    group["differenqubits"] = @benchmarkable append!(c, other) setup = (c = build_googlesupremacy(1; nc=3, nr=2); other = build_googlesupremacy(2))
-end
-
-# operations
-SUITE["operation"] = BenchmarkGroup()
-
-# construct an operation
-SUITE["operation"]["construction"] = BenchmarkGroup()
-
-let group = SUITE["operation"]["construction"]
-    for optype in MimiqCircuitsBase.OPERATION_TYPES
-        if optype <: ParametricGate
-            group[opname(optype)] = @benchmarkable $optype(rand(numparams($optype))...)
-        else
-            group[opname(optype)] = @benchmarkable $optype()
-        end
-    end
-end
-
-# get the matrix of an operation
-SUITE["operation"]["matrix"] = BenchmarkGroup()
-
-let group = SUITE["operation"]["matrix"]
-    for optype in MimiqCircuitsBase.OPERATION_TYPES
-        if !(optype <: AbstractGate)
-            continue
-        end
-        group[opname(optype)] = @benchmarkable matrix(op) setup = (op = $optype(rand(numparams($optype))...))
-    end
-end
+# Export the suite
+SUITE

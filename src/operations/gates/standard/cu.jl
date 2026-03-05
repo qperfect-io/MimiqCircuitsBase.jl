@@ -56,7 +56,7 @@ julia> matrix(GateCU(2.023, 0.5, 0.1, 0.2))
  0.0+0.0im  0.0+0.0im  0.648302+0.546057im   0.369666+0.380622im
 
 julia> c = push!(Circuit(), GateCU(θ, ϕ, λ, γ), 1, 2)
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 1 instruction:
 └── CU(θ,ϕ,λ,γ) @ q[1], q[2]
 
 julia> push!(c, GateCU(π/8, π/2, π/4, π/7), 1, 2)
@@ -74,13 +74,13 @@ julia> power(GateCU(θ, ϕ, λ, γ), 2), inverse(GateCU(θ, ϕ, λ, γ))
 ```jldoctests; setup = :(@variables λ θ ϕ γ)
 julia> decompose(GateCU(θ, λ, ϕ, γ))
 2-qubit circuit with 7 instructions:
-├── P(γ) @ q[1]
-├── P((1//2)*(λ + ϕ)) @ q[1]
-├── P((1//2)*(-λ + ϕ)) @ q[2]
+├── U(0,0,γ) @ q[1]
+├── U(0,0,(λ + ϕ) / 2) @ q[1]
+├── U(0,0,(-λ + ϕ) / 2) @ q[2]
 ├── CX @ q[1], q[2]
-├── U((-1//2)*θ,0,(1//2)*(-λ - ϕ)) @ q[2]
+├── U((-1//2)*θ,0,(-λ - ϕ) / 2) @ q[2]
 ├── CX @ q[1], q[2]
-└── U((1//2)*θ,λ,0) @ q[2]
+└── U(θ / 2,λ,0) @ q[2]
 
 ```
 """
@@ -88,7 +88,9 @@ const GateCU = typeof(Control(1, GateU(π, π, π, π)))
 
 @definename GateCU "CU"
 
-function decompose!(circ::Circuit, g::GateCU, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateCU) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, g::GateCU, qtargets, _, _)
     c, t = qtargets
     op = getoperation(g)
 
@@ -97,13 +99,13 @@ function decompose!(circ::Circuit, g::GateCU, qtargets, _, _)
     λ = op.λ
     γ = op.γ
 
-    push!(circ, GateP(γ), c)
-    push!(circ, GateP((λ + ϕ) / 2), c)
-    push!(circ, GateP((λ - ϕ) / 2), t)
-    push!(circ, GateCX(), c, t)
-    push!(circ, GateU(-θ / 2, 0, -(λ + ϕ) / 2), t)
-    push!(circ, GateCX(), c, t)
-    push!(circ, GateU(θ / 2, ϕ, 0), t)
+    push!(builder, GateP(γ), c)
+    push!(builder, GateP((λ + ϕ) / 2), c)
+    push!(builder, GateP((λ - ϕ) / 2), t)
+    push!(builder, GateCX(), c, t)
+    push!(builder, GateU(-θ / 2, 0, -(λ + ϕ) / 2), t)
+    push!(builder, GateCX(), c, t)
+    push!(builder, GateU(θ / 2, ϕ, 0), t)
 
-    return circ
+    return builder
 end

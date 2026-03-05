@@ -34,7 +34,7 @@ julia> Add(4, 2.0)
 z[?1] += 2.0 + z[?2] + z[?3] + z[?4]
 
 julia> c = push!(Circuit(), Add(3), 1,2,3)
-3-vars circuit with 1 instructions:
+3-vars circuit with 1 instruction:
 └── z[1] += z[2] + z[3]
 
 julia> push!(c, Add(5), 1,2,3,4,5)
@@ -117,7 +117,7 @@ julia> Multiply(4, 2.0)
 z[?1] *= 2.0 * z[?2] * z[?3] * z[?4]
 
 julia> c = push!(Circuit(), Multiply(4), 1,2,3,4)
-4-vars circuit with 1 instructions:
+4-vars circuit with 1 instruction:
 └── z[1] *= z[2] * z[3] * z[4]
 
 julia> push!(c, Multiply(5, 2.0), 1,2,3,4,5)
@@ -190,7 +190,7 @@ julia> Pow(-2.0)
 z[?] = z[?]^(-2.0)
 
 julia> c = push!(Circuit(), Pow(2.0), 1)
-1-vars circuit with 1 instructions:
+1-vars circuit with 1 instruction:
 └── z[1] = z[1]^2.0
 
 julia> push!(c, Pow(-2.0), 1)

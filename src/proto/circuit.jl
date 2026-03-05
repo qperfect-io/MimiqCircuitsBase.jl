@@ -1,6 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
-# Copyright © 2023-2025 QPerfect. All Rights Reserved.
+# Copyright © 2023-2026 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,28 +40,40 @@ function fromproto(x::circuit_pb.Irrational.T)
     error("Cannot convert $(x) into an irrational number")
 end
 
+function toproto_number(v::Number)
+    if v isa Irrational
+        return circuit_pb.Arg(OneOf(:irrational_value, toproto(v)))
+    end
+
+    if v isa Integer
+        vv = OneOf(:integer_value, Int64(v))
+    elseif v isa AbstractFloat
+        vv = OneOf(:double_value, Float64(v))
+    elseif v isa Bool
+        vv = OneOf(:bool_value, Bool(v))
+    end
+
+    return circuit_pb.Arg(OneOf(:argvalue_value, circuit_pb.ArgValue(vv)))
+end
+
 function toproto(g::Num)
     v = Symbolics.value(g)
 
+    # check for constant number
     if !(v isa Num)
-        if v isa SymbolicUtils.BasicSymbolic{<:Irrational}
-            vv = toproto(SymbolicUtils.arguments(v)[1])
-            return circuit_pb.Arg(OneOf(:irrational_value, vv))
-        elseif v isa Number
-            if v isa Integer
-                vv = OneOf(:integer_value, Int64(v))
-            elseif v isa AbstractFloat
-                vv = OneOf(:double_value, Float64(v))
-            elseif v isa Bool
-                vv = OneOf(:bool_value, Bool(v))
-            end
-
-            return circuit_pb.Arg(OneOf(:argvalue_value, circuit_pb.ArgValue(vv)))
-        end
+        vv = simplify(v)
+        vvc = unwrap_const(vv)
+        vvc isa Number && return toproto_number(vvc)
     end
 
-    pt = toproto(v)
+    # check for something that can be evaluated to a number
+    if iscall(v)
+        vv = Symbolics.value(Symbolics.symbolic_to_float(v))
+        vv isa Number && return toproto_number(vv)
+    end
 
+    # everything else is symbolic (functions or symbols)
+    pt = toproto(v)
     if pt isa circuit_pb.ArgFunction
         return circuit_pb.Arg(OneOf(:argfunction_value, pt))
     end
@@ -142,7 +154,7 @@ function fromproto(g::circuit_pb.ComplexArg)
 end
 
 function fromproto(g::circuit_pb.Symbol)
-    return Symbolics.Sym{Real}(Symbol(g.value))
+    return Symbolics.Sym{SymbolicUtils.SymReal}(Symbol(g.value); type=Real)
 end
 
 const GATEMAP = Bijection(Dict(
@@ -187,7 +199,7 @@ const GENERALIZEDGATEMAP = Bijection(Dict(
 
 function fromproto(op::circuit_pb.Gate, declcache=nothing)
     oop = op.gate[]
-    if hasmethod(fromproto, Tuple{typeof(oop), typeof(declcache)})
+    if hasmethod(fromproto, Tuple{typeof(oop),typeof(declcache)})
         return fromproto(oop, declcache)
     end
     return fromproto(oop)
@@ -248,8 +260,8 @@ function fromproto(g::circuit_pb.CustomGate)
 end
 
 function toproto(decl::GateDecl, declcache=nothing)
-    instructions = map(inst -> toproto(inst, declcache), decl.instructions)
-    args = map(toproto, decl.arguments)
+    instructions = map(inst -> toproto(inst, declcache), decl._instructions)
+    args = map(toproto, decl._arguments)
     return circuit_pb.GateDecl(string(decl.name), collect(args), instructions)
 end
 
@@ -334,13 +346,13 @@ function fromproto(g::circuit_pb.Inverse, declcache=nothing)
     return Inverse(op)
 end
 
-function toproto(g::Parallel{N}) where {N}
-    op = circuit_pb.Gate(_build_oneof(g.op))
+function toproto(g::Parallel{N}, declcache=nothing) where {N}
+    op = circuit_pb.Gate(_build_oneof(g.op, declcache))
     return circuit_pb.Parallel(op, N)
 end
 
-function fromproto(g::circuit_pb.Parallel)
-    op = fromproto(g.operation)
+function fromproto(g::circuit_pb.Parallel, declcache=nothing)
+    op = fromproto(g.operation, declcache)
     return Parallel(g.numrepeats, op)
 end
 
@@ -506,17 +518,23 @@ const OPERATIONMAP = Bijection(Dict(
     VonNeumannEntropy => circuit_pb.OperationType.VonNeumannEntropy,
     Not => circuit_pb.OperationType.Not,
     Pow => circuit_pb.OperationType.Pow,
+    SetBit0 => circuit_pb.OperationType.SetBit0,
+    SetBit1 => circuit_pb.OperationType.SetBit1,
 ))
 
 const GENERALIZEDOPERATIONMAP = Bijection(Dict(
     Barrier => circuit_pb.GeneralizedOperationType.Barrier,
     Add => circuit_pb.GeneralizedOperationType.Add,
     Multiply => circuit_pb.GeneralizedOperationType.Multiply,
+    And => circuit_pb.GeneralizedOperationType.And,
+    Or => circuit_pb.GeneralizedOperationType.Or,
+    Xor => circuit_pb.GeneralizedOperationType.Xor,
+    ParityCheck => circuit_pb.GeneralizedOperationType.ParityCheck,
 ))
 
 function fromproto(op::circuit_pb.Operation, declcache)
     oop = op.operation[]
-    if hasmethod(fromproto, Tuple{typeof(oop), typeof(declcache)})
+    if hasmethod(fromproto, Tuple{typeof(oop),typeof(declcache)})
         return fromproto(oop, declcache)
     else
         return fromproto(oop)
@@ -559,6 +577,14 @@ function fromproto(g::circuit_pb.GeneralizedOperation)
         return Add(nz, params...)
     elseif g.mtype == circuit_pb.GeneralizedOperationType.Multiply
         return Multiply(nz, params...)
+    elseif g.mtype == circuit_pb.GeneralizedOperationType.And
+        return And(nb)
+    elseif g.mtype == circuit_pb.GeneralizedOperationType.Or
+        return Or(nb)
+    elseif g.mtype == circuit_pb.GeneralizedOperationType.Xor
+        return Xor(nb)
+    elseif g.mtype == circuit_pb.GeneralizedOperationType.ParityCheck
+        return ParityCheck(nb)
     else
         error(lazy"Unsupported ProtoBuf GeneralizedOperation type $(g.mtype).")
     end
@@ -688,6 +714,14 @@ function fromproto(r::circuit_pb.Repeat, declcache=nothing)
     return Repeat(r.numrepeats, op)
 end
 
+function toproto(g::ReadoutErr)
+    return circuit_pb.ReadoutErr(toproto(g.p0), toproto(g.p1))
+end
+
+function fromproto(g::circuit_pb.ReadoutErr)
+    return ReadoutErr(fromproto(g.p0), fromproto(g.p1))
+end
+
 function toproto(inst::Instruction, declcache=nothing)
     op = circuit_pb.Operation(_build_oneof(getoperation(inst), declcache))
     return circuit_pb.Instruction(op, Int64[getqubits(inst)...], Int64[getbits(inst)...,], Int64[getztargets(inst)...])
@@ -698,7 +732,7 @@ function fromproto(inst::circuit_pb.Instruction, declcache=nothing)
     return Instruction(op, inst.qtargets..., inst.ctargets..., inst.ztargets...)
 end
 
-function toproto(circuit::Circuit)
+function toproto(circuit::AbstractCircuit{Instruction})
     declorder = UInt64[]
     declcache = Dict{UInt64,circuit_pb.Declaration}()
     instructions = map(inst -> toproto(inst, (declcache, declorder)), circuit)
@@ -777,5 +811,6 @@ function _build_oneof(gop, declcache=nothing)
     op isa circuit_pb.Repeat ? OneOf(:repeat, op) :
     op isa circuit_pb.Block ? OneOf(:block, op) :
     op isa circuit_pb.GateDecl ? OneOf(:gatedecl, op) :
+    op isa circuit_pb.ReadoutErr ? OneOf(:readouterr, op) :
     throw(ArgumentError(lazy"Cannot wrap a `$(typeof(op))` into a ProtoBuf `OneOf`."))
 end

@@ -50,15 +50,15 @@ See also [`MixedUnitary`](@ref), [`AbstractKrausChannel`](@ref).
 
 ```jldoctests
 julia> push!(Circuit(), Kraus([[1 0; 0 sqrt(0.9)], [0 sqrt(0.1); 0 0]]), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── Kraus(Operator([1.0 0.0; 0.0 0.948683]), Operator([0.0 0.316228; 0.0 0.0])) @ q[1]
 
 julia> push!(Circuit(), Kraus([Projector0(), Projector1()]), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── Kraus(Projector0(1), Projector1(1)) @ q[1]
 
 julia> push!(Circuit(), Kraus([[1 0; 0 0], Projector1()]), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── Kraus(Operator([1.0 0.0; 0.0 0.0]), Projector1(1)) @ q[1]
 
 julia> @variables x
@@ -72,10 +72,10 @@ julia> evaluate(g,Dict(x=>1))
 Kraus(Projector0(1), Projector1(1))
 
 julia> g = Kraus([[1 0; 0 sqrt(0.9)], [0 sqrt(0.1); 0 x]])
-Kraus(Operator([1.0 0.0; 0.0 0.948683]), Operator([0 0.316228; 0 x]))
+Kraus(Operator([1.0 0.0; 0.0 0.948683]), Operator(Real[0 0.316228; 0 x]))
 
 julia> evaluate(g,Dict(x=>0))
-Kraus(Operator([1.0 0.0; 0.0 0.948683]), Operator([0 0.316228; 0 0]))
+Kraus(Operator([1.0 0.0; 0.0 0.948683]), Operator(Real[0 0.316228; 0 0]))
 ```
 """
 struct Kraus{N} <: AbstractKrausChannel{N}
@@ -93,13 +93,13 @@ struct Kraus{N} <: AbstractKrausChannel{N}
 
         # Helper function to detect symbolic elements in a matrix
         function contains_symbolic_elements(matrix)
-            any(x -> !isreal(Symbolics.value(x)), matrix)
+            any(x -> issymbolic(x), matrix)
         end
 
         # Check if all matrices are non-symbolic, and apply normalization if so
-        if !any(contains_symbolic_elements(matrix) for matrix in matrix.(E))
+        if !any(issymbolic, E)
             # Perform normalization check only for purely numeric matrices
-            ksum = sum(adjoint(Ek) * Ek for Ek in matrix.(E))
+            ksum = sum(adjoint(Ek) * Ek for Ek in unwrappedmatrix.(E))
             if !isapprox(ksum, Matrix(I, M, M), rtol=1e-12)
                 throw(ArgumentError("List of Kraus matrices should fulfill ``\\sum_k E_k^\\dagger E_k = I``."))
             end
@@ -112,9 +112,15 @@ end
 function evaluate(k::Kraus, d::Dict=Dict())
     evaluated_E = [
         x isa Operator ?
-        Operator(map(y -> Symbolics.substitute(y, d), x.O)) :  # For matrix-based operators
+        Operator(map(x.O) do y
+            value = Symbolics.substitute(y, d)
+            issymbolic(value) ? value : unwrapvalue(value)
+        end) :  # For matrix-based operators
         x isa AbstractOperator ?
-        map(y -> Symbolics.substitute(y, d), getparams(x)) |> (args -> typeof(x)(args...)) :
+        map(getparams(x)) do y
+            value = Symbolics.substitute(y, d)
+            issymbolic(value) ? value : unwrapvalue(value)
+        end |> (args -> typeof(x)(args...)) :
         x  # Leave other operators unchanged
         for x in k.E
     ]
@@ -122,7 +128,6 @@ function evaluate(k::Kraus, d::Dict=Dict())
     # Return a new Kraus instance with evaluated operators
     return Kraus(evaluated_E)
 end
-
 
 function Kraus(E::Vector{<:AbstractOperator})
     if isempty(E)
@@ -176,4 +181,10 @@ function Base.show(io::IO, kraus::Kraus)
     end
 
     print(io, ")")
+end
+
+function Base.:(==)(left::Kraus, right::Kraus)
+    typeof(left) == typeof(right) || return false
+    krausoperators(left) == krausoperators(right) || return false
+    return true
 end

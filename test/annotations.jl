@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 using Base: show_signature_function
-using Test
 
 @testset "Detector" begin
     @testset "ProtoBuf" begin

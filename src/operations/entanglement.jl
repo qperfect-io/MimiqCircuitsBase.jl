@@ -47,7 +47,7 @@ returned will always be 1.
 julia> k = 5;
 
 julia> c = push!(Circuit(), BondDim(), k, 1)
-5-qubit, 1-vars circuit with 1 instructions:
+5-qubit, 1-vars circuit with 1 instruction:
 └── BondDim @ q[5], z[1]
 
 ```
@@ -96,7 +96,7 @@ always return 0.
 julia> k = 5;
 
 julia> c = push!(Circuit(), VonNeumannEntropy(), k, 1)
-5-qubit, 1-vars circuit with 1 instructions:
+5-qubit, 1-vars circuit with 1 instruction:
 └── VonNeumannEntropy @ q[5], z[1]
 
 ```
@@ -143,7 +143,7 @@ always return 1.
 julia> k = 5;
 
 julia> c = push!(Circuit(), SchmidtRank(), k, 1)
-5-qubit, 1-vars circuit with 1 instructions:
+5-qubit, 1-vars circuit with 1 instruction:
 └── SchmidtRank @ q[5], z[1]
 
 ```

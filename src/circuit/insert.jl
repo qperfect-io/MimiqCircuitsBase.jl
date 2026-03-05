@@ -53,7 +53,7 @@ julia> insert!(c, 1, GateCX(), 1, 3)
 ```
 """
 
-function Base.insert!(c::Circuit, i::Integer, g::Operation{N,M,L}, targets::Vararg{Integer,K}) where {N,M,L,K}
+function Base.insert!(c::AbstractCircuit{Instruction}, i::Integer, g::Operation{N,M,L}, targets::Vararg{Integer,K}) where {N,M,L,K}
     if g isa AbstractOperator && !(g isa AbstractGate)
         throw(ArgumentError("Cannot insert an AbstractOperator $(g) that is not an AbstractGate to the circuit."))
     end
@@ -104,7 +104,7 @@ julia> insert!(c, 3, GateRX(π/2), 5)
 └── X @ q[4]
 ```
 """
-function Base.insert!(c::Circuit, i::Integer, ::Type{T}, targets...) where {T<:Operation}
+function Base.insert!(c::AbstractCircuit{Instruction}, i::Integer, ::Type{T}, targets...) where {T<:Operation}
     if numparams(T) != 0
         error("Parametric type. Use `insert!(c, i, T(args...), targets...)` instead.")
     end

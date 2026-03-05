@@ -44,7 +44,7 @@ julia> Projector0(0.5)
 P₀(0.5)
 
 julia> push!(Circuit(), ExpectationValue(Projector0()), 1, 1)
-1-qubit, 1-vars circuit with 1 instructions:
+1-qubit, 1-vars circuit with 1 instruction:
 └── ⟨P₀(1)⟩ @ q[1], z[1]
 ```
 """
@@ -88,7 +88,7 @@ julia> Projector1(0.5)
 P₁(0.5)
 
 julia> push!(Circuit(), ExpectationValue(Projector1()), 1, 1)
-1-qubit, 1-vars circuit with 1 instructions:
+1-qubit, 1-vars circuit with 1 instruction:
 └── ⟨P₁(1)⟩ @ q[1], z[1]
 ```
 """
@@ -148,7 +148,7 @@ julia> ProjectorX0(0.5)
 PX₀(0.5)
 
 julia> push!(Circuit(), ExpectationValue(ProjectorX0()), 1, 1)
-1-qubit, 1-vars circuit with 1 instructions:
+1-qubit, 1-vars circuit with 1 instruction:
 └── ⟨PX₀(1)⟩ @ q[1], z[1]
 ```
 """
@@ -192,7 +192,7 @@ julia> ProjectorX1(0.5)
 PX₁(0.5)
 
 julia> push!(Circuit(), ExpectationValue(ProjectorX1()), 1, 1)
-1-qubit, 1-vars circuit with 1 instructions:
+1-qubit, 1-vars circuit with 1 instruction:
 └── ⟨PX₁(1)⟩ @ q[1], z[1]
 ```
 """
@@ -235,7 +235,7 @@ julia> ProjectorY0(0.5)
 PY₀(0.5)
 
 julia> push!(Circuit(), ExpectationValue(ProjectorY0()), 1, 1)
-1-qubit, 1-vars circuit with 1 instructions:
+1-qubit, 1-vars circuit with 1 instruction:
 └── ⟨PY₀(1)⟩ @ q[1], z[1]
 ```
 """
@@ -278,7 +278,7 @@ julia> ProjectorY1(0.5)
 PY₁(0.5)
 
 julia> push!(Circuit(), ExpectationValue(ProjectorY1()), 1, 1)
-1-qubit, 1-vars circuit with 1 instructions:
+1-qubit, 1-vars circuit with 1 instruction:
 └── ⟨PY₁(1)⟩ @ q[1], z[1]
 ```
 """
@@ -323,7 +323,7 @@ julia> Projector00(0.5)
 P₀₀(0.5)
 
 julia> push!(Circuit(), ExpectationValue(Projector00()), 1, 2, 1)
-2-qubit, 1-vars circuit with 1 instructions:
+2-qubit, 1-vars circuit with 1 instruction:
 └── ⟨P₀₀(1)⟩ @ q[1:2], z[1]
 
 ```
@@ -369,7 +369,7 @@ julia> Projector01(0.5)
 P₀₁(0.5)
 
 julia> push!(Circuit(), ExpectationValue(Projector01()), 1, 2, 1)
-2-qubit, 1-vars circuit with 1 instructions:
+2-qubit, 1-vars circuit with 1 instruction:
 └── ⟨P₀₁(1)⟩ @ q[1:2], z[1]
 
 ```
@@ -415,7 +415,7 @@ julia> Projector10(0.5)
 P₁₀(0.5)
 
 julia> push!(Circuit(), ExpectationValue(Projector10()), 1, 2, 1)
-2-qubit, 1-vars circuit with 1 instructions:
+2-qubit, 1-vars circuit with 1 instruction:
 └── ⟨P₁₀(1)⟩ @ q[1:2], z[1]
 
 ```
@@ -461,7 +461,7 @@ julia> Projector11(0.5)
 P₁₁(0.5)
 
 julia> push!(Circuit(), ExpectationValue(Projector11()), 1, 2, 1)
-2-qubit, 1-vars circuit with 1 instructions:
+2-qubit, 1-vars circuit with 1 instruction:
 └── ⟨P₁₁(1)⟩ @ q[1:2], z[1]
 
 ```

@@ -1,28 +1,33 @@
 name = "MimiqCircuitsBase"
 uuid = "3a95eabf-73f4-453e-aae8-8a11a27ac032"
+version = "0.21.1"
 authors = ["Guido Masella <guido.masella@gmail.com>"]
-version = "0.17.3"
 
 [deps]
 Bijections = "e2ed5e7c-b2de-5872-ae92-c73ca462fb04"
 CodecZlib = "944b1d66-785c-5afd-91f1-9de20f533193"
+Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
+InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Measures = "442fdcdd-2543-5da2-b0f3-8c86c306513e"
+NearestNeighbors = "b8a86587-4115-5ab1-83bc-aa920d37bbce"
 ProtoBuf = "3349acd9-ac6a-5e09-bcdb-63829b23a429"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 SymbolicUtils = "d1185830-fcd6-423d-90d6-eec64667417b"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 
-[weakdeps]
-Quantikz = "b0d11df0-eea3-4d79-b4a5-421488cbf74b"
-
-[extensions]
-MimiqCircuitsBaseQuantikzExt = "Quantikz"
-
 [compat]
+Graphs = "1"
+InteractiveUtils = "1"
+NearestNeighbors = "0.4"
+ProtoBuf = "~1.2"
+StaticArrays = "~1.9"
+SymbolicUtils = "4"
+Symbolics = "7"
 julia = "1.6"
 
 [extras]

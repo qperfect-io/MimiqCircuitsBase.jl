@@ -17,8 +17,6 @@
 using Test
 
 @testset "PauliString gate" begin
-    @test isdefined(MimiqCircuitsBase, :PauliString)
-
     # N=1
     pstrings = ["I", "X", "Y", "Z"]
     pmats = matrix.([GateID(), GateX(), GateY(), GateZ()])
@@ -46,7 +44,7 @@ using Test
 
     # Decompose
     pauli = PauliString("IXYZ")
-    dec = decompose(pauli)
+    dec = decompose_step(pauli)
 
     c = Circuit()
     push!(c, GateID(), 1)

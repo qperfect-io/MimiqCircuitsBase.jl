@@ -18,6 +18,7 @@ using Random
 using LinearAlgebra
 using MimiqCircuitsBase
 using Symbolics
+using Test
 
 Random.seed!(20230501)
 
@@ -214,7 +215,7 @@ end
     checkcustomgate(1, ComplexF64)
     checkcustomgate(2, ComplexF64)
 
-    @test_throws "larger than 2 qubits" checkcustomgate(3, ComplexF64)
+    checkcustomgate(3, ComplexF64)
 end
 
 @testset "Rotations" begin

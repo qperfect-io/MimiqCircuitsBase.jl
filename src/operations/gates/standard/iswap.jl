@@ -48,7 +48,7 @@ julia> matrix(GateISWAP())
  0.0+0.0im  0.0+0.0im  0.0+0.0im  1.0+0.0im
 
 julia> c = push!(Circuit(), GateISWAP(), 1, 2)
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 1 instruction:
 └── ISWAP @ q[1:2]
 
 julia> push!(c, GateISWAP, 3, 4)
@@ -66,12 +66,12 @@ julia> power(GateISWAP(), 2), inverse(GateISWAP())
 ```jldoctest
 julia> decompose(GateISWAP())
 2-qubit circuit with 6 instructions:
-├── S @ q[1]
-├── S @ q[2]
-├── H @ q[1]
+├── U(0,0,π/2) @ q[1]
+├── U(0,0,π/2) @ q[2]
+├── U(π/2,0,π) @ q[1]
 ├── CX @ q[1], q[2]
 ├── CX @ q[2], q[1]
-└── H @ q[2]
+└── U(π/2,0,π) @ q[2]
 
 ```
 """
@@ -81,14 +81,40 @@ struct GateISWAP <: AbstractGate{2} end
 
 opname(::Type{GateISWAP}) = "ISWAP"
 
-function decompose!(circ::Circuit, ::GateISWAP, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateISWAP) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::GateISWAP, qtargets, _, _)
     a, b = qtargets
-    push!(circ, GateS(), a)
-    push!(circ, GateS(), b)
-    push!(circ, GateH(), a)
-    push!(circ, GateCX(), a, b)
-    push!(circ, GateCX(), b, a)
-    push!(circ, GateH(), b)
-    return circ
+    push!(builder, GateS(), a)
+    push!(builder, GateS(), b)
+    push!(builder, GateH(), a)
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateCX(), b, a)
+    push!(builder, GateH(), b)
+    return builder
 end
 
+
+"""
+    GateISWAPDG()
+
+Two qubit ISWAP† gate.
+
+See also [`GateISWAP`](@ref).
+"""
+const GateISWAPDG = typeof(inverse(GateISWAP()))
+
+@generated _matrix(::Type{GateISWAPDG}) = Complex{Float64}[1 0 0 0; 0 0 -im 0; 0 -im 0 0; 0 0 0 1]
+
+matches(::CanonicalRewrite, ::GateISWAPDG) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::GateISWAPDG, qtargets, _, _)
+    a, b = qtargets
+    push!(builder, GateSDG(), a)
+    push!(builder, GateSDG(), b)
+    push!(builder, GateH(), a)
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateCX(), b, a)
+    push!(builder, GateH(), b)
+    return builder
+end

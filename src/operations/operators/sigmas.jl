@@ -43,7 +43,7 @@ julia> SigmaMinus(0.5)
 SigmaMinus(0.5)
 
 julia> push!(Circuit(), ExpectationValue(SigmaMinus()), 1, 1)
-1-qubit, 1-vars circuit with 1 instructions:
+1-qubit, 1-vars circuit with 1 instruction:
 └── ⟨SigmaMinus(1)⟩ @ q[1], z[1]
 ```
 """
@@ -88,7 +88,7 @@ julia> SigmaPlus(0.5)
 SigmaPlus(0.5)
 
 julia> push!(Circuit(), ExpectationValue(SigmaPlus()), 1, 1)
-1-qubit, 1-vars circuit with 1 instructions:
+1-qubit, 1-vars circuit with 1 instruction:
 └── ⟨SigmaPlus(1)⟩ @ q[1], z[1]
 ```
 """

@@ -35,26 +35,32 @@ julia> Repeat(2, Repeat(3, GateX()))
 
 ## Decomposition
 
-A repeated operation is decomposed by just repeating the same operation multiple times
+A repeated operation is decomposed by repeating the same operation multiple times
 
 ```jldoctests
 julia> decompose(Repeat(2, GateX()))
 1-qubit circuit with 2 instructions:
-├── X @ q[1]
-└── X @ q[1]
+├── U(π,0,π) @ q[1]
+└── U(π,0,π) @ q[1]
 
 julia> decompose(Repeat(3, GateSWAP()))
-2-qubit circuit with 3 instructions:
-├── SWAP @ q[1:2]
-├── SWAP @ q[1:2]
-└── SWAP @ q[1:2]
+2-qubit circuit with 9 instructions:
+├── CX @ q[1], q[2]
+├── CX @ q[2], q[1]
+├── CX @ q[1], q[2]
+├── CX @ q[1], q[2]
+├── CX @ q[2], q[1]
+├── CX @ q[1], q[2]
+├── CX @ q[1], q[2]
+├── CX @ q[2], q[1]
+└── CX @ q[1], q[2]
 ```
 
 # Using `repeat`
 
 The repeat function is a shorthand for creating a `Repeat` operation. The main
 difference  between using `repeat` and `Repeat` is that the former tries to
-infer any simplification that can be done on the operation before actually
+infer any simplification that can be done on the operation before
 creating a `Repeat` operation.
 
 !!! warn
@@ -122,12 +128,14 @@ function _matrix(::Type{Repeat{R,N,M,L,T}}, args...) where {R,N,M,L,T}
     return mat^R
 end
 
-function decompose!(circ::Circuit, p::Repeat, qtargets, ctargets, ztargets)
+matches(::CanonicalRewrite, ::Repeat) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, p::Repeat, qtargets, ctargets, ztargets)
     op = getoperation(p)
     for _ in 1:numrepeats(p)
-        push!(circ, op, qtargets..., ctargets..., ztargets...)
+        push!(builder, op, qtargets..., ctargets..., ztargets...)
     end
-    return circ
+    return builder
 end
 
 Base.repeat(numrepeats::Integer, op::Operation) = Repeat(numrepeats, op)
@@ -150,3 +158,9 @@ function Base.show(io::IO, m::MIME"text/plain", p::Repeat)
 end
 
 isunitary(op::Repeat) = isunitary(getoperation(op))
+
+function Base.:(==)(p1::Repeat, p2::Repeat)
+    numrepeats(p1) == numrepeats(p2) || return false
+    getoperation(p1) == getoperation(p2) || return false
+    return true
+end

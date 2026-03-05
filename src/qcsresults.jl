@@ -98,6 +98,54 @@ function _helper_rounderror(err)
     ceil(err; sigdigits=8)
 end
 
+function _format_duration(t::Real)
+    if iszero(t)
+        return "0s"
+    end
+
+    rt = round(t; sigdigits=3)
+
+    if rt >= 1
+        minutes = floor(Int, rt / 60)
+        seconds = rt % 60
+
+        hours = floor(Int, minutes / 60)
+        minutes = minutes % 60
+
+        days = floor(Int, hours / 24)
+        hours = hours % 24
+
+        strings = []
+        if days > 0
+            push!(strings, "$(days)d")
+        end
+        if hours > 0
+            push!(strings, "$(hours)h")
+        end
+        if minutes > 0
+            push!(strings, "$(minutes)m")
+        end
+        if seconds > 0
+            push!(strings, "$(seconds)s")
+        end
+
+        return join(strings, " ")
+    elseif rt >= 1e-3
+        return "$(round(rt * 1e3; sigdigits=3))ms"
+    elseif rt >= 1e-6
+        return "$(round(rt * 1e6; sigdigits=3))μs"
+    else
+        return "$(round(rt * 1e9; sigdigits=3))ns"
+    end
+
+end
+
+function _get_sorted_timings(timings)
+    valid_timings = collect(filter(((k, v),) -> v > 1e-7, timings))
+    sort!(valid_timings, by=x -> (x[1] == "total" ? 2 : 1, x[1]))
+    return valid_timings
+end
+
 function Base.show(io::IO, ::MIME"text/plain", r::QCSResults)
     print(io, typeof(r))
     println(io, ":")
@@ -113,11 +161,11 @@ function Base.show(io::IO, ::MIME"text/plain", r::QCSResults)
 
     if !isempty(r.timings)
         println(io, "├── timings:")
-        timings = collect(filter(((k, v),) -> v > 1e-7, r.timings))
+        timings = _get_sorted_timings(r.timings)
         for (k, v) in timings[1:end-1]
-            println(io, "│   ├── $k time: $(v)s")
+            println(io, "│   ├── $k time: $(_format_duration(v))")
         end
-        println(io, "│   └── $(timings[end][1]) time: $(timings[end][2])s")
+        println(io, "│   └── $(timings[end][1]) time: $(_format_duration(timings[end][2]))")
     end
 
     if length(r.fidelities) == 1
@@ -192,8 +240,8 @@ function Base.show(io::IO, ::MIME"text/html", r::QCSResults)
 
     print(io, "<tr><td colspan=2 align=\"center\"><strong>Timings</strong></td></tr>")
 
-    for (k, v) in filter(((k, v),) -> v > 1e-7, r.timings)
-        print(io, "<tr><td>", k, " time</td><td>", v, "s</td></tr>")
+    for (k, v) in _get_sorted_timings(r.timings)
+        print(io, "<tr><td>", k, " time</td><td>", _format_duration(v), "</td></tr>")
     end
 
     if !isempty(r.fidelities)

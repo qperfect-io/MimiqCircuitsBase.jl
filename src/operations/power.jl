@@ -60,18 +60,18 @@ If the exponent is an integer, then the gate is decomposed by repeating it.
 ```jldoctests
 julia> decompose(Power(GateH(), 2))
 1-qubit circuit with 2 instructions:
-├── H @ q[1]
-└── H @ q[1]
+├── U(π/2,0,π) @ q[1]
+└── U(π/2,0,π) @ q[1]
 
 julia> decompose(Power(GateH(), 1//2))
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── U(1.0471975511966005,-0.9553166181245096,2.1862760354652835,0.16991845472706107) @ q[1]
 
 julia> decompose(Power(GateX(), 1//2)) # same as decomposing GateSX
 1-qubit circuit with 4 instructions:
-├── S† @ q[1]
-├── H @ q[1]
-├── S† @ q[1]
+├── U(0,0,-1π/2) @ q[1]
+├── U(π/2,0,π) @ q[1]
+├── U(0,0,-1π/2) @ q[1]
 └── U(0,0,0,π/4) @ q[1]
 ```
 """
@@ -142,28 +142,39 @@ exponent(::Power{P}) where {P} = P
 
 _matrix(::Type{Power{P,N,T}}, args...) where {P,N,T} = Matrix(complex(_matrix(T, args...))^P)
 
-function decompose!(circ::Circuit, pwr::Power{P,N,T}, qtargets, _, _) where {P,N,T}
+matches(::CanonicalRewrite, pwr::Power) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, pwr::Power, qtargets, _, _)
     op = getoperation(pwr)
 
     if exponent(pwr) isa Integer
         for _ in 1:exponent(pwr)
-            push!(circ, op, qtargets...)
+            push!(builder, op, qtargets...)
         end
-        return circ
+        return builder
     end
 
-    # try to decompose,
-    # if there is only a gate, maybe it is ok
-    # if the gates are all diagonal then we can continue
-    # otherwise just do nothing and push the same thing
-    cop = decompose!(Circuit(), op, qtargets, (), ())
+    # Try to decompose.
+    # If the decomposition results in a single gate, we can power it directly if possible.
+
+    # Use decompose() to get 1-level or deep decomposition
+    cop = decompose_step(op)
 
     if length(cop) == 1
-        push!(circ, power(getoperation(cop[1]), P), getqubits(cop[1])...)
-        return circ
+        # Remap is implicit because cop[1] acts on 1..N and we have qtargets
+        # But wait, Power acts on qtargets. Inner op acts on qtargets.
+        # We need to construct the new op.
+
+        # If decomposed is a single gate, we power it.
+        # But we need its parameters.
+        new_op = power(getoperation(cop[1]), exponent(pwr))
+
+        # We push this new op to qtargets
+        push!(builder, new_op, qtargets...)
+        return builder
     end
 
-    error("Cannnot decompose $pwr.")
+    error("Cannot decompose $pwr.")
 end
 
 function Base.show(io::IO, op::Power)
@@ -184,4 +195,10 @@ function Base.show(io::IO, m::MIME"text/plain", op::Power)
     else
         print(io, "^(", exp, ')')
     end
+end
+
+function Base.:(==)(p1::Power{P1,N,T1}, p2::Power{P2,N,T2}) where {P1,P2,N,T1,T2}
+    exponent(p1) == exponent(p2) || return false
+    getoperation(p1) == getoperation(p2) || return false
+    return true
 end

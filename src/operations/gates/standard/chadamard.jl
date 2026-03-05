@@ -51,7 +51,7 @@ julia> matrix(GateCH())
  0.0  0.0  0.707107  -0.707107
 
 julia> c = push!(Circuit(), GateCH(), 1, 2)
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 1 instruction:
 └── CH @ q[1], q[2]
 
 julia> power(GateCH(), 2), inverse(GateCH())
@@ -64,13 +64,13 @@ julia> power(GateCH(), 2), inverse(GateCH())
 ```jldoctests
 julia> decompose(GateCH())
 2-qubit circuit with 7 instructions:
-├── S @ q[2]
-├── H @ q[2]
-├── T @ q[2]
+├── U(0,0,π/2) @ q[2]
+├── U(π/2,0,π) @ q[2]
+├── U(0,0,π/4) @ q[2]
 ├── CX @ q[1], q[2]
-├── T† @ q[2]
-├── H @ q[2]
-└── S† @ q[2]
+├── U(0,0,-1π/4) @ q[2]
+├── U(π/2,0,π) @ q[2]
+└── U(0,0,-1π/2) @ q[2]
 
 ```
 """
@@ -78,16 +78,16 @@ const GateCH = Control{1,1,2,GateH}
 
 @definename GateCH "CH"
 
-function decompose!(circ::Circuit, ::GateCH, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateCH) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::GateCH, qtargets, _, _)
     a, b = qtargets
-
-    push!(circ, GateS(), b)
-    push!(circ, GateH(), b)
-    push!(circ, GateT(), b)
-    push!(circ, GateCX(), a, b)
-    push!(circ, GateTDG(), b)
-    push!(circ, GateH(), b)
-    push!(circ, GateSDG(), b)
-
-    return circ
+    push!(builder, GateS(), b)
+    push!(builder, GateH(), b)
+    push!(builder, GateT(), b)
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateTDG(), b)
+    push!(builder, GateH(), b)
+    push!(builder, GateSDG(), b)
+    return builder
 end

@@ -51,15 +51,15 @@ and for any number of Pauli strings.
 
 ```jldoctests
 julia> push!(Circuit(), PauliNoise([0.8, 0.1, 0.1], ["I","X","Y"]), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── PauliNoise(...) @ q[1]
 
 julia> push!(Circuit(), PauliNoise([0.9, 0.1], ["XY","II"]), 1, 2)
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 1 instruction:
 └── PauliNoise(...) @ q[1:2]
 
 julia> push!(Circuit(), PauliNoise([0.5, 0.2, 0.2, 0.1], ["IXIX","XYXY","ZZZZ","IXYZ"]), 1, 2, 3, 4)
-4-qubit circuit with 1 instructions:
+4-qubit circuit with 1 instruction:
 └── PauliNoise(...) @ q[1:4]
 ```
 """
@@ -93,17 +93,19 @@ struct PauliNoise{N} <: AbstractKrausChannel{N}
 end
 
 function evaluate(pn::PauliNoise, d::Dict=Dict())
-    evaluated_p = [Symbolics.substitute(prob, d) for prob in pn.p]
-    concrete_values = [Symbolics.value(prob) for prob in evaluated_p]
-    
-    all_concrete = all(x -> x isa Real, concrete_values)
-    
+    evaluated_p = map(pn.p) do prob
+        value = Symbolics.substitute(prob, d)
+        issymbolic(value) ? value : unwrapvalue(value)
+    end
+
+    all_concrete = all(x -> x isa Real, evaluated_p)
+
     if all_concrete
-        if any(x -> x < 0 || x > 1, concrete_values)
+        if any(x -> x < 0 || x > 1, evaluated_p)
             throw(ArgumentError("All probabilities should be between 0 and 1 after evaluation."))
         end
 
-        if !isapprox(sum(concrete_values), 1, rtol=1e-8)
+        if !isapprox(sum(evaluated_p), 1, rtol=1e-8)
             throw(ArgumentError("List of probabilities should add up to 1 after evaluation."))
         end
     end
@@ -178,7 +180,7 @@ and is a special case of [`PauliNoise`](@ref).
 
 ```jldoctests
 julia> push!(Circuit(), PauliX(0.1), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── PauliX(0.1) @ q[1]
 ```
 """
@@ -196,14 +198,14 @@ end
 
 function evaluate(gad::PauliX, d::Dict=Dict())
     evaluated_p = Symbolics.substitute(gad.p, d)
-    concrete_value =  Symbolics.value(evaluated_p)
-  
-    if (concrete_value isa Real)
+
+    if !issymbolic(evaluated_p)
+        concrete_value = unwrapvalue(evaluated_p)
         if concrete_value < 0 || concrete_value > 1
             throw(ArgumentError("Probability p must be between 0 and 1 after evaluation."))
         end
-        return PauliZ(concrete_value)
-        
+        return PauliX(concrete_value)
+
     elseif evaluated_p isa Symbolics.Num
         return PauliX(evaluated_p)
     end
@@ -239,7 +241,7 @@ and is a special case of [`PauliNoise`](@ref).
 
 ```jldoctests
 julia> push!(Circuit(), PauliY(0.1), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── PauliY(0.1) @ q[1]
 ```
 """
@@ -257,14 +259,14 @@ end
 
 function evaluate(gad::PauliY, d::Dict=Dict())
     evaluated_p = Symbolics.substitute(gad.p, d)
-    concrete_value =  Symbolics.value(evaluated_p)
-  
-    if (concrete_value isa Real)
+
+    if !issymbolic(evaluated_p)
+        concrete_value = unwrapvalue(evaluated_p)
         if concrete_value < 0 || concrete_value > 1
             throw(ArgumentError("Probability p must be between 0 and 1 after evaluation."))
         end
-        return PauliZ(concrete_value)
-        
+        return PauliY(concrete_value)
+
     elseif evaluated_p isa Symbolics.Num
         return PauliY(evaluated_p)
     end
@@ -299,7 +301,7 @@ and is a special case of [`PauliNoise`](@ref).
 
 ```jldoctests
 julia> push!(Circuit(), PauliZ(0.1), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── PauliZ(0.1) @ q[1]
 ```
 """
@@ -317,9 +319,9 @@ end
 
 function evaluate(gad::PauliZ, d::Dict=Dict())
     evaluated_p = Symbolics.substitute(gad.p, d)
-    concrete_value =  Symbolics.value(evaluated_p)
-  
-    if (concrete_value isa Real)
+
+    if !issymbolic(evaluated_p)
+        concrete_value = unwrapvalue(evaluated_p)
         if concrete_value < 0 || concrete_value > 1
             throw(ArgumentError("Probability p must be between 0 and 1 after evaluation."))
         end
@@ -337,4 +339,3 @@ probabilities(pauli::PauliZ) = [1 - pauli.p, pauli.p]
 unitarygates(::PauliZ) = [GateID(), GateZ()]
 
 ismixedunitary(::Type{T}) where {T<:PauliZ} = true
-

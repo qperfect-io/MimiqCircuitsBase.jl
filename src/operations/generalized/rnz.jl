@@ -73,7 +73,9 @@ function _matrix(::Type{GateRNZ{N}}, θ) where {N}
     return mat
 end
 
-function decompose!(circ::Circuit, g::GateRNZ{N}, qtargets, ctrls, zregs) where {N}
+matches(::CanonicalRewrite, ::GateRNZ) = true
+
+function decompose_step!(circ, ::CanonicalRewrite, g::GateRNZ{N}, qtargets, ctrls, zregs) where {N}
     ancilla = last(qtargets)
     data = qtargets[1:end-1]
 
@@ -86,7 +88,6 @@ function decompose!(circ::Circuit, g::GateRNZ{N}, qtargets, ctrls, zregs) where 
     for q in reverse(data)
         push!(circ, GateCX(), q, ancilla)
     end
-
     return circ
 end
 

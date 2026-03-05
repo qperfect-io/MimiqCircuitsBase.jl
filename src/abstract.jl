@@ -37,3 +37,10 @@ Checks if a given operation type is an alias or not.
 function isopalias end
 
 isopalias(::Type{T}) where {T} = false
+
+"""
+    isunitary(Circuit)
+    
+Checks if a given circuit is unititary or not.
+"""
+isunitary(c::Circuit) = all(inst -> isunitary(inst), c._instructions)

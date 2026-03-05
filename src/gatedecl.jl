@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 @doc raw"""
     GateDecl(name, args, circuit)
 
@@ -23,11 +24,9 @@ Define a new gate of given name, arguments and circuit.
 
 A simple gate declaration, via the `@gatedecl` macro:
 ```jldoctests
-julia> @gatedecl ansatz(θ)  = begin
-           c = Circuit()
-           push!(c, GateX(), 1)
-           push!(c, GateRX(θ), 2)
-           return c
+julia> @gatedecl ansatz(θ) begin
+           @on GateX() q=1
+           @on GateRX(θ) q=2
        end
 gate ansatz(θ) =
 ├── X @ q[1]
@@ -36,7 +35,7 @@ gate ansatz(θ) =
 julia> @variables λ;
 
 
-julia> decompose(ansatz(λ))
+julia> decompose_step(ansatz(λ))
 2-qubit circuit with 2 instructions:
 ├── X @ q[1]
 └── RX(λ) @ q[2]
@@ -49,8 +48,8 @@ julia> decompose(ansatz(λ))
 """
 struct GateDecl{N,M}
     name::Symbol
-    arguments::NTuple{M,Symbolics.BasicSymbolic}
-    instructions::Vector{<:Instruction}
+    _arguments::NTuple{M,Symbolics.BasicSymbolic}
+    _instructions::Vector{<:Instruction}
 
     function GateDecl(name, args, instructions)
         if !all(x -> SymbolicUtils.issym(x), args)
@@ -83,56 +82,24 @@ end
 GateDecl(name, args, circuit::Circuit) = GateDecl(name, args, circuit._instructions)
 
 # TODO: check for undefined parameters
-macro gatedecl(decl)
-    # check the syntax
-    # should be `@gatedecl GateName(arg1, arg2, ...) = begin ... end``
+# @gatedecl macro defined in dsl.jl
 
-    if decl.head != :(=) && decl.head != :function
-        error("Wrong syntax for gate declaration")
-    end
-
-    call = decl.args[1]
-    body = decl.args[2]
-
-    if call.head != :call
-        error("Wrong syntax for gate declaration.")
-    end
-
-    if body.head != :block
-        error("Wrong syntax for gate declaration.")
-    end
-
-    if any(x -> x isa Expr && x.head == :macrocall && x.args[1] == :variables, body.args)
-        error("GateDecl does not support @variables macro.")
-    end
-
-    name = call.args[1]
-    args = call.args[2:end]
-
-    if !all(x -> x isa Symbol, args)
-        error("GateDecl only supports simple arguments.")
-    end
-
-    vars = Tuple(SymbolicUtils.Sym{Real}.(args))
-
-    newbody = Expr(:block)
-
-    for (nvar, var) in zip(args, vars)
-        push!(newbody.args, :($nvar = $var))
-    end
-
-    append!(newbody.args, body.args)
-
-    circuit = eval(newbody)
-
-    if !(circuit isa Circuit)
-        error("GateDecl body must return a unitary circuit.")
-    end
-
-    instructions = circuit._instructions
-
-    return esc(:($name = GateDecl($(QuoteNode(name)), $vars, $instructions)))
+function Base.:(==)(d1::GateDecl, d2::GateDecl)
+    d1.name == d2.name || return false
+    d1._arguments == d2._arguments || return false
+    d1._instructions == d2._instructions || return false
+    return true
 end
+
+Base.iterate(c::GateDecl) = iterate(c._instructions)
+Base.iterate(c::GateDecl, state) = iterate(c._instructions, state)
+Base.firstindex(c::GateDecl) = firstindex(c._instructions)
+Base.lastindex(c::GateDecl) = lastindex(c._instructions)
+Base.length(c::GateDecl) = length(c._instructions)
+Base.isempty(c::GateDecl) = isempty(c._instructions)
+Base.getindex(c::GateDecl, i::Integer) = getindex(c._instructions, i)
+Base.eltype(c::GateDecl) = eltype(c._instructions)
+Base.keys(c::GateDecl) = keys(c._instructions)
 
 @doc raw"""
     GateCall(decl, args...)
@@ -145,16 +112,13 @@ arguments.
 ## Examples
 
 ```jldoctests
-julia> @gatedecl ansatz(θ) = begin
-           c = Circuit()
-           push!(c, GateX(), 1)
-           push!(c, GateRX(θ), 2)
-           return c
+julia> @gatedecl ansatz(θ) begin
+           @on GateX() q=1
+           @on GateRX(θ) q=2
        end
 gate ansatz(θ) =
 ├── X @ q[1]
 └── RX(θ) @ q[2]
-
 
 julia> @variables λ;
 
@@ -184,34 +148,25 @@ opname(::Type{<:GateCall}) = "GateCall"
 
 numparams(::Type{<:GateCall{N,M}}) where {N,M} = M
 
-function decompose(cl::GateCall)
-    circ = Circuit()
-    d = Dict(zip(cl._decl.arguments, cl._args))
-    for inst in cl._decl.instructions
-        op = evaluate(getoperation(inst), d)
-        qubits = getqubits(inst)
-        push!(circ, op, qubits...)
-    end
-    return circ
-end
+matches(::CanonicalRewrite, ::GateCall) = true
 
-function decompose!(circuit::Circuit, cl::GateCall, qtargets, _, _)
-    d = Dict(zip(cl._decl.arguments, cl._args))
+function decompose_step!(builder, ::CanonicalRewrite, cl::GateCall, qtargets, _, _)
+    d = Dict(zip(cl._decl._arguments, cl._args))
 
-    for inst in cl._decl.instructions
+    for inst in cl._decl._instructions
         op = evaluate(getoperation(inst), d)
         inst_qubits = [qtargets[q] for q in getqubits(inst)]
-        push!(circuit, op, inst_qubits...)
+        push!(builder, op, inst_qubits...)
     end
 
-    return circuit
+    return builder
 end
 
 (decl::GateDecl)(args...) = GateCall(decl, args...)
 
 function Base.show(io::IO, d::GateDecl)
-    print(io, "GateDecl(", d.name, ", ", d.arguments, ", [")
-    c = d.instructions
+    print(io, "GateDecl(", d.name, ", ", d._arguments, ", [")
+    c = d._instructions
     print(io, c[1])
 
     if length(c) > 1
@@ -230,13 +185,13 @@ function Base.show(io::IO, m::MIME"text/plain", d::GateDecl)
 
     if !compact
         print(io, "gate ", d.name, "(")
-        join(io, d.arguments, ",")
+        join(io, d._arguments, ",")
         println(io, ") =")
 
-        _show_instructions(io, m, d.instructions)
+        _show_instructions(io, m, d._instructions)
     else
         print(io, "gate ", d.name, "(")
-        join(io, d.arguments, ",")
+        join(io, d._arguments, ",")
         println(io, ")")
     end
 
@@ -253,8 +208,14 @@ function Base.show(io::IO, ::MIME"text/plain", g::GateCall)
 end
 
 function matrix(g::GateCall{N}) where {N}
-    iter = Iterators.map(decompose(g)) do inst
+    iter = Iterators.map(decompose_step(g)) do inst
         matrix(inst, N)
     end
     return foldl(*, Iterators.reverse(iter); init=Matrix{Complex{Num}}(I, 2^N, 2^N))
+end
+
+function Base.:(==)(g1::GateCall, g2::GateCall)
+    g1._decl == g2._decl || return false
+    g1._args == g2._args || return false
+    return true
 end

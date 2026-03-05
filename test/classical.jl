@@ -16,19 +16,19 @@
 #
 using Test
 
-# TODO: simplify this to have one function to test all classical operations
-@testset "Not" begin
+const CLASSICALOPS = [Not(), SetBit0(), SetBit1(), And(), And(5), And(8), Or(), Or(6), Or(10), Xor(), Xor(4), Xor(7), ParityCheck(), ParityCheck(5)]
+
+@testset "$(string(typeof(op)))" for op in CLASSICALOPS
     @testset "ProtoBuf" begin
         @testset "toproto / fromproto" begin
             using MimiqCircuitsBase: toproto, fromproto, circuit_pb
 
-            backforth = fromproto(toproto(Not()))
-            @test backforth isa Not
+            backforth = fromproto(toproto(op))
+            @test typeof(backforth) == typeof(op)
         end
 
         @testset "saveproto / loadproto" begin
-            g = Not()
-            c = push!(Circuit(), g, 3)
+            c = push!(Circuit(), op, 1:numbits(op)...)
             testsaveloadproto(c)
         end
     end

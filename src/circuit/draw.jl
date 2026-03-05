@@ -504,11 +504,11 @@ function draw!(circuit::AsciiCircuit, g::Operation{N,M,L}, qubits, bits, zvars) 
             drawdoublevline!(circuit.canvas, stoprow, midcol, zvarrow - stoprow + 1)
         else
             nothing
-    end
+        end
 
         drawtext!(circuit.canvas, zvarstr, zvarrow + 1, zvar_start_col)
         setcurrentcol!(circuit, max(endcol, zvar_start_col + length(zvarstr)))
-end
+    end
 
     return circuit
 end
@@ -587,47 +587,55 @@ function asciiwidth(::Barrier, qubits, bits)
     return 1
 end
 
-function draw!(circuit::AsciiCircuit, g::IfStatement, qubits, bits, _)
+function draw!(circuit::AsciiCircuit, g::IfStatement, qubits, bits, zvars)
     qubitrow = [getqubitrow(circuit, q) for q in qubits]
     bitrow = getbitrow(circuit)
+    zvarrow = getzvarrow(circuit)
 
-    nb = numbits(g)
-    val = getbitstring(g)
+    inner = getoperation(g)
+    nb_op = numbits(inner)
+    bs = getbitstring(g)
+    nb_cond = length(to01(bs))
+
+    op_bits = collect(bits[1:nb_op])
+    cond_bits = collect(bits[nb_op+1:nb_op+nb_cond])
 
     ccol = getcurrentcol(circuit)
-
-    bstr = MimiqCircuitsBase._string_with_square(MimiqCircuitsBase._findunitrange(bits), ",")
-    btext = "c$bstr==" * to01(val)
-
+    bstr = MimiqCircuitsBase._string_with_square(
+        MimiqCircuitsBase._findunitrange(cond_bits), ",")
+    btext = "c$bstr==" * to01(bs)
     drawbox!(circuit.canvas, bitrow - 1, ccol, length(btext) + 2, 3; clean=true)
     drawtext!(circuit.canvas, btext, bitrow, ccol + 1)
 
     setcurrentcol!(circuit, ccol + length(btext) + 2)
     ifcol = getcurrentcol(circuit)
 
-    qstartrow = minimum(qubitrow) - 1
-    qstoprow = maximum(qubitrow) + 1
-    qw = asciiwidth(getoperation(g), qubits, (), ())
-    qh = qstoprow - qstartrow + 1
-    qmh = qstartrow + qh ÷ 2
-    namepadding = _gatenamepadding(qubits, (), ())
+    if !isempty(qubits) || !isempty(zvars)
+        saved_col = getcurrentcol(circuit)
+        circuit.currentcol = ifcol
+        draw!(circuit, inner, qubits, op_bits, zvars)
+        newcol = getcurrentcol(circuit)
+        setcurrentcol!(circuit, max(saved_col, newcol))
+        midcol = (ifcol + newcol) ÷ 2
 
-    drawbox!(circuit.canvas, qstartrow, ifcol, qw, qh; clean=true)
+        if !isempty(qubits)
+            qstoprow = maximum(qubitrow) + 1
+            drawdoublevline!(circuit.canvas, qstoprow, midcol, bitrow - qstoprow)
+            drawdoublehline!(circuit.canvas, bitrow - 1, ifcol, midcol - ifcol)
+            drawtext!(circuit.canvas, "╝", bitrow - 1, midcol)
+            drawtext!(circuit.canvas, "○", bitrow - 1, ifcol)
 
-    for (i, qr) in enumerate(qubitrow)
-        drawtext!(circuit.canvas, string(i), qr, ifcol + 1)
+        elseif !isempty(zvars)
+            drawdoublevline!(circuit.canvas, bitrow + 1, midcol, zvarrow - (bitrow + 3))
+            drawdoublehline!(circuit.canvas, bitrow - 1, ifcol, midcol - ifcol)
+            drawtext!(circuit.canvas, "╗", bitrow - 1, midcol)
+            drawtext!(circuit.canvas, "○", bitrow - 1, ifcol)
+        end
+    else
+        setcurrentcol!(circuit, ifcol + length(btext) + 2)
     end
 
-    drawtext!(circuit.canvas, repr("text/plain", getoperation(g); context=:compact => true), qmh, ifcol + namepadding + 1)
-
-    midcol = ifcol + qw ÷ 2
-
-    drawdoublevline!(circuit.canvas, qstoprow, midcol, bitrow - qstoprow)
-    drawdoublehline!(circuit.canvas, bitrow - 1, ifcol, midcol - ifcol)
-    drawtext!(circuit.canvas, "╝", bitrow - 1, midcol)
-    drawtext!(circuit.canvas, "○", bitrow - 1, ifcol)
-
-    setcurrentcol!(circuit, ifcol + qw)
+    return circuit
 end
 
 function asciiwidth(g::IfStatement, qubits, bits)
@@ -704,7 +712,7 @@ asciiwidth(instr::Instruction) = asciiwidth(getoperation(instr), getqubits(instr
 
 draw!(canvas::AsciiCircuit, instr::Instruction) = draw!(canvas, getoperation(instr), getqubits(instr), getbits(instr), getztargets(instr))
 
-function draw(c::Circuit)
+function draw(c::AbstractCircuit{Instruction})
     nq = numqubits(c)
     nb = numbits(c)
     nz = numzvars(c)
@@ -721,7 +729,6 @@ function draw(c::Circuit)
         end
 
         if asciiwidth(instr) > getcols(canvas.canvas) - getcurrentcol(canvas)
-            @info "" asciiwidth(instr) instr
             error("Cannot draw instruction. Insufficient space on screen.")
         end
 
@@ -747,4 +754,4 @@ _NOTE_ it automatically detects the screen width and will split the circuit if i
 """
 function draw end
 
-draw(c::Circuit) = AsciiDraw.draw(c)
+draw(c::AbstractCircuit{Instruction}) = AsciiDraw.draw(c)

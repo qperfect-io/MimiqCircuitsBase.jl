@@ -31,7 +31,7 @@ julia> Barrier(2)
 Barrier
 
 julia> c = push!(Circuit(), Barrier(1), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── Barrier @ q[1]
 
 julia> push!(c, Barrier(1), 1:3)

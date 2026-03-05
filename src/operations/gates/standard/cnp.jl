@@ -49,7 +49,7 @@ julia> matrix(GateCCP(1.989))
  0.0+0.0im  0.0+0.0im  0.0+0.0im  0.0+0.0im     0.0+0.0im  -0.40612+0.91382im
 
 julia> c = push!(Circuit(), GateCCP(λ), 1, 2, 3)
-3-qubit circuit with 1 instructions:
+3-qubit circuit with 1 instruction:
 └── CCP(λ) @ q[1:2], q[3]
 
 julia> push!(c, GateCCP(π/8), 1, 2, 3)
@@ -70,25 +70,39 @@ julia> @variables λ
  λ
 
 julia> decompose(GateCCP(λ))
-3-qubit circuit with 5 instructions:
-├── CP((1//2)*λ) @ q[2], q[3]
+3-qubit circuit with 17 instructions:
+├── U(0,0,λ / 4) @ q[1]
+├── CX @ q[1], q[3]
+├── U(0,0,(-1//4)*λ) @ q[3]
+├── CX @ q[1], q[3]
+├── U(0,0,λ / 4) @ q[3]
 ├── CX @ q[1], q[2]
-├── CP((-1//2)*λ) @ q[2], q[3]
+├── U(0,0,(-1//4)*λ) @ q[2]
+├── CX @ q[2], q[3]
+├── U(0,0,(1//4)*λ) @ q[3]
+├── CX @ q[2], q[3]
+├── U(0,0,(-1//4)*λ) @ q[3]
 ├── CX @ q[1], q[2]
-└── CP((1//2)*λ) @ q[1], q[3]
+├── U(0,0,λ / 4) @ q[2]
+├── CX @ q[2], q[3]
+├── U(0,0,(-1//4)*λ) @ q[3]
+├── CX @ q[2], q[3]
+└── U(0,0,λ / 4) @ q[3]
 ```
 """
 const GateCCP = typeof(Control(2, GateP(π)))
 
 @definename GateCCP "CCP"
 
-function decompose!(circ::Circuit, g::GateCCP, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateCCP) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, g::GateCCP, qtargets, _, _)
     a, b, c = qtargets
     λ = getparam(g, :λ)
-    push!(circ, GateCP(λ / 2), b, c)
-    push!(circ, GateCX(), a, b)
-    push!(circ, GateCP(-λ / 2), b, c)
-    push!(circ, GateCX(), a, b)
-    push!(circ, GateCP(λ / 2), a, c)
-    return circ
+    push!(builder, GateCP(λ / 2), a, c)
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateCP(-λ / 2), b, c)
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateCP(λ / 2), b, c)
+    return builder
 end

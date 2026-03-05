@@ -226,8 +226,8 @@ times the square root of the probabilities.
 ```jldoctests
 julia> krausmatrices(PauliX(0.2))
 2-element Vector{Matrix{Symbolics.Num}}:
- [0.8944271909999159 -0.0; 0.0 0.8944271909999159]
- [0.0 0.4472135954999579; 0.4472135954999579 0.0]
+ [sqrt(0.8) 0; 0 sqrt(0.8)]
+ [0 sqrt(0.2); sqrt(0.2) 0]
 ```
 """
 krausmatrices(kch::AbstractKrausChannel) = _krausmatrices(kch, Val(ismixedunitary(kch)))
@@ -257,13 +257,13 @@ See [`krausmatrices`](@ref) for more information.
 
 ```jldoctests
 julia> unwrappedkrausmatrices(AmplitudeDamping(0.1))
-2-element Vector{Matrix{Float64}}:
- [1.0 0.0; 0.0 0.9486832980505138]
- [0.0 0.31622776601683794; 0.0 0.0]
+2-element Vector{Matrix{ComplexF64}}:
+ [1.0 + 0.0im 0.0 + 0.0im; 0.0 + 0.0im 0.9486832980505138 + 0.0im]
+ [0.0 + 0.0im 0.31622776601683794 + 0.0im; 0.0 + 0.0im 0.0 + 0.0im]
 ```
 """
 function unwrappedkrausmatrices(kch::AbstractKrausChannel)
-    return [unwrapvalue.(kmat) for kmat in krausmatrices(kch)]
+    return [ComplexF64.(unwrapvalue.(kmat)) for kmat in krausmatrices(kch)]
 end
 
 """
@@ -278,13 +278,13 @@ See also [`krausmatrices`](@ref).
 ```jldoctests
 julia> krausoperators(PauliX(0.2))
 2-element Vector{Operator{1}}:
- Operator([0.8944271909999159 -0.0; 0.0 0.8944271909999159])
- Operator([0.0 0.4472135954999579; 0.4472135954999579 0.0])
+ Operator(Real[0.8944271909999159 0; 0 0.8944271909999159])
+ Operator(Real[0 0.4472135954999579; 0.4472135954999579 0])
 
 julia> krausoperators(AmplitudeDamping(0.1))
 2-element Vector{AbstractOperator{1}}:
- D(1, 0.9486832980505138)
- SigmaMinus(0.31622776601683794)
+ D(1, sqrt(0.9))
+ SigmaMinus(sqrt(0.1))
 ```
 """
 krausoperators(kch::AbstractKrausChannel) = _krausoperators(kch, Val(ismixedunitary(kch)))
@@ -309,8 +309,8 @@ See also [`krausoperators`](@ref).
 ```jldoctests
 julia> squaredkrausoperators(AmplitudeDamping(0.1))
 2-element Vector{AbstractOperator{1}}:
- D(1, 0.8999999999999999)
- P₁(0.1)
+ D(abs2(1), abs2(sqrt(0.9)))
+ P₁(abs2(sqrt(0.1)))
 ```
 """
 squaredkrausoperators(kch::AbstractKrausChannel) = opsquared.(krausoperators(kch))

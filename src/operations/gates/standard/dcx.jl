@@ -45,7 +45,7 @@ julia> matrix(GateDCX())
  0.0  1.0  0.0  0.0
 
 julia> c = push!(Circuit(), GateDCX(), 1, 2)
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 1 instruction:
 └── DCX @ q[1:2]
 
 julia> power(GateDCX(), 2), inverse(GateDCX())
@@ -71,9 +71,11 @@ opname(::Type{GateDCX}) = "DCX"
 
 _power(::GateDCX, pwr) = _power_three_idempotent(GateDCX(), inverse(GateDCX()), GateID(), pwr)
 
-function decompose!(circ::Circuit, ::GateDCX, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateDCX) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::GateDCX, qtargets, _, _)
     a, b = qtargets
-    push!(circ, GateCX(), a, b)
-    push!(circ, GateCX(), b, a)
-    return circ
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateCX(), b, a)
+    return builder
 end

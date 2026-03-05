@@ -82,7 +82,9 @@ RPauli(pauli::String) = LazyExpr(RPauli, pauli, LazyArg())
 
 RPauli(par::Any) = LazyExpr(RPauli, LazyArg(), par)
 
-function decompose!(circ::Circuit, rp::RPauli{N}, qtargets, _, _) where {N}
+matches(::CanonicalRewrite, ::RPauli) = true
+
+function decompose_step!(circ, ::CanonicalRewrite, rp::RPauli{N}, qtargets, _, _) where {N}
     s = pstring(rp.pauli)
 
     if length(s) != length(qtargets)

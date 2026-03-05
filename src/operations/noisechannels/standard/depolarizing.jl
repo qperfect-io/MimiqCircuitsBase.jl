@@ -54,11 +54,11 @@ Depolarizing channels can be defined for any ``N``:
 
 ```jldoctests
 julia> push!(Circuit(), Depolarizing(1, 0.1), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── Depolarizing(1,0.1) @ q[1]
 
 julia> push!(Circuit(), Depolarizing(5, 0.1), 1, 2, 3, 4, 5)
-5-qubit circuit with 1 instructions:
+5-qubit circuit with 1 instruction:
 └── Depolarizing(5,0.1) @ q[1:5]
 ```
 
@@ -66,11 +66,11 @@ For one and two qubits you can use the shorthand notation:
 
 ```jldoctests
 julia> push!(Circuit(), Depolarizing1(0.1), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── Depolarizing(1,0.1) @ q[1]
 
 julia> push!(Circuit(), Depolarizing2(0.1), 1, 2)
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 1 instruction:
 └── Depolarizing(2,0.1) @ q[1:2]
 ```
 
@@ -95,17 +95,16 @@ opname(::Type{<:Depolarizing{N}}) where {N} = "Depolarizing"
 
 function evaluate(depol::Depolarizing, d::Dict=Dict())
     evaluated_p = Symbolics.substitute(depol.p, d)
-    concrete_value =  Symbolics.value(evaluated_p)
-    
-    if (concrete_value isa Real)
-        if (concrete_value < 0 || concrete_value > 1)
+
+    # Allow constant symbolic expressions (e.g. 1 - exp(-1//20000000))
+    # to be materialized as numeric values after substitution.
+    if !issymbolic(evaluated_p)
+        concrete_value = unwrapvalue(evaluated_p)
+        if concrete_value < 0 || concrete_value > 1
             throw(ArgumentError("Probability p needs to be between 0 and 1 after evaluation."))
         end
-
         return Depolarizing{typeof(depol).parameters[1]}(concrete_value)
-
     elseif evaluated_p isa Symbolics.Num
-
         return Depolarizing{typeof(depol).parameters[1]}(evaluated_p)
     end
 end

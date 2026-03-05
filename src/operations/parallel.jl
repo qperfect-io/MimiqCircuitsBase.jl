@@ -44,14 +44,20 @@ A parallel is decomposed into a sequence of operation, one for each group of qub
 ```jldoctests
 julia> decompose(Parallel(2, GateX()))
 2-qubit circuit with 2 instructions:
-├── X @ q[1]
-└── X @ q[2]
+├── U(π,0,π) @ q[1]
+└── U(π,0,π) @ q[2]
 
 julia> decompose(Parallel(3, GateSWAP()))
-6-qubit circuit with 3 instructions:
-├── SWAP @ q[1:2]
-├── SWAP @ q[3:4]
-└── SWAP @ q[5:6]
+6-qubit circuit with 9 instructions:
+├── CX @ q[1], q[2]
+├── CX @ q[2], q[1]
+├── CX @ q[1], q[2]
+├── CX @ q[3], q[4]
+├── CX @ q[4], q[3]
+├── CX @ q[3], q[4]
+├── CX @ q[5], q[6]
+├── CX @ q[6], q[5]
+└── CX @ q[5], q[6]
 ```
 """
 struct Parallel{N,M,L,T<:AbstractGate{M}} <: AbstractGate{L}
@@ -129,13 +135,14 @@ function _matrix(::Type{Parallel{N,M,L,T}}, args...) where {N,M,L,T}
     return kron([mat for _ in 1:N]...)
 end
 
-function decompose!(circ::Circuit, p::Parallel, qtargets, _, _)
+matches(::CanonicalRewrite, ::Parallel) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, p::Parallel, qtargets, _, _)
     op = getoperation(p)
     nq = numqubits(op)
     for i in 1:numrepeats(p)
-        push!(circ, op, qtargets[nq*(i-1).+(1:nq)]...)
+        push!(builder, op, qtargets[nq*(i-1).+(1:nq)]...)
     end
-    return circ
 end
 
 """
@@ -165,4 +172,10 @@ function Base.show(io::IO, m::MIME"text/plain", p::Parallel)
     end
     print(io, " ")
     _show_wrapped_parens(io, m, getoperation(p))
+end
+
+function Base.:(==)(p1::Parallel, p2::Parallel)
+    numrepeats(p1) == numrepeats(p2) || return false
+    getoperation(p1) == getoperation(p2) || return false
+    return true
 end

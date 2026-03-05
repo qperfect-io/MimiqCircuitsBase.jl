@@ -33,7 +33,7 @@ julia> c = Circuit()
 empty circuit
 
 julia> push!(c, MeasureZZ(), 1, 2, 1)
-2-qubit, 1-bit circuit with 1 instructions:
+2-qubit, 1-bit circuit with 1 instruction:
 └── MZZ @ q[1:2], c[1]
 ```
 """
@@ -43,13 +43,15 @@ opname(::Type{<:MeasureZZ}) = "MZZ"
 
 inverse(::MeasureZZ) = error("Cannot invert measurements")
 
-function decompose!(circ::Circuit, ::MeasureZZ, qtargets, ctargets, _)
+matches(::CanonicalRewrite, ::MeasureZZ) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::MeasureZZ, qtargets, ctargets, _)
     q1, q2 = qtargets
     c = ctargets[1]
-    push!(circ, GateCX(), q1, q2)
-    push!(circ, Measure(), q2, c)
-    push!(circ, GateCX(), q1, q2)
-    return circ
+    push!(builder, GateCX(), q1, q2)
+    push!(builder, Measure(), q2, c)
+    push!(builder, GateCX(), q1, q2)
+    return builder
 end
 
 @doc raw"""
@@ -77,7 +79,7 @@ julia> c = Circuit()
 empty circuit
 
 julia> push!(c, MeasureXX(), 1, 2, 1)
-2-qubit, 1-bit circuit with 1 instructions:
+2-qubit, 1-bit circuit with 1 instruction:
 └── MXX @ q[1:2], c[1]
 ```
 """
@@ -87,15 +89,17 @@ opname(::Type{<:MeasureXX}) = "MXX"
 
 inverse(::MeasureXX) = error("Cannot invert measurements")
 
-function decompose!(circ::Circuit, ::MeasureXX, qtargets, ctargets, _)
+matches(::CanonicalRewrite, ::MeasureXX) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::MeasureXX, qtargets, ctargets, _)
     q1, q2 = qtargets
     c = ctargets[1]
-    push!(circ, GateCX(), q1, q2)
-    push!(circ, GateH(), q1)
-    push!(circ, Measure(), q1, c)
-    push!(circ, GateH(), q1)
-    push!(circ, GateCX(), q1, q2)
-    return circ
+    push!(builder, GateCX(), q1, q2)
+    push!(builder, GateH(), q1)
+    push!(builder, Measure(), q1, c)
+    push!(builder, GateH(), q1)
+    push!(builder, GateCX(), q1, q2)
+    return builder
 end
 
 @doc raw"""
@@ -123,7 +127,7 @@ julia> c = Circuit()
 empty circuit
 
 julia> push!(c, MeasureYY(), 1, 2, 1)
-2-qubit, 1-bit circuit with 1 instructions:
+2-qubit, 1-bit circuit with 1 instruction:
 └── MYY @ q[1:2], c[1]
 ```
 """
@@ -133,16 +137,17 @@ opname(::Type{<:MeasureYY}) = "MYY"
 
 inverse(::MeasureYY) = error("Cannot invert measurements")
 
-function decompose!(circ::Circuit, ::MeasureYY, qtargets, ctargets, _)
+matches(::CanonicalRewrite, ::MeasureYY) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::MeasureYY, qtargets, ctargets, _)
     q1, q2 = qtargets
     c = ctargets[1]
-    push!(circ, GateS(), qtargets)
-    push!(circ, GateCX(), q1, q2)
-    push!(circ, GateH(), q1)
-    push!(circ, Measure(), q1, c)
-    push!(circ, GateZ(), q1)
-    push!(circ, GateH(), q1)
-    push!(circ, GateCX(), q1, q2)
-    push!(circ, GateS(), qtargets)
-    return circ
+    push!(builder, GateS(), qtargets)
+    push!(builder, GateCX(), q1, q2)
+    push!(builder, GateH(), q1)
+    push!(builder, Measure(), q1, c)
+    push!(builder, GateH(), q1)
+    push!(builder, GateCX(), q1, q2)
+    push!(builder, GateSDG(), qtargets)
+    return builder
 end

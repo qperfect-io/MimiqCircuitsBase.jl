@@ -43,7 +43,7 @@ See also [`GateID`](@ref).
 
 ```jldoctests
 julia> c = push!(Circuit(), Delay(0.1), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── Delay(0.1) @ q[1]
 
 ```
@@ -52,8 +52,8 @@ julia> c = push!(Circuit(), Delay(0.1), 1)
 
 ```jldoctests
 julia> decompose(Delay(0.2))
-1-qubit circuit with 1 instructions:
-└── ID @ q[1]
+1-qubit circuit with 1 instruction:
+└── Delay(0.2) @ q[1]
 
 ```
 """
@@ -70,8 +70,3 @@ opname(::Type{Delay}) = "Delay"
 @generated _power(::Delay, _) = error("Cannot raise a Delay gate to a power.")
 
 qregsizes(::Delay) = (1,)
-
-function decompose!(circ::Circuit, ::Delay, qreg, _, _)
-    push!(circ, GateID(), qreg)
-    return circ
-end

@@ -60,10 +60,14 @@ the wrapped operation.
 
 ```jldoctests
 julia> decompose(Inverse(GateCSX()))
-2-qubit circuit with 3 instructions:
-├── H @ q[2]
-├── CU1(-1π/2) @ q[1], q[2]
-└── H @ q[2]
+2-qubit circuit with 7 instructions:
+├── U(π/2,0,π) @ q[2]
+├── U(0,0,-1π/4) @ q[1]
+├── CX @ q[1], q[2]
+├── U(0,0,π/4) @ q[2]
+├── CX @ q[1], q[2]
+├── U(0,0,-1π/4) @ q[2]
+└── U(π/2,0,π) @ q[2]
 ```
 """
 struct Inverse{N,T<:AbstractGate{N}} <: AbstractGate{N}
@@ -78,12 +82,9 @@ struct Inverse{N,T<:AbstractGate{N}} <: AbstractGate{N}
     end
 end
 
-# avoids to repeat the wrapper uselessly
-# the constructor is not supposed to perform simplifications
-# this is an exception
+# Avoid redundant wrapping
 Inverse(inv::Inverse) = inv.op
 
-# inverse is supposed to perform the simplification, so ok.
 inverse(inv::Inverse) = inv.op
 
 function opname(::Type{<:Inverse{N,T}}) where {N,T}
@@ -112,14 +113,17 @@ getparam(inv::Inverse, name) = getparam(getoperation(inv), name)
 
 _matrix(::Type{Inverse{N,T}}, args...) where {N,T} = adjoint(_matrix(T, args...))
 
-function decompose!(circuit::Circuit, inv::Inverse, qtargets, _, _)
-    newcirc = decompose!(Circuit(), inv.op, qtargets, (), ())
+matches(::CanonicalRewrite, ::Inverse) = true
 
-    for inst in inverse(newcirc)
-        push!(circuit, inst)
+function decompose_step!(builder, rule::CanonicalRewrite, inv::Inverse, qtargets, _, _)
+    # Decompose the inner operation into a temporary circuit
+    decomposed = decompose_step!(Circuit(), rule, inv.op, qtargets, (), ())
+
+    for inst in Iterators.reverse(decomposed)
+        push!(builder, inverse(inst))
     end
 
-    return circuit
+    return builder
 end
 
 function Base.show(io::IO, inv::Inverse)
@@ -136,4 +140,8 @@ function Base.show(io::IO, m::MIME"text/plain", inv::Inverse)
     else
         print(io, "⁻¹")
     end
+end
+
+function Base.:(==)(inv1::Inverse, inv2::Inverse)
+    return getoperation(inv1) == getoperation(inv2)
 end

@@ -29,7 +29,7 @@ the two registers.
 
 ```jldoctests
 julia> c = push!(Circuit(), PolynomialOracle(5,5,1,2,3,4), 1:10...)
-10-qubit circuit with 1 instructions:
+10-qubit circuit with 1 instruction:
 └── PolynomialOracle(1,2,3,4) @ q[1:5], q[6:10]
 
 julia> push!(c, inverse(PolynomialOracle(5,5,1,2,3,4)), 1:10...)
@@ -88,7 +88,3 @@ inverse(s::PolynomialOracle{NX,NY,N}) where {NX,NY,N} = s
 # TODO: change when ID is generalized
 _power(s::PolynomialOracle{NX,NY,N}, pwr) where {NX,NY,N} = _power_idempotent(s, control(N - 1, GateID()), pwr)
 
-# decomposition requires auxiliary qubits
-function decompose!(::Circuit, ::PolynomialOracle{NX,NY,N}, _, _, _) where {NX,NY,N}
-    error("Unknown decomposition for PolynomialOracle")
-end

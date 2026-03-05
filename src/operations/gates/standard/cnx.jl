@@ -45,7 +45,7 @@ julia> matrix(GateCCX())
  0.0  0.0  0.0  0.0  0.0  0.0  1.0  0.0
 
 julia> c = push!(Circuit(), GateCCX(), 1, 2, 3)
-3-qubit circuit with 1 instructions:
+3-qubit circuit with 1 instruction:
 └── C₂X @ q[1:2], q[3]
 
 julia> power(GateCCX(), 2), inverse(GateCCX())
@@ -58,51 +58,53 @@ julia> power(GateCCX(), 2), inverse(GateCCX())
 ```jldoctests
 julia> decompose(GateCCX())
 3-qubit circuit with 15 instructions:
-├── H @ q[3]
+├── U(π/2,0,π) @ q[3]
 ├── CX @ q[2], q[3]
-├── T† @ q[3]
+├── U(0,0,-1π/4) @ q[3]
 ├── CX @ q[1], q[3]
-├── T @ q[3]
+├── U(0,0,π/4) @ q[3]
 ├── CX @ q[2], q[3]
-├── T† @ q[3]
+├── U(0,0,-1π/4) @ q[3]
 ├── CX @ q[1], q[3]
-├── T @ q[2]
-├── T @ q[3]
-├── H @ q[3]
+├── U(0,0,π/4) @ q[2]
+├── U(0,0,π/4) @ q[3]
+├── U(π/2,0,π) @ q[3]
 ├── CX @ q[1], q[2]
-├── T @ q[1]
-├── T† @ q[2]
+├── U(0,0,π/4) @ q[1]
+├── U(0,0,-1π/4) @ q[2]
 └── CX @ q[1], q[2]
 
 ```
 """
 const GateCCX = typeof(Control(2, GateX()))
 
-function decompose!(circ::Circuit, ::GateCCX, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateCCX) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::GateCCX, qtargets, _, _)
     a, b, c = qtargets
-    push!(circ, GateH(), c)
+    push!(builder, GateH(), c)
 
-    push!(circ, GateCX(), b, c)
-    push!(circ, GateTDG(), c)
+    push!(builder, GateCX(), b, c)
+    push!(builder, GateTDG(), c)
 
-    push!(circ, GateCX(), a, c)
-    push!(circ, GateT(), c)
+    push!(builder, GateCX(), a, c)
+    push!(builder, GateT(), c)
 
-    push!(circ, GateCX(), b, c)
-    push!(circ, GateTDG(), c)
+    push!(builder, GateCX(), b, c)
+    push!(builder, GateTDG(), c)
 
-    push!(circ, GateCX(), a, c)
-    push!(circ, GateT(), b)
-    push!(circ, GateT(), c)
-    push!(circ, GateH(), c)
+    push!(builder, GateCX(), a, c)
+    push!(builder, GateT(), b)
+    push!(builder, GateT(), c)
+    push!(builder, GateH(), c)
 
-    push!(circ, GateCX(), a, b)
-    push!(circ, GateT(), a)
-    push!(circ, GateTDG(), b)
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateT(), a)
+    push!(builder, GateTDG(), b)
 
-    push!(circ, GateCX(), a, b)
+    push!(builder, GateCX(), a, b)
 
-    return circ
+    return builder
 end
 
 """
@@ -143,7 +145,7 @@ julia> matrix(GateC3X())
  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  …  0.0  0.0  0.0  0.0  0.0  1.0  0.0
 
 julia> c = push!(Circuit(), GateC3X(), 1, 2, 3, 4)
-4-qubit circuit with 1 instructions:
+4-qubit circuit with 1 instruction:
 └── C₃X @ q[1:3], q[4]
 
 julia> power(GateC3X(), 2), inverse(GateC3X())
@@ -156,62 +158,62 @@ julia> power(GateC3X(), 2), inverse(GateC3X())
 ```jldoctests
 julia> decompose(GateC3X())
 4-qubit circuit with 31 instructions:
-├── H @ q[4]
-├── P(π/8) @ q[1]
-├── P(π/8) @ q[2]
-├── P(π/8) @ q[3]
-├── P(π/8) @ q[4]
+├── U(π/2,0,π) @ q[4]
+├── U(0,0,π/8) @ q[1]
+├── U(0,0,π/8) @ q[2]
+├── U(0,0,π/8) @ q[3]
+├── U(0,0,π/8) @ q[4]
 ├── CX @ q[1], q[2]
-├── P(-1π/8) @ q[2]
+├── U(0,0,-1π/8) @ q[2]
 ├── CX @ q[1], q[2]
 ├── CX @ q[2], q[3]
 ⋮   ⋮
 ├── CX @ q[1], q[4]
-├── P(π/8) @ q[4]
+├── U(0,0,π/8) @ q[4]
 ├── CX @ q[3], q[4]
-├── P(-1π/8) @ q[4]
+├── U(0,0,-1π/8) @ q[4]
 ├── CX @ q[2], q[4]
-├── P(π/8) @ q[4]
+├── U(0,0,π/8) @ q[4]
 ├── CX @ q[3], q[4]
-├── P(-1π/8) @ q[4]
+├── U(0,0,-1π/8) @ q[4]
 ├── CX @ q[1], q[4]
-└── H @ q[4]
+└── U(π/2,0,π) @ q[4]
 
 ```
 """
 const GateC3X = typeof(Control(3, GateX()))
 
-function decompose!(circ::Circuit, ::GateC3X, qtargets, _, _)
+function decompose_step!(builder, ::CanonicalRewrite, ::GateC3X, qtargets, _, _)
     a, b, c, d = qtargets
 
-    push!(circ, GateH(), d)
-    push!(circ, GateP(π / 8), qtargets)
-    push!(circ, GateCX(), a, b)
-    push!(circ, GateP(-π / 8), b)
-    push!(circ, GateCX(), a, b)
-    push!(circ, GateCX(), b, c)
-    push!(circ, GateP(-π / 8), c)
-    push!(circ, GateCX(), a, c)
-    push!(circ, GateP(π / 8), c)
-    push!(circ, GateCX(), b, c)
-    push!(circ, GateP(-π / 8), c)
-    push!(circ, GateCX(), a, c)
-    push!(circ, GateCX(), c, d)
-    push!(circ, GateP(-π / 8), d)
-    push!(circ, GateCX(), b, d)
-    push!(circ, GateP(π / 8), d)
-    push!(circ, GateCX(), c, d)
-    push!(circ, GateP(-π / 8), d)
-    push!(circ, GateCX(), a, d)
-    push!(circ, GateP(π / 8), d)
-    push!(circ, GateCX(), c, d)
-    push!(circ, GateP(-π / 8), d)
-    push!(circ, GateCX(), b, d)
-    push!(circ, GateP(π / 8), d)
-    push!(circ, GateCX(), c, d)
-    push!(circ, GateP(-π / 8), d)
-    push!(circ, GateCX(), a, d)
-    push!(circ, GateH(), d)
+    push!(builder, GateH(), d)
+    push!(builder, GateP(π / 8), qtargets)
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateP(-π / 8), b)
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateCX(), b, c)
+    push!(builder, GateP(-π / 8), c)
+    push!(builder, GateCX(), a, c)
+    push!(builder, GateP(π / 8), c)
+    push!(builder, GateCX(), b, c)
+    push!(builder, GateP(-π / 8), c)
+    push!(builder, GateCX(), a, c)
+    push!(builder, GateCX(), c, d)
+    push!(builder, GateP(-π / 8), d)
+    push!(builder, GateCX(), b, d)
+    push!(builder, GateP(π / 8), d)
+    push!(builder, GateCX(), c, d)
+    push!(builder, GateP(-π / 8), d)
+    push!(builder, GateCX(), a, d)
+    push!(builder, GateP(π / 8), d)
+    push!(builder, GateCX(), c, d)
+    push!(builder, GateP(-π / 8), d)
+    push!(builder, GateCX(), b, d)
+    push!(builder, GateP(π / 8), d)
+    push!(builder, GateCX(), c, d)
+    push!(builder, GateP(-π / 8), d)
+    push!(builder, GateCX(), a, d)
+    push!(builder, GateH(), d)
 
-    return circ
+    return builder
 end

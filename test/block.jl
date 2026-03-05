@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 
+using MimiqCircuitsBase
+
 @testset "Block" begin
     @testset "Construction" begin
         # Empty block construction
@@ -91,12 +93,12 @@
         # Add block to circuit
         c = Circuit()
         push!(c, b, 2, 3, 1)  # Target qubits 2,3 and bit 1
-        c1 = decompose(c)
+        c1 = decompose_step(c)
 
         # Check circuit after decomposition
         @test length(c1) == 2
         inst1, inst2 = c1[1], c1[2]
-        @test getoperation(inst1) == getoperation(decompose(GateH())[1])
+        @test getoperation(inst1) == GateH()
         @test getqubits(inst1) == (2,)  # Mapped from 1 to 2
         @test getoperation(inst2) == GateCX()
         @test getqubits(inst2) == (2, 3)  # Mapped from [1,2] to [2,3]
@@ -109,7 +111,7 @@
         push!(b_outer, GateH(), 1)
         push!(b_outer, b_inner, 2)
 
-        c2 = decompose(b_outer)
+        c2 = decompose_step(b_outer)
         @test length(c2) == 2
         @test getoperation(c2[1]) == GateH()
         @test getoperation(c2[2]) == b_inner

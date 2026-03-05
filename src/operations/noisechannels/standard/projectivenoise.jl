@@ -112,7 +112,7 @@ except that the outcome of the measurement is not stored, i.e. there's loss of i
 
 ```jldoctests
 julia> push!(Circuit(), ProjectiveNoise("Z"), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── ProjectiveNoiseZ @ q[1]
 ```
 

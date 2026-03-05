@@ -50,7 +50,7 @@ julia> matrix(GateCSX())
  0.0+0.0im  0.0+0.0im  0.5-0.5im  0.5+0.5im
 
 julia> c = push!(Circuit(), GateCSX(), 1, 2)
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 1 instruction:
 └── CSX @ q[1], q[2]
 
 julia> power(GateCSX(), 2), inverse(GateCSX())
@@ -62,10 +62,14 @@ julia> power(GateCSX(), 2), inverse(GateCSX())
 
 ```jldoctests
 julia> decompose(GateCSX())
-2-qubit circuit with 3 instructions:
-├── H @ q[2]
-├── CU1(π/2) @ q[1], q[2]
-└── H @ q[2]
+2-qubit circuit with 7 instructions:
+├── U(π/2,0,π) @ q[2]
+├── U(0,0,π/4) @ q[1]
+├── CX @ q[1], q[2]
+├── U(0,0,-1π/4) @ q[2]
+├── CX @ q[1], q[2]
+├── U(0,0,π/4) @ q[2]
+└── U(π/2,0,π) @ q[2]
 
 ```
 """
@@ -73,12 +77,14 @@ const GateCSX = typeof(Control(1, GateSX()))
 
 @definename GateCSX "CSX"
 
-function decompose!(circ::Circuit, ::GateCSX, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateCSX) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::GateCSX, qtargets, _, _)
     a, b = qtargets
-    push!(circ, GateH(), b)
-    push!(circ, Control(GateU1(π / 2)), a, b)
-    push!(circ, GateH(), b)
-    return circ
+    push!(builder, GateH(), b)
+    push!(builder, GateCS(), a, b)
+    push!(builder, GateH(), b)
+    return builder
 end
 
 @doc raw"""
@@ -116,7 +122,7 @@ julia> matrix(GateCSXDG())
  0.0+0.0im  0.0+0.0im  0.5+0.5im  0.5-0.5im
 
 julia> c = push!(Circuit(), GateCSXDG(), 1, 2)
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 1 instruction:
 └── C(SX†) @ q[1], q[2]
 
 julia> power(GateCSXDG(), 2), inverse(GateCSXDG())
@@ -128,19 +134,25 @@ julia> power(GateCSXDG(), 2), inverse(GateCSXDG())
 
 ```jldoctests
 julia> decompose(GateCSXDG())
-2-qubit circuit with 3 instructions:
-├── H @ q[2]
-├── CU1(-1π/2) @ q[1], q[2]
-└── H @ q[2]
+2-qubit circuit with 7 instructions:
+├── U(π/2,0,π) @ q[2]
+├── U(0,0,-1π/4) @ q[1]
+├── CX @ q[1], q[2]
+├── U(0,0,π/4) @ q[2]
+├── CX @ q[1], q[2]
+├── U(0,0,-1π/4) @ q[2]
+└── U(π/2,0,π) @ q[2]
 
 ```
 """
 const GateCSXDG = typeof(inverse(GateCSX()))
 
-function decompose!(circ::Circuit, ::GateCSXDG, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateCSXDG) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::GateCSXDG, qtargets, _, _)
     a, b = qtargets
-    push!(circ, GateH(), b)
-    push!(circ, Control(GateU1(-π / 2)), a, b)
-    push!(circ, GateH(), b)
-    return circ
+    push!(builder, GateH(), b)
+    push!(builder, GateCSDG(), a, b)
+    push!(builder, GateH(), b)
+    return builder
 end

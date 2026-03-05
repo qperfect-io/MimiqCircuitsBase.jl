@@ -151,10 +151,10 @@ Tuple of the classical bits which the instruction is applied to.
 
 ```jldoctests
 julia> inst = Instruction(ExpectationValue(pauli"ZZ"), 1, 2, 1)
-Amplitude @ q[1], z[3]
+⟨ZZ⟩ @ q[1:2], z[1]
 
 julia> getztargets(inst)
-(3,)
+(1,)
 
 ```
 
@@ -280,7 +280,7 @@ getoperation(g::Instruction) = g.op
 
 opname(g::Instruction) = opname(g.op)
 
-inverse(c::Instruction) = Instruction(inverse(getoperation(c)), getqubits(c)...)
+inverse(c::Instruction) = Instruction(inverse(getoperation(c)), getqubits(c)..., getbits(c)..., getztargets(c)...)
 
 function _partition(arr, indices)
     vec = collect(arr)
@@ -359,8 +359,32 @@ function Base.show(io::IO, m::MIME"text/plain", g::Instruction)
 
         # group the cbits
         if nb != 0
-            ps = _partition(getbits(g), cumsum(cregsizes(op)))
-            join(io, map(x -> "c" * _string_with_square(_findunitrange(x), ","), ps), ",$space")
+            if op isa IfStatement
+                # split: first numbits(inner_op) belong to op, rest are condition bits
+                inner_op = getoperation(op)
+                nb_op = numbits(inner_op)
+                nb_cond = length(getbitstring(op))
+                cts = collect(getbits(g))
+
+                # Detect nested IfStatement inside
+                if inner_op isa IfStatement
+                    nb_op = numbits(getoperation(inner_op))
+                    nb_cond += length(getbitstring(inner_op))
+                end
+
+                if nb_op > 0
+                    print(io, "c" * _string_with_square(_findunitrange(cts[1:nb_op]), ","))
+                end
+                if nb_cond > 0
+                    if nb_op > 0
+                        print(io, ", ")
+                    end
+                    print(io, "condition" * _string_with_square(_findunitrange(cts[nb_op+1:end]), ","))
+                end
+            else
+                ps = _partition(getbits(g), cumsum(cregsizes(op)))
+                join(io, map(x -> "c" * _string_with_square(_findunitrange(x), ","), ps), ",$space")
+            end
         end
 
         if nb != 0 && nz != 0
@@ -377,3 +401,11 @@ end
 getparams(inst::Instruction) = getparams(getoperation(inst))
 
 listvars(inst::Instruction) = listvars(getoperation(inst))
+
+function Base.:(==)(inst1::Instruction, inst2::Instruction)
+    getoperation(inst1) == getoperation(inst2) || return false
+    getqubits(inst1) == getqubits(inst2) || return false
+    getbits(inst1) == getbits(inst2) || return false
+    getztargets(inst1) == getztargets(inst2) || return false
+    return true
+end

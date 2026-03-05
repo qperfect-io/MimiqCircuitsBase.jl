@@ -52,16 +52,27 @@ Here we give a simple example of a decomposition of a ``C_5T`` gate.
 
 ```jldoctests
 julia> decompose(Control(3,GateT()))
-4-qubit circuit with 9 instructions:
-├── C(Z^(1//8)) @ q[3], q[4]
-├── C₂X @ q[1:2], q[3]
-├── C((Z^(1//8))†) @ q[3], q[4]
-├── C₂X @ q[1:2], q[3]
-├── C(Z^(1//16)) @ q[2], q[4]
+4-qubit circuit with 67 instructions:
+├── U(0,0,0π) @ q[3]
+├── U(0,0,(1//16)*π) @ q[3]
+├── U(0,0,(1//16)*π) @ q[4]
+├── CX @ q[3], q[4]
+├── U(0,0,(-1//16)*π) @ q[4]
+├── CX @ q[3], q[4]
+├── U(0,0,0) @ q[4]
+├── U(π/2,0,π) @ q[3]
+├── CX @ q[2], q[3]
+⋮   ⋮
+├── CX @ q[2], q[4]
+├── U(0,0,0) @ q[4]
 ├── CX @ q[1], q[2]
-├── C((Z^(1//16))†) @ q[2], q[4]
-├── CX @ q[1], q[2]
-└── C(Z^(1//16)) @ q[1], q[4]
+├── U(0,0,0π) @ q[1]
+├── U(0,0,(1//32)*π) @ q[1]
+├── U(0,0,(1//32)*π) @ q[4]
+├── CX @ q[1], q[4]
+├── U(0,0,(-1//32)*π) @ q[4]
+├── CX @ q[1], q[4]
+└── U(0,0,0) @ q[4]
 ```
 
 !!! detail
@@ -293,4 +304,159 @@ function Base.show(io::IO, m::MIME"text/plain", c::Control{N}) where {N}
     Ntext = join(map(x -> subscript[x+1], reverse(digits(N))))
     print(io, "C", Ntext)
     _show_wrapped_parens(io, m, getoperation(c))
+end
+
+# References
+# [1] Barenco, A. et al. Elementary gates for quantum computation. Phys. Rev. A 52, 3457–3467 (1995).
+
+matches(::CanonicalRewrite, ::Control{1}) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, control::Control{1}, qtargets, _, _)
+    op = getoperation(control)
+    for inst in decompose(op)
+        push!(builder, Control(getoperation(inst)), qtargets[1], [qtargets[i+1] for i in getqubits(inst)]...)
+    end
+    return builder
+end
+
+function _controlrotation_decompose!(builder, op::Operation{1,0}, qtargets)
+    controls = qtargets[1:end-1]
+    target = qtargets[end]
+
+    if isempty(controls)
+        push!(builder, op, target)
+    elseif length(controls) == 1
+        push!(builder, Control(op), qtargets...)
+    else
+        _control_recursive_decompose!(builder, Control(length(controls), op), qtargets)
+    end
+    return builder
+end
+
+# decomposition of multi controlled X gate according to Lemma 7.2 and 7.3 of [1]
+# TODO: fix here the explicit calls to circuit, we should at least use the type
+# of builder, but since things work for now (e.g. works for Vector{Instruction}
+# to append a Circuit), we leave it as is for now
+function _controlx_decompose!(builder, ctrl, trgt, ancl)
+    nctrl = length(ctrl)
+    nqubits = nctrl + 1 + length(ancl)
+
+    if nctrl == 0
+        push!(builder, GateX(), trgt)
+
+    elseif nctrl <= 2
+        push!(builder, Control(nctrl, GateX()), ctrl..., trgt)
+
+    elseif nqubits >= 2 * nctrl - 1 && nctrl >= 3
+        #push!(circ, Control(nctrl, GateX()), ctrl..., trgt)
+        #return circ
+        # Decomposition according to Lemma 7.2 of [1]
+        c2x = Control(2, GateX())
+
+        circ1 = Circuit()
+        for i in 1:nctrl-3
+            push!(circ1, c2x, ctrl[end-i], ancl[end-i], ancl[end-i+1])
+        end
+
+        circ2 = push!(Circuit(), c2x, ctrl[1], ctrl[2], ancl[end-nctrl+3])
+        circ3 = push!(Circuit(), c2x, ctrl[end], ancl[end], trgt)
+
+        append!(builder, circ3)
+        append!(builder, circ1)
+        append!(builder, circ2)
+        append!(builder, inverse(circ1))
+        append!(builder, circ3)
+        append!(builder, circ1)
+        append!(builder, circ2)
+        append!(builder, inverse(circ1))
+
+    elseif !isempty(ancl)
+        # Decomposition according to Lemma 7.3 of [1]
+
+        m = nqubits ÷ 2
+
+        free1 = Int[ctrl[m+1:end]..., trgt, ancl[2:end]...]
+        ctrl1 = ctrl[1:m]
+        trgt1 = ancl[1]
+        circ1 = _controlx_decompose!(Circuit(), ctrl1, trgt1, free1)
+        # equivalent to
+        #circ1 = push!(Circuit(), Control(length(qctrl1), GateX()), ctrl1..., trgt1)
+
+        free2 = Int[ctrl[1:m]..., ancl[2:end]...]
+        ctrl2 = Int[ctrl[m+1:end]..., ancl[1]]
+        trgt2 = trgt
+        circ2 = _controlx_decompose!(Circuit(), ctrl2, trgt2, free2)
+        # equivalent to
+        #circ2 = push!(Circuit(), Control(length(qctrl2), GateX()), ctrl2..., trgt2)
+
+        append!(builder, circ1)
+        append!(builder, circ2)
+        append!(builder, circ1)
+        append!(builder, circ2)
+    else
+        # No free qubits available
+        _control_recursive_decompose!(builder, Control(ctrl, GateX()), ctrl..., trgt)
+    end
+
+    return builder
+end
+
+# recursive decomposition according to Lemma 7.5 of [1]
+function _control_recursive_decompose!(builder, control::Control{N,1}, qtargets) where {N}
+    V = power(getoperation(control), 1 // 2)
+    Vdag = inverse(V)
+
+    push!(builder, Control(1, V), qtargets[end-1:end]...)
+
+    _controlx_decompose!(builder, qtargets[1:N-1], qtargets[N], qtargets[end:end])
+    #push!(circ, Control(N - 1, GateX()), qtargets[1:N]...)
+
+    push!(builder, Control(1, Vdag), qtargets[end-1:end]...)
+
+    _controlx_decompose!(builder, qtargets[1:N-1], qtargets[N], qtargets[end:end])
+    #push!(circ, Control(N - 1, GateX()), qtargets[1:N]...)
+
+    newtargets = [qtargets[1:end-2]..., qtargets[end]]
+
+    if N == 2
+        push!(builder, Control(N - 1, V), newtargets...)
+    else
+        _control_recursive_decompose!(builder, Control(N - 1, V), newtargets)
+    end
+end
+
+function _control_recursive_decompose!(builder, control::Control{1}, qtargets)
+    push!(builder, control, qtargets...)
+end
+
+matches(::CanonicalRewrite, ::Control{N}) where {N} = true
+
+function decompose_step!(builder, ::CanonicalRewrite, control::Control{N}, qtargets, _, _) where {N}
+    ncontrols = N
+    op = getoperation(control)
+    ntargets = numqubits(op)
+
+    controls = qtargets[1:ncontrols]
+    targets = qtargets[end-ntargets+1:end]
+
+    if ntargets != 1 || ncontrols == 1
+        # Decompose the internal gate and then apply the resulting gates with controls
+
+        newcirc = decompose(op)
+
+        for inst in newcirc
+            inst_q = [targets[q] for q in getqubits(inst)]
+            push!(builder, Control(N, getoperation(inst)), controls..., inst_q...)
+        end
+    else
+        _control_recursive_decompose!(builder, control, qtargets)
+    end
+
+    return builder
+end
+
+function Base.:(==)(c1::Control, c2::Control)
+    getoperation(c1) == getoperation(c2) || return false
+    numcontrols(c1) == numcontrols(c2) || return false
+    return true
 end

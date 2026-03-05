@@ -41,7 +41,12 @@ Pages   = ["operation.jl"]
 ```@autodocs
 Modules = [MimiqCircuitsBase]
 Private = false
-Pages   = ["decompose.jl"]
+Pages   = [
+    "decompose.jl",
+    "decomposition/basis/rule.jl",
+    "decomposition/basis/flattened.jl",
+    "decomposition/rules/flatten_containers.jl",
+]
 ```
 
 ### Gates

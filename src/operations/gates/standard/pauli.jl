@@ -42,7 +42,7 @@ julia> matrix(GateX())
  1  0
 
 julia> c = push!(Circuit(), GateX(), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── X @ q[1]
 
 julia> push!(c, GateX, 2)
@@ -56,7 +56,7 @@ julia> push!(c, GateX, 2)
 
 ```jldoctests
 julia> decompose(GateX())
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── U(π,0,π) @ q[1]
 
 ```
@@ -71,10 +71,12 @@ opname(::Type{GateX}) = "X"
 
 _power(::GateX, pwr) = _power_idempotent(GateX(), GateID(), pwr)
 
-function decompose!(circ::Circuit, ::GateX, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateX) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::GateX, qtargets, _, _)
     q = qtargets[1]
-    push!(circ, GateU(π, 0, π), q)
-    return circ
+    push!(builder, GateU(π, 0, π), q)
+    return builder
 end
 
 @doc raw"""
@@ -104,7 +106,7 @@ julia> matrix(GateY())
  0.0+1.0im  0.0+0.0im
 
 julia> c = push!(Circuit(), GateY(), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── Y @ q[1]
 
 julia> push!(c, GateY, 2)
@@ -118,7 +120,7 @@ julia> push!(c, GateY, 2)
 
 ```jldoctests
 julia> decompose(GateY())
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── U(π,π/2,π/2) @ q[1]
 
 ```
@@ -133,10 +135,12 @@ opname(::Type{GateY}) = "Y"
 
 _power(::GateY, pwr) = _power_idempotent(GateY(), GateID(), pwr)
 
-function decompose!(circ::Circuit, ::GateY, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateY) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::GateY, qtargets, _, _)
     q = qtargets[1]
-    push!(circ, GateU(π, π / 2, π / 2), q)
-    return circ
+    push!(builder, GateU(π, π / 2, π / 2), q)
+    return builder
 end
 
 @doc raw"""
@@ -166,7 +170,7 @@ julia> matrix(GateZ())
  0.0  -1.0
 
 julia> c = push!(Circuit(), GateZ(), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── Z @ q[1]
 
 julia> push!(c, GateZ, 2)
@@ -180,8 +184,8 @@ julia> push!(c, GateZ, 2)
 
 ```jldoctests
 julia> decompose(GateZ())
-1-qubit circuit with 1 instructions:
-└── P(π) @ q[1]
+1-qubit circuit with 1 instruction:
+└── U(0,0,π) @ q[1]
 
 ```
 """
@@ -195,8 +199,10 @@ opname(::Type{GateZ}) = "Z"
 
 _power(::GateZ, pwr) = _power_idempotent(GateZ(), GateID(), pwr)
 
-function decompose!(circ::Circuit, ::GateZ, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateZ) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::GateZ, qtargets, _, _)
     q = qtargets[1]
-    push!(circ, GateP(π), q)
-    return circ
+    push!(builder, GateP(π), q)
+    return builder
 end

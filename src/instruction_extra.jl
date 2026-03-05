@@ -19,7 +19,7 @@ function matrix(inst::Instruction{1,0,0,<:AbstractGate})
 end
 
 function matrix(inst::Instruction{2,0,0,<:AbstractGate})
-    M = matrix(getoperation(inst))
+    M = copy(matrix(getoperation(inst)))
     if !issorted(getqubits(inst))
         Base.swaprows!(M, 2, 3)
         Base.swapcols!(M, 2, 3)
@@ -38,8 +38,18 @@ function matrix(inst::Instruction{N,0,0,<:AbstractGate}, L) where {N}
 
     # NOTE: copying here becasue singleton gates behaviour
     if numparams(op) == 0
-        return _reorder_qubits_matrix!(copy(M), qubits, L)
+        return _reorder_qubits_matrix!(Matrix(deepcopy(M)), qubits, L)
     end
 
-    return _reorder_qubits_matrix!(M, qubits, L)
+    return _reorder_qubits_matrix!(Matrix(M), qubits, L)
+end
+
+function matrix(insts::Vector{<:Instruction})
+    N = numqubits(insts)
+
+    iter = Iterators.map(insts) do inst
+        matrix(inst, N)
+    end
+
+    return foldl(*, Iterators.reverse(iter); init=Matrix{Complex{Num}}(I, 2^N, 2^N))
 end

@@ -25,6 +25,10 @@ using Reexport
 using Statistics
 using Random
 using Bijections: Bijection
+using SymbolicUtils
+using InteractiveUtils: subtypes
+using NearestNeighbors
+using Graphs
 
 # documentation of function
 include("docstrings.jl")
@@ -36,9 +40,6 @@ include("matrices.jl")
 include("shortestzip.jl")
 include("lazybuilder.jl")
 
-export isunitary
-export isopalias
-include("abstract.jl")
 
 # abstract operations
 export Operation
@@ -104,17 +105,42 @@ export ismixedunitary
 include("operations/krauschannel.jl")
 
 # circuits and circuit-embedded gates
-export Circuit
-export emplace!
+
+export AbstractCircuit
 export specify_operations
-include("circuit.jl")
+include("abstractcircuit.jl")
+
+
+export emplace!
 include("circuit/push.jl")
 include("circuit/insert.jl")
 include("circuit/emplace.jl")
 
-# functions for circuits
-export depth
-include("circuit_extras.jl")
+export DepthFirstDAGIterator
+export BreadthFirstDAGIterator
+export topological_sort_by_bfs
+export traverse_by_dfs
+export traverse_by_bfs
+include("graph_iterators.jl")
+
+export Circuit
+include("circuit.jl")
+
+
+# initial, ahead of time decomposition definitions
+include("decomposition/abstract.jl")
+include("decomposition/rules/canonical.jl")
+
+# matrix decompositions
+include("matrix_decompositions/zyz.jl")
+include("matrix_decompositions/csd.jl")
+include("matrix_decompositions/qsd.jl")
+
+export isunitary
+export isopalias
+include("abstract.jl")
+
+
 
 # Bit strings
 export BitString
@@ -131,7 +157,6 @@ export control
 export numcontrols
 export numtargets
 include("operations/control.jl")
-include("operations/decompositions/control.jl")
 
 export Power
 export power
@@ -214,6 +239,7 @@ export GateSWAP
 include("operations/gates/standard/swap.jl")
 
 export GateISWAP
+export GateISWAPDG
 include("operations/gates/standard/iswap.jl")
 
 export GateCS
@@ -380,9 +406,18 @@ export ProjectiveNoiseY
 export ProjectiveNoiseZ
 include("operations/noisechannels/standard/projectivenoise.jl")
 
+export ReadoutErr
+include("operations/redouterr.jl")
+
+export decorate
+export decorate!
+export decorate_on_match_parallel
+export decorate_on_match_parallel!
+export decorate_on_match_single
+export decorate_on_match_single!
 export add_noise!
 export add_noise
-include("noisemodels.jl")
+include("addnoise.jl")
 
 export sample_mixedunitaries
 include("samplenoise.jl")
@@ -398,8 +433,15 @@ export getnotes
 include("operations/annotations.jl")
 
 # classical operations
+export And
 export Not
-include("operations/classical/not.jl")
+export Or
+export Xor
+export ParityCheck
+export SetBit0
+export SetBit1
+export AbstractClassical
+include("operations/classical.jl")
 
 # complex algebra
 export Add
@@ -411,10 +453,35 @@ include("operations/complex.jl")
 export RPauli
 include("operations/generalized/rpauli.jl")
 
-# decomposition
-export decompose
-export decompose!
-include("decompose.jl")
+include("dsl.jl")
+
+export GateDecl
+export @gatedecl
+export GateCall
+include("gatedecl.jl")
+
+# decompositions
+export CanonicalRewrite
+export SpecialAngleRewrite
+export ToZRotationRewrite
+export ZYZRewrite
+export ToffoliToCliffordTRewrite
+export SolovayKitaevRewrite
+export FlattenContainers
+
+export DecompositionBasis
+export RuleBasis
+export CanonicalBasis
+export CliffordTBasis
+export QASMBasis
+export StimBasis
+export FlattenedBasis
+
+export decompose_step, decompose_step!
+export decompose, decompose!
+export DecompositionIterator
+export eachdecomposed
+include("decomposition.jl")
 
 # hamiltonians
 export Hamiltonian
@@ -428,16 +495,12 @@ export push_yoshidatrotter!
 include("hamiltonian.jl")
 
 # macros
-export @circuit
-include("circuit_macro.jl")
+export @circuit, @block, @on, @gatedecl
+# include("circuit_macro.jl") # consolidated in dsl.jl
 
-export GateDecl
-export @gatedecl
-export GateCall
-include("gatedecl.jl")
 
 export evaluate
-@reexport using Symbolics: @variables, inverse
+@reexport using Symbolics: @variables, inverse, variable
 include("evaluate.jl")
 
 export issymbolic
@@ -451,55 +514,140 @@ export GENERALIZED
 export NOISECHANNELS
 include("operations/list.jl")
 
-# simulation results
+# Simulation results
 export QCSResults
 export histsamples
 include("qcsresults.jl")
 
+export CircuitTesterExperiment
+export build_circuit
+export interpret_results
+include("circuittester.jl")
+
+# Optimization
+export isvalid
+export costhistory
+export changeparameters
+export changelistofparameters
+export getcost
+export getbest
+export getresultofbest
+export getresultsofhistory
+export OptimizationResults
+export OptimizationRun
+export OptimizationExperiment
+include("optimization.jl")
+
+export AbstractNoiseRule
+export priority
+export matches
+export before
+export apply_rule
+export GlobalReadoutNoise
+export ExactQubitReadoutNoise
+export SetQubitReadoutNoise
+export OperationInstanceNoise
+export ExactOperationInstanceQubitNoise
+export SetOperationInstanceQubitNoise
+export CustomNoiseRule
+export NoiseModel
+export describe
+export apply_noise_model
+export apply_noise_model!
+export add_rule!
+export add_operation_noise!
+export add_readout_noise!
+export IdleNoise
+export SetIdleQubitNoise
+export add_idle_noise!
+include("noisemodel.jl")
+
+# functions for circuits
+export depth
+export remove_unused
+export remove_swaps
+include("circuit_extras.jl")
+
+# clean a proto file (arguement: path to the file)
 function _clean_proto_file(fname)
-    file = joinpath(@__DIR__, fname)
-    lines = readlines(file)
+    pbpath = _getjuliaprotopath(fname)
+    lines = readlines(pbpath)
     for i in 1:length(lines)
-        if occursin(r"import .*_pb", lines[i])
+        if occursin(r"^import\s(?!\.\.)[\w.]+_pb$", lines[i])
             lines[i] = replace(lines[i], "import " => "import ..")
         end
         if occursin(r"include", lines[i])
             lines[i] = ""
         end
+        if occursin(r"# original file", lines[i])
+            lines[i] = ""
+        end
     end
 
-    open(file, "w") do io
+    open(pbpath, "w") do io
         join(io, lines, "\n")
     end
 end
 
+# generate the path to the Julia proto file from the proto file name
+function _getjuliaprotopath(fname)
+    pbfname = replace(fname, r"\.proto$" => "_pb.jl")
+    return joinpath(@__DIR__, "proto", pbfname)
+end
+
+
 # generate the proto files, if they don't exist
 function _generateproto(fname)
-    pbfname = replace(fname, r"\.proto$" => "_pb.jl")
-    pbpath = joinpath(@__DIR__, "proto", pbfname)
+    pbpath = _getjuliaprotopath(fname)
     if !isfile(pbpath)
+        @info "Generating $pbpath from $fname"
         protojl(fname, joinpath(@__DIR__, "proto"), joinpath(@__DIR__, "proto"))
-        _clean_proto_file(pbpath)
+        _clean_proto_file(fname)
+        return true
+    end
+    return false
+end
+
+function _generateallproto()
+    gen = _generateproto("bitvector.proto")
+    gen = _generateproto("pauli.proto") || gen
+    gen = _generateproto("hamiltonian.proto") || gen
+    gen = _generateproto("qcsresults.proto") || gen
+    gen = _generateproto("circuit.proto") || gen
+    gen = _generateproto("optim.proto") || gen
+    gen = _generateproto("noisemodel.proto") || gen
+
+    if gen
+        _clean_proto_file("bitvector.proto")
+        _clean_proto_file("pauli.proto")
+        _clean_proto_file("hamiltonian.proto")
+        _clean_proto_file("qcsresults.proto")
+        _clean_proto_file("circuit.proto")
+        _clean_proto_file("optim.proto")
+        _clean_proto_file("noisemodel.proto")
     end
 end
 
-_generateproto("bitvector.proto")
-_generateproto("pauli.proto")
-_generateproto("hamiltonian.proto")
-_generateproto("qcsresults.proto")
-_generateproto("circuit.proto")
+_generateallproto()
 
 include("proto/bitvector_pb.jl")
 include("proto/pauli_pb.jl")
 include("proto/hamiltonian_pb.jl")
 include("proto/circuit_pb.jl")
 include("proto/qcsresults_pb.jl")
+include("proto/optim_pb.jl")
+include("proto/noisemodel_pb.jl")
 
 include("proto/bitstring.jl")
 include("proto/pauli.jl")
 include("proto/hamiltonian.jl")
 include("proto/qcsresults.jl")
 include("proto/circuit.jl")
+include("proto/optim.jl")
+include("proto/noisemodel.jl")
+
+export show_mimiq_hierarchy
+include("generating_list.jl")
 
 export saveproto
 export loadproto
@@ -525,4 +673,3 @@ include("_precompile.jl")
 _precompile_()
 
 end # module Circuits
-

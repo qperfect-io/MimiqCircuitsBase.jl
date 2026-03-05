@@ -43,18 +43,15 @@ function _swapcrosses!(M::Matrix, n, m)
 end
 
 function _reorder_qubits_matrix!(M::Matrix, qubits, nq=maximum(qubits))
-    fullqubits = [qubits; [qu for qu in 1:nq if qu ∉ qubits]]
-    fullM = M
+    fullqubits = [collect(qubits); [qu for qu in 1:nq if qu ∉ qubits]]
+    nqempty = nq - length(qubits)
 
-    for _ in 1:(nq-length(qubits))
-        fullM = kron(fullM, Matrix(I, 2, 2))
-    end
+    fullM = kron(M, Matrix(I, 2^nqempty, 2^nqempty))
 
-    if issorted(qubits)
+    if issorted(fullqubits)
         return fullM
     end
 
-    # TODO: Change here when bitstring thing is fixed
     qperm = nq .+ 1 .- reverse(sortperm(collect(fullqubits)))
 
     ints = map(0:(2^nq-1)) do i

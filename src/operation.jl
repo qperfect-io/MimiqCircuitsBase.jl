@@ -302,3 +302,21 @@ end
 Check if the given operation is equivalent to an isidentity.
 """
 isidentity(::Operation) = false
+
+# base case where operations are compared only based on parameters
+function Base.:(==)(left::Operation, right::Operation)
+    typeof(left) == typeof(right) || return false
+    for (l, r) in zip(getparams(left), getparams(right))
+        # one symbolic one not
+        issymbolic(l) == issymbolic(r) || return false
+
+        # both symbolic
+        if issymbolic(l) && issymbolic(r)
+            l === r || return false
+        end
+
+        # both are not symbolic
+        isequal(l, r) || return false
+    end
+    return true
+end

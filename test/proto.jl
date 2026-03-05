@@ -21,80 +21,77 @@ using ProtoBuf: ProtoEncoder, ProtoDecoder, encode, decode
 @testset "Circuit" begin
     @variables λ
 
-    @circuit c begin
-        # basic gate
-        push!(c, GateX(), 1)
+    c = Circuit()
+    # basic gate
+    push!(c, GateX(), 1)
 
-        # parametric
-        push!(c, GateRX(λ), 1)
+    # parametric
+    push!(c, GateRX(λ), 1)
 
-        # parametric with value
-        push!(c, GateRX(π / 2), 1)
+    # parametric with value
+    push!(c, GateRX(π / 2), 1)
 
-        # controlled
-        push!(c, GateCX(), 1, 2)
-        push!(c, GateCRX(λ), 2, 1)
-        push!(c, GateCRX(1.23), 2, 1)
+    # controlled
+    push!(c, GateCX(), 1, 2)
+    push!(c, GateCRX(λ), 2, 1)
+    push!(c, GateCRX(1.23), 2, 1)
 
-        # power
-        push!(c, GateSX(), 1)
+    # power
+    push!(c, GateSX(), 1)
 
-        # inverse
-        push!(c, GateSXDG(), 3)
+    # inverse
+    push!(c, GateSXDG(), 3)
 
-        # controlled-inverse
-        push!(c, GateCSXDG(), 121, 3)
+    # controlled-inverse
+    push!(c, GateCSXDG(), 121, 3)
 
-        # powers with non-rational powers
-        push!(c, Power(GateX(), 1.23), 1)
-        push!(c, Power(GateSWAP(), 1.23), 1, 2)
+    # powers with non-rational powers
+    push!(c, Power(GateX(), 1.23), 1)
+    push!(c, Power(GateSWAP(), 1.23), 1, 2)
 
-        # multi-controlled
-        push!(c, GateCCX(), 1, 2, 3)
-        push!(c, GateC3X(), 1, 2, 3, 4)
-        push!(c, Control(5, GateSWAP()), 1:7...)
+    # multi-controlled
+    push!(c, GateCCX(), 1, 2, 3)
+    push!(c, GateC3X(), 1, 2, 3, 4)
+    push!(c, Control(5, GateSWAP()), 1:7...)
 
-        # non-unitary
-        push!(c, Measure(), 321, 123)
-        push!(c, MeasureX(), 321, 123)
-        push!(c, MeasureY(), 321, 123)
-        push!(c, MeasureZ(), 321, 123)
-        push!(c, MeasureXX(), 321, 213, 123)
-        push!(c, MeasureYY(), 321, 213, 123)
-        push!(c, MeasureZZ(), 321, 213, 123)
-        push!(c, MeasureReset(), 321, 123)
-        push!(c, MeasureResetX(), 321, 123)
-        push!(c, MeasureResetY(), 321, 123)
-        push!(c, MeasureResetZ(), 321, 123)
-        push!(c, Reset(), 121)
+    # non-unitary
+    push!(c, Measure(), 321, 123)
+    push!(c, MeasureX(), 321, 123)
+    push!(c, MeasureY(), 321, 123)
+    push!(c, MeasureZ(), 321, 123)
+    push!(c, MeasureXX(), 321, 213, 123)
+    push!(c, MeasureYY(), 321, 213, 123)
+    push!(c, MeasureZZ(), 321, 213, 123)
+    push!(c, MeasureReset(), 321, 123)
+    push!(c, MeasureResetX(), 321, 123)
+    push!(c, MeasureResetY(), 321, 123)
+    push!(c, MeasureResetZ(), 321, 123)
+    push!(c, Reset(), 121)
 
-        # barrier
-        push!(c, Barrier(3), 1, 2, 121)
+    # barrier
+    push!(c, Barrier(3), 1, 2, 121)
 
-        # generalized
-        push!(c, QFT(4), 1:4...)
-        push!(c, PhaseGradient(4), 1:4...)
-        push!(c, Diffusion(4), 1:4...)
-        push!(c, PolynomialOracle(2, 2, 1, 2, 3, 4), 1:2..., 3:4...)
-        push!(c, GateRNZ(4,2.4), 1:4...)
+    # generalized
+    push!(c, QFT(4), 1:4...)
+    push!(c, PhaseGradient(4), 1:4...)
+    push!(c, Diffusion(4), 1:4...)
+    push!(c, PolynomialOracle(2, 2, 1, 2, 3, 4), 1:2..., 3:4...)
+    push!(c, GateRNZ(4,2.4), 1:4...)
 
-        # special
-        push!(c, PauliString("XYZI"), 1:4...)
-        push!(c, RPauli("XYZI", 4), 1:4...)
+    # special
+    push!(c, PauliString("XYZI"), 1:4...)
+    push!(c, RPauli("XYZI", 4), 1:4...)
 
-        # Delay
-        push!(c, Delay(0.5), 1)
+    # Delay
+    push!(c, Delay(0.5), 1)
 
-        # gate declaration
-        @gatedecl ansatz(θ) = begin
-            c = Circuit()
-            push!(c, GateX(), 1)
-            push!(c, GateRX(θ), 2)
-            return c
-        end
-
-        push!(c, ansatz(λ), 1, 2)
+    # gate declaration
+    @gatedecl ansatz(θ) begin
+        @on GateX() q=1
+        @on GateRX(θ) q=2
     end
+
+    push!(c, ansatz(λ), 1, 2)
 
     fname, _ = mktemp()
 

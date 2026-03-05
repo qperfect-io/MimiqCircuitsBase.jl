@@ -51,13 +51,13 @@ RXX(θ)
 
 julia> matrix(GateRXX(θ))
 4×4 Matrix{Complex{Symbolics.Num}}:
-     cos((1//2)*θ)                  0                  0  -im*sin((1//2)*θ)
-                 0      cos((1//2)*θ)  -im*sin((1//2)*θ)                  0
-                 0  -im*sin((1//2)*θ)      cos((1//2)*θ)                  0
- -im*sin((1//2)*θ)                  0                  0      cos((1//2)*θ)
+     cos(θ / 2)               0               0  -im*sin(θ / 2)
+              0      cos(θ / 2)  -im*sin(θ / 2)               0
+              0  -im*sin(θ / 2)      cos(θ / 2)               0
+ -im*sin(θ / 2)               0               0      cos(θ / 2)
 
 julia> c = push!(Circuit(), GateRXX(θ), 1, 2)
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 1 instruction:
 └── RXX(θ) @ q[1:2]
 
 julia> push!(c, GateRXX(π/2), 1, 2)
@@ -72,13 +72,13 @@ julia> push!(c, GateRXX(π/2), 1, 2)
 ```jldoctests; setup = :(@variables θ)
 julia> decompose(GateRXX(θ))
 2-qubit circuit with 7 instructions:
-├── H @ q[1]
-├── H @ q[2]
+├── U(π/2,0,π) @ q[1]
+├── U(π/2,0,π) @ q[2]
 ├── CX @ q[1], q[2]
-├── RZ(θ) @ q[2]
+├── U(0,0,θ,(-1//2)*θ) @ q[2]
 ├── CX @ q[1], q[2]
-├── H @ q[2]
-└── H @ q[1]
+├── U(π/2,0,π) @ q[2]
+└── U(π/2,0,π) @ q[1]
 
 ```
 """
@@ -99,17 +99,19 @@ _matrix(::Type{GateRXX}, θ) = [
 
 _power(g::GateRXX, pwr) = GateRXX(g.θ * pwr)
 
-function decompose!(circ::Circuit, g::GateRXX, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateRXX) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, g::GateRXX, qtargets, _, _)
     a, b = qtargets
     θ = g.θ
-    push!(circ, GateH(), a)
-    push!(circ, GateH(), b)
-    push!(circ, GateCX(), a, b)
-    push!(circ, GateRZ(θ), b)
-    push!(circ, GateCX(), a, b)
-    push!(circ, GateH(), b)
-    push!(circ, GateH(), a)
-    return circ
+    push!(builder, GateH(), a)
+    push!(builder, GateH(), b)
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateRZ(θ), b)
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateH(), b)
+    push!(builder, GateH(), a)
+    return builder
 end
 
 @doc raw"""
@@ -148,13 +150,13 @@ RYY(θ)
 
 julia> matrix(GateRYY(θ))
 4×4 Matrix{Complex{Symbolics.Num}}:
-    cos((1//2)*θ)                  0                  0  im*sin((1//2)*θ)
-                0      cos((1//2)*θ)  -im*sin((1//2)*θ)                 0
-                0  -im*sin((1//2)*θ)      cos((1//2)*θ)                 0
- im*sin((1//2)*θ)                  0                  0     cos((1//2)*θ)
+    cos(θ / 2)               0               0  im*sin(θ / 2)
+             0      cos(θ / 2)  -im*sin(θ / 2)              0
+             0  -im*sin(θ / 2)      cos(θ / 2)              0
+ im*sin(θ / 2)               0               0     cos(θ / 2)
 
 julia> c = push!(Circuit(), GateRYY(θ), 1, 2)
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 1 instruction:
 └── RYY(θ) @ q[1:2]
 
 julia> push!(c, GateRYY(π/2), 1, 2)
@@ -169,13 +171,13 @@ julia> push!(c, GateRYY(π/2), 1, 2)
 ```jldoctests; setup = :(@variables θ)
 julia> decompose(GateRYY(θ))
 2-qubit circuit with 7 instructions:
-├── RX(π/2) @ q[1]
-├── RX(π/2) @ q[2]
+├── U(π/2,-1π/2,π/2) @ q[1]
+├── U(π/2,-1π/2,π/2) @ q[2]
 ├── CX @ q[1], q[2]
-├── RZ(θ) @ q[2]
+├── U(0,0,θ,(-1//2)*θ) @ q[2]
 ├── CX @ q[1], q[2]
-├── RX(-1π/2) @ q[1]
-└── RX(-1π/2) @ q[2]
+├── U(-1π/2,-1π/2,π/2) @ q[1]
+└── U(-1π/2,-1π/2,π/2) @ q[2]
 
 ```
 """
@@ -196,16 +198,18 @@ _matrix(::Type{GateRYY}, θ) = [
     im*sin(θ / 2) 0 0 cos(θ / 2)
 ]
 
-function decompose!(circ::Circuit, g::GateRYY, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateRYY) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, g::GateRYY, qtargets, _, _)
     a, b = qtargets
-    push!(circ, GateRX(π / 2), a)
-    push!(circ, GateRX(π / 2), b)
-    push!(circ, GateCX(), a, b)
-    push!(circ, GateRZ(g.θ), b)
-    push!(circ, GateCX(), a, b)
-    push!(circ, GateRX(-π / 2), a)
-    push!(circ, GateRX(-π / 2), b)
-    return circ
+    push!(builder, GateRX(π / 2), a)
+    push!(builder, GateRX(π / 2), b)
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateRZ(g.θ), b)
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateRX(-π / 2), a)
+    push!(builder, GateRX(-π / 2), b)
+    return builder
 end
 
 @doc raw"""
@@ -250,7 +254,7 @@ julia> matrix(GateRZZ(θ))
                           0             cos((-1//2)*θ) + im*sin((-1//2)*θ)
 
 julia> c = push!(Circuit(), GateRZZ(θ), 1, 2)
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 1 instruction:
 └── RZZ(θ) @ q[1:2]
 
 julia> push!(c, GateRZZ(π/2), 1, 2)
@@ -266,7 +270,7 @@ julia> push!(c, GateRZZ(π/2), 1, 2)
 julia> decompose(GateRZZ(θ))
 2-qubit circuit with 3 instructions:
 ├── CX @ q[1], q[2]
-├── RZ(θ) @ q[2]
+├── U(0,0,θ,(-1//2)*θ) @ q[2]
 └── CX @ q[1], q[2]
 
 ```
@@ -288,12 +292,14 @@ _matrix(::Type{GateRZZ}, θ) = [
 
 _power(g::GateRZZ, pwr) = GateRZZ(g.θ * pwr)
 
-function decompose!(circ::Circuit, g::GateRZZ, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateRZZ) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, g::GateRZZ, qtargets, _, _)
     a, b = qtargets
-    push!(circ, GateCX(), a, b)
-    push!(circ, GateRZ(g.θ), b)
-    push!(circ, GateCX(), a, b)
-    return circ
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateRZ(g.θ), b)
+    push!(builder, GateCX(), a, b)
+    return builder
 end
 
 @doc raw"""
@@ -330,13 +336,13 @@ RZX(θ)
 
 julia> matrix(GateRZX(θ))
 4×4 Matrix{Complex{Symbolics.Num}}:
-     cos((1//2)*θ)  -im*sin((1//2)*θ)                 0                 0
- -im*sin((1//2)*θ)      cos((1//2)*θ)                 0                 0
-                 0                  0     cos((1//2)*θ)  im*sin((1//2)*θ)
-                 0                  0  im*sin((1//2)*θ)     cos((1//2)*θ)
+     cos(θ / 2)  -im*sin(θ / 2)              0              0
+ -im*sin(θ / 2)      cos(θ / 2)              0              0
+              0               0     cos(θ / 2)  im*sin(θ / 2)
+              0               0  im*sin(θ / 2)     cos(θ / 2)
 
 julia> c = push!(Circuit(), GateRZX(θ), 1, 2)
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 1 instruction:
 └── RZX(θ) @ q[1:2]
 
 julia> push!(c, GateRZX(π/2), 1, 2)
@@ -351,11 +357,11 @@ julia> push!(c, GateRZX(π/2), 1, 2)
 ```jldoctests; setup = :(@variables θ)
 julia> decompose(GateRZX(θ))
 2-qubit circuit with 5 instructions:
-├── H @ q[2]
+├── U(π/2,0,π) @ q[2]
 ├── CX @ q[1], q[2]
-├── RZ(θ) @ q[2]
+├── U(0,0,θ,(-1//2)*θ) @ q[2]
 ├── CX @ q[1], q[2]
-└── H @ q[2]
+└── U(π/2,0,π) @ q[2]
 
 ```
 """
@@ -376,14 +382,16 @@ _matrix(::Type{GateRZX}, θ) = [
     0 0 im*sin(θ / 2) cos(θ / 2)
 ]
 
-function decompose!(circ::Circuit, g::GateRZX, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateRZX) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, g::GateRZX, qtargets, _, _)
     a, b = qtargets
-    push!(circ, GateH(), b)
-    push!(circ, GateCX(), a, b)
-    push!(circ, GateRZ(g.θ), b)
-    push!(circ, GateCX(), a, b)
-    push!(circ, GateH(), b)
-    return circ
+    push!(builder, GateH(), b)
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateRZ(g.θ), b)
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateH(), b)
+    return builder
 end
 
 @doc raw"""
@@ -421,13 +429,13 @@ XXplusYY(θ, β)
 
 julia> matrix(GateXXplusYY(θ, β))
 4×4 Matrix{Complex{Symbolics.Num}}:
- 1                                 0                  …  0
- 0                     cos((1//2)*θ)                     0
- 0  sin(-β)*sin((1//2)*θ) - im*cos(-β)*sin((1//2)*θ)     0
- 0                                 0                     1
+ 1                              0               …  0
+ 0                     cos(θ / 2)                  0
+ 0  sin(-β)*sin(θ / 2) - im*cos(-β)*sin(θ / 2)     0
+ 0                              0                  1
 
 julia> c = push!(Circuit(), GateXXplusYY(θ, β), 1, 2)
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 1 instruction:
 └── XXplusYY(θ,β) @ q[1:2]
 
 julia> push!(c, GateXXplusYY(π/2, 0), 1, 2)
@@ -441,21 +449,27 @@ julia> push!(c, GateXXplusYY(π/2, 0), 1, 2)
 
 ```jldoctests; stup = :(@variables θ β)
 julia> decompose(GateXXplusYY(θ, β))
-2-qubit circuit with 14 instructions:
-├── RZ(β) @ q[1]
-├── RZ(-1π/2) @ q[2]
-├── SX @ q[2]
-├── RZ(π/2) @ q[2]
-├── S @ q[1]
+2-qubit circuit with 20 instructions:
+├── U(0,0,β,(-1//2)*β) @ q[1]
+├── U(0,0,-1π/2,π/4) @ q[2]
+├── U(0,0,-1π/2) @ q[2]
+├── U(π/2,0,π) @ q[2]
+├── U(0,0,-1π/2) @ q[2]
+├── U(0,0,0,π/4) @ q[2]
+├── U(0,0,π/2,-1π/4) @ q[2]
+├── U(0,0,π/2) @ q[1]
 ├── CX @ q[2], q[1]
-├── RY((-1//2)*θ) @ q[2]
-├── RY((-1//2)*θ) @ q[1]
+├── U((-1//2)*θ,0,0) @ q[2]
+├── U((-1//2)*θ,0,0) @ q[1]
 ├── CX @ q[2], q[1]
-├── S† @ q[1]
-├── RZ(-1π/2) @ q[2]
-├── SX† @ q[2]
-├── RZ(π/2) @ q[2]
-└── RZ(-β) @ q[1]
+├── U(0,0,-1π/2) @ q[1]
+├── U(0,0,-1π/2,π/4) @ q[2]
+├── U(0,0,π/2) @ q[2]
+├── U(π/2,0,π) @ q[2]
+├── U(0,0,π/2) @ q[2]
+├── U(0,0,0,-1π/4) @ q[2]
+├── U(0,0,π/2,-1π/4) @ q[2]
+└── U(0,0,-β,β / 2) @ q[1]
 
 ```
 """
@@ -475,23 +489,25 @@ _matrix(::Type{GateXXplusYY}, θ, β) = [
     0 0 0 1
 ]
 
-function decompose!(circ::Circuit, g::GateXXplusYY, qperfect, _, _)
-    a, b = qperfect
-    push!(circ, GateRZ(g.β), a)
-    push!(circ, GateRZ(-π / 2), b)
-    push!(circ, GateSX(), b)
-    push!(circ, GateRZ(π / 2), b)
-    push!(circ, GateS(), a)
-    push!(circ, GateCX(), b, a)
-    push!(circ, GateRY(-g.θ / 2), b)
-    push!(circ, GateRY(-g.θ / 2), a)
-    push!(circ, GateCX(), b, a)
-    push!(circ, GateSDG(), a)
-    push!(circ, GateRZ(-π / 2), b)
-    push!(circ, GateSXDG(), b)
-    push!(circ, GateRZ(π / 2), b)
-    push!(circ, GateRZ(-g.β), a)
-    return circ
+matches(::CanonicalRewrite, ::GateXXplusYY) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, g::GateXXplusYY, qtargets, _, _)
+    a, b = qtargets
+    push!(builder, GateRZ(g.β), a)
+    push!(builder, GateRZ(-π / 2), b)
+    push!(builder, GateSX(), b)
+    push!(builder, GateRZ(π / 2), b)
+    push!(builder, GateS(), a)
+    push!(builder, GateCX(), b, a)
+    push!(builder, GateRY(-g.θ / 2), b)
+    push!(builder, GateRY(-g.θ / 2), a)
+    push!(builder, GateCX(), b, a)
+    push!(builder, GateSDG(), a)
+    push!(builder, GateRZ(-π / 2), b)
+    push!(builder, GateSXDG(), b)
+    push!(builder, GateRZ(π / 2), b)
+    push!(builder, GateRZ(-g.β), a)
+    return builder
 end
 
 @doc raw"""
@@ -529,13 +545,13 @@ XXminusYY(θ, β)
 
 julia> matrix(GateXXminusYY(θ, β))
 4×4 Matrix{Complex{Symbolics.Num}}:
-          cos((1//2)*θ)                          …  sin(-β)*sin((1//2)*θ) - im*cos(-β)*sin((1//2)*θ)
-                      0                                                            0
-                      0                                                            0
- sin(β)*sin((1//2)*θ) - im*cos(β)*sin((1//2)*θ)                        cos((1//2)*θ)
+          cos(θ / 2)                       …  sin(-β)*sin(θ / 2) - im*cos(-β)*sin(θ / 2)
+                   0                                                      0
+                   0                                                      0
+ sin(β)*sin(θ / 2) - im*cos(β)*sin(θ / 2)                        cos(θ / 2)
 
 julia> c = push!(Circuit(), GateXXminusYY(θ, β), 1, 2)
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 1 instruction:
 └── XXminusYY(θ,β) @ q[1:2]
 
 julia> push!(c, GateXXminusYY(π/2, 0.0), 1, 2)
@@ -549,21 +565,27 @@ julia> push!(c, GateXXminusYY(π/2, 0.0), 1, 2)
 
 ```jldoctests; setup = :(@variables θ β)
 julia> decompose(GateXXminusYY(θ, β))
-2-qubit circuit with 14 instructions:
-├── RZ(-β) @ q[2]
-├── RZ(-1π/2) @ q[1]
-├── SX @ q[1]
-├── RZ(π/2) @ q[1]
-├── S @ q[2]
+2-qubit circuit with 20 instructions:
+├── U(0,0,-β,β / 2) @ q[2]
+├── U(0,0,-1π/2,π/4) @ q[1]
+├── U(0,0,-1π/2) @ q[1]
+├── U(π/2,0,π) @ q[1]
+├── U(0,0,-1π/2) @ q[1]
+├── U(0,0,0,π/4) @ q[1]
+├── U(0,0,π/2,-1π/4) @ q[1]
+├── U(0,0,π/2) @ q[2]
 ├── CX @ q[1], q[2]
-├── RY((1//2)*θ) @ q[1]
-├── RY((-1//2)*θ) @ q[2]
+├── U(θ / 2,0,0) @ q[1]
+├── U((-1//2)*θ,0,0) @ q[2]
 ├── CX @ q[1], q[2]
-├── S† @ q[2]
-├── RZ(-1π/2) @ q[1]
-├── SX† @ q[1]
-├── RZ(π/2) @ q[1]
-└── RZ(β) @ q[2]
+├── U(0,0,-1π/2) @ q[2]
+├── U(0,0,-1π/2,π/4) @ q[1]
+├── U(0,0,π/2) @ q[1]
+├── U(π/2,0,π) @ q[1]
+├── U(0,0,π/2) @ q[1]
+├── U(0,0,0,-1π/4) @ q[1]
+├── U(0,0,π/2,-1π/4) @ q[1]
+└── U(0,0,β,(-1//2)*β) @ q[2]
 
 ```
 """
@@ -583,20 +605,23 @@ _matrix(::Type{GateXXminusYY}, θ, β) = [
     -im*sin(θ / 2)*cis(β) 0 0 cos(θ / 2)
 ]
 
-function decompose!(circ::Circuit, g::GateXXminusYY, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateXXminusYY) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, g::GateXXminusYY, qtargets, _, _)
     a, b = qtargets
-    push!(circ, GateRZ(-g.β), b)
-    push!(circ, GateRZ(-π / 2), a)
-    push!(circ, GateSX(), a)
-    push!(circ, GateRZ(π / 2), a)
-    push!(circ, GateS(), b)
-    push!(circ, GateCX(), a, b)
-    push!(circ, GateRY(g.θ / 2), a)
-    push!(circ, GateRY(-g.θ / 2), b)
-    push!(circ, GateCX(), a, b)
-    push!(circ, GateSDG(), b)
-    push!(circ, GateRZ(-π / 2), a)
-    push!(circ, GateSXDG(), a)
-    push!(circ, GateRZ(π / 2), a)
-    push!(circ, GateRZ(g.β), b)
+    push!(builder, GateRZ(-g.β), b)
+    push!(builder, GateRZ(-π / 2), a)
+    push!(builder, GateSX(), a)
+    push!(builder, GateRZ(π / 2), a)
+    push!(builder, GateS(), b)
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateRY(g.θ / 2), a)
+    push!(builder, GateRY(-g.θ / 2), b)
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateSDG(), b)
+    push!(builder, GateRZ(-π / 2), a)
+    push!(builder, GateSXDG(), a)
+    push!(builder, GateRZ(π / 2), a)
+    push!(builder, GateRZ(g.β), b)
+    return builder
 end

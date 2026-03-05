@@ -16,10 +16,10 @@
 #
 
 function test_gate_general(gtype)
-    @testrset "General checks" begin
+    @testset "General checks" begin
         # number of qubits and hilbert space dimension are consistent
         @test numqubits(gtype) >= 0
-        @tesdt numbits(gtype)
+        @test numbits(gtype) >= 0
 
         # check if the number of parameters is implemented consistently
         @test length(parnames(gtype)) == numparams(gtype)

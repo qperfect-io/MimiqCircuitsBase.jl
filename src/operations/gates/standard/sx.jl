@@ -46,7 +46,7 @@ julia> matrix(GateSX())
  0.5-0.5im  0.5+0.5im
 
 julia> c = push!(Circuit(), GateSX(), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── SX @ q[1]
 
 julia> push!(c, GateSX, 2)
@@ -64,9 +64,9 @@ julia> power(GateSX(), 2), inverse(GateSX())
 ```jldoctests
 julia> decompose(GateSX())
 1-qubit circuit with 4 instructions:
-├── S† @ q[1]
-├── H @ q[1]
-├── S† @ q[1]
+├── U(0,0,-1π/2) @ q[1]
+├── U(π/2,0,π) @ q[1]
+├── U(0,0,-1π/2) @ q[1]
 └── U(0,0,0,π/4) @ q[1]
 ```
 """
@@ -74,13 +74,15 @@ const GateSX = typeof(power(GateX(), 1 // 2))
 
 @definename GateSX "SX"
 
-function decompose!(circ::Circuit, ::GateSX, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateSX) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::GateSX, qtargets, _, _)
     a = qtargets[1]
-    push!(circ, GateSDG(), a)
-    push!(circ, GateH(), a)
-    push!(circ, GateSDG(), a)
-    push!(circ, GateU(0, 0, 0, π / 4), a)
-    return circ
+    push!(builder, GateSDG(), a)
+    push!(builder, GateH(), a)
+    push!(builder, GateSDG(), a)
+    push!(builder, GateU(0, 0, 0, π / 4), a)
+    return builder
 end
 
 @generated _matrix(::Type{GateSX}) = ComplexF64[0.5+0.5im 0.5-0.5im; 0.5-0.5im 0.5+0.5im]
@@ -117,7 +119,7 @@ julia> matrix(GateSXDG())
  0.5+0.5im  0.5-0.5im
 
 julia> c = push!(Circuit(), GateSXDG(), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── SX† @ q[1]
 
 julia> push!(c, GateSXDG, 2)
@@ -132,13 +134,15 @@ julia> power(GateSXDG(), 2), inverse(GateSXDG())
 """
 const GateSXDG = typeof(inverse(GateSX()))
 
-function decompose!(circ::Circuit, ::GateSXDG, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateSXDG) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::GateSXDG, qtargets, _, _)
     a = qtargets[1]
-    push!(circ, GateS(), a)
-    push!(circ, GateH(), a)
-    push!(circ, GateS(), a)
-    push!(circ, GateU(0, 0, 0, -π / 4), a)
-    return circ
+    push!(builder, GateS(), a)
+    push!(builder, GateH(), a)
+    push!(builder, GateS(), a)
+    push!(builder, GateU(0, 0, 0, -π / 4), a)
+    return builder
 end
 
 @generated _matrix(::Type{GateSXDG}) = ComplexF64[0.5-0.5im 0.5+0.5im; 0.5+0.5im 0.5-0.5im]

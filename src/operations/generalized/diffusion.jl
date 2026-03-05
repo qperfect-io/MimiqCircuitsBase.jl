@@ -31,7 +31,7 @@ H^{\otimes n} (1-2\ket{0^n}\bra{0^n}) H^{\otimes n}
 
 ```jldoctests
 julia> c = push!(Circuit(), Diffusion(10), 1:10...)
-10-qubit circuit with 1 instructions:
+10-qubit circuit with 1 instruction:
 └── Diffusion @ q[1:10]
 
 julia> push!(c, inverse(Diffusion(10)), 1:10...)
@@ -42,19 +42,29 @@ julia> push!(c, inverse(Diffusion(10)), 1:10...)
 
 ```jldoctests
 julia> decompose(Diffusion(4))
-4-qubit circuit with 9 instructions:
-├── RY(π/2) @ q[1]
-├── RY(π/2) @ q[2]
-├── RY(π/2) @ q[3]
-├── RY(π/2) @ q[4]
-├── C₃Z @ q[1:3], q[4]
-├── RY(-1π/2) @ q[1]
-├── RY(-1π/2) @ q[2]
-├── RY(-1π/2) @ q[3]
-└── RY(-1π/2) @ q[4]
+4-qubit circuit with 71 instructions:
+├── U(π/2,0,0) @ q[1]
+├── U(π/2,0,0) @ q[2]
+├── U(π/2,0,0) @ q[3]
+├── U(π/2,0,0) @ q[4]
+├── U(0,0,π/4) @ q[3]
+├── CX @ q[3], q[4]
+├── U(0,0,-1π/4) @ q[4]
+├── CX @ q[3], q[4]
+├── U(0,0,π/4) @ q[4]
+⋮   ⋮
+├── U(0,0,π/8) @ q[1]
+├── U(0,0,π/8) @ q[4]
+├── CX @ q[1], q[4]
+├── U(0,0,-1π/8) @ q[4]
+├── CX @ q[1], q[4]
+├── U(0,0,0) @ q[4]
+├── U(-1π/2,0,0) @ q[1]
+├── U(-1π/2,0,0) @ q[2]
+├── U(-1π/2,0,0) @ q[3]
+└── U(-1π/2,0,0) @ q[4]
 
 ```
-
 """
 struct Diffusion{N} <: AbstractGate{N}
     function Diffusion{N}() where {N}
@@ -82,9 +92,11 @@ opname(::Type{<:Diffusion}) = "Diffusion"
 
 qregsizes(::Diffusion{N}) where {N} = (N,)
 
-function decompose!(circ::Circuit, ::Diffusion{N}, qubits, _, _) where {N}
-    push!(circ, GateRY(pi / 2), qubits)
+matches(::CanonicalRewrite, ::Diffusion) = true
+
+function decompose_step!(circ, ::CanonicalRewrite, ::Diffusion{N}, qubits, _, _) where {N}
+    push!(circ, GateRY(π / 2), qubits)
     push!(circ, control(N - 1, GateZ()), qubits...)
-    push!(circ, GateRY(- pi / 2), qubits)
+    push!(circ, GateRY(-π / 2), qubits)
     return circ
 end

@@ -54,7 +54,7 @@ using Test
     # Decompose
     p = "IXYZ"
     g = RPauli(p, π)
-    c = decompose(g)
+    c = decompose_step(g)
 
     cmanual = Circuit()
     push!(cmanual, GateH(), 2)

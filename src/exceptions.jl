@@ -32,3 +32,10 @@ function showerror(io::IO, e::UndefinedValue)
     print(io, "Undefined value $(e.n).")
 end
 
+struct DecompositionError <: Exception
+    msg::String
+end
+
+function Base.showerror(io::IO, e::DecompositionError)
+    print(io, "Error during decomposition: ", e.msg)
+end

@@ -46,7 +46,7 @@ julia> matrix(GateECR())
       0.0-0.707107im  0.707107+0.0im               0.0+0.0im
 
 julia> c = push!(Circuit(), GateECR(), 1, 2)
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 1 instruction:
 └── ECR @ q[1:2]
 
 julia> power(GateECR(), 2), inverse(GateECR())
@@ -58,10 +58,18 @@ julia> power(GateECR(), 2), inverse(GateECR())
 
 ```jldoctests
 julia> decompose(GateECR())
-2-qubit circuit with 3 instructions:
-├── RZX(π/4) @ q[1:2]
-├── X @ q[1]
-└── RZX(-1π/4) @ q[1:2]
+2-qubit circuit with 11 instructions:
+├── U(π/2,0,π) @ q[2]
+├── CX @ q[1], q[2]
+├── U(0,0,π/4,-1π/8) @ q[2]
+├── CX @ q[1], q[2]
+├── U(π/2,0,π) @ q[2]
+├── U(π,0,π) @ q[1]
+├── U(π/2,0,π) @ q[2]
+├── CX @ q[1], q[2]
+├── U(0,0,-1π/4,π/8) @ q[2]
+├── CX @ q[1], q[2]
+└── U(π/2,0,π) @ q[2]
 
 ```
 """
@@ -75,11 +83,13 @@ opname(::Type{GateECR}) = "ECR"
 
 _power(::GateECR, pwr) = _power_idempotent(GateECR(), parallel(2, GateID()), pwr)
 
-function decompose!(circ::Circuit, ::GateECR, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateECR) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::GateECR, qtargets, _, _)
     a, b = qtargets
-    push!(circ, GateRZX(π / 4), a, b)
-    push!(circ, GateX(), a)
-    push!(circ, GateRZX(-π / 4), a, b)
-    return circ
+    push!(builder, GateRZX(π / 4), a, b)
+    push!(builder, GateX(), a)
+    push!(builder, GateRZX(-π / 4), a, b)
+    return builder
 end
 

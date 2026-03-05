@@ -1,6 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
-# Copyright © 2023-2025 QPerfect. All Rights Reserved.
+# Copyright © 2023-2026 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,7 +33,18 @@ ProtoBuf file.
 """
 function loadproto end
 
-for (T, PT) in [(Circuit, circuit_pb.Circuit), (QCSResults, qcsresults_pb.QCSResults), (Hamiltonian, hamiltonian_pb.Hamiltonian)]
+function saveproto end
+
+for (T, PT) in [
+    (AbstractCircuit{Instruction}, circuit_pb.Circuit),
+    (Circuit, circuit_pb.Circuit), # more user-friendly
+    (QCSResults, qcsresults_pb.QCSResults),
+    (Hamiltonian, hamiltonian_pb.Hamiltonian),
+    (OptimizationExperiment, optim_pb.OptimizationExperiment),
+    (OptimizationRun, optim_pb.OptimizationRun),
+    (OptimizationResults, optim_pb.OptimizationResults),
+    (NoiseModel, noisemodel_pb.NoiseModel)
+]
     eval(quote
         function saveproto(io::IO, c::$T)
             iobuffer = IOBuffer()
@@ -49,13 +60,13 @@ for (T, PT) in [(Circuit, circuit_pb.Circuit), (QCSResults, qcsresults_pb.QCSRes
     end)
 end
 
-function saveproto(fname, c)
+function saveproto(fname::String, c)
     open(fname, "w") do io
         saveproto(io, c)
     end
 end
 
-function loadproto(fname, T::Type)
+function loadproto(fname::String, T::Type)
     open(fname, "r") do io
         loadproto(io, T)
     end

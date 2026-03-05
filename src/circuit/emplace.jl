@@ -23,14 +23,14 @@ registers.
 
 ```jldoctests
 julia> emplace!(Circuit(), control(3, GateSWAP()), [1,2,3], [4,5])
-5-qubit circuit with 1 instructions:
+5-qubit circuit with 1 instruction:
 └── C₃SWAP @ q[1:3], q[4:5]
 
 julia> QFT()
 lazy QFT(?)
 
 julia> emplace!(Circuit(), QFT(), [1,2,3])
-3-qubit circuit with 1 instructions:
+3-qubit circuit with 1 instruction:
 └── QFT @ q[1:3]
 
 ```
@@ -38,7 +38,7 @@ julia> emplace!(Circuit(), QFT(), [1,2,3])
 """
 function emplace! end
 
-function emplace!(c::Circuit, op::Operation, regs...)
+function emplace!(c::AbstractCircuit{Instruction}, op::Operation, regs...)
     if op isa AbstractOperator && !(op isa AbstractGate)
         throw(ArgumentError("Cannot add an AbstractOperator $(op) that is not an AbstractGate to the circuit."))
     end
@@ -117,7 +117,7 @@ function _lazy_recursive_evaluate_emplace!(args, expr::LazyExpr)
     return expr.obj(actual...)
 end
 
-function emplace!(c::Circuit, op::LazyExpr, regs...)
+function emplace!(c::AbstractCircuit{Instruction}, op::LazyExpr, regs...)
     obj = _lazy_recursive_evaluate_emplace!(collect(length.(regs)), op)
 
     if obj isa AbstractOperator && !(obj isa AbstractGate)

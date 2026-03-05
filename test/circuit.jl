@@ -19,15 +19,45 @@
 
     @test numqubits(c) == 0
     @test isempty(c)
+    @test c._circuit_cache_valid == true
 
     push!(c, GateCX(), 1, 2)
     @test !isempty(c)
     @test length(c) == 1
+    @test c._circuit_cache_valid == false
     @test numqubits(c) == 2
+    @test c._circuit_cache_valid == true
+    @test c._nq == 2
 
+    # Test cache invalidation on push!
     push!(c, GateCX(), 2, 3)
+    @test c._circuit_cache_valid == false
     @test length(c) == 2
     @test numqubits(c) == 3
+    @test c._circuit_cache_valid == true
+
+    # Test cache invalidation on insert!
+    insert!(c, 1, Instruction(GateX(), 4))
+    @test c._circuit_cache_valid == false
+    @test numqubits(c) == 4
+    @test c._circuit_cache_valid == true
+
+    # Test cache invalidation on deleteat!
+    deleteat!(c, 1)
+    @test c._circuit_cache_valid == false
+    @test numqubits(c) == 3
+
+    # Test manual manipulation (to prove cache is being used/recomputed properly)
+    c._nq = 100
+    c._circuit_cache_valid = true
+    @test numqubits(c) == 100 # Should read from cache
+
+    # Invalidate and check it recomputes
+    MimiqCircuitsBase._invalidate_cache!(c)
+    @test c._circuit_cache_valid == false
+    @test numqubits(c) == 3
+    @test c._circuit_cache_valid == true
+    @test c._nq == 3
 
     push!(c, GateCX(), 3, 4)
     @test length(c) == 3

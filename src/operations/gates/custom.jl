@@ -85,16 +85,12 @@ struct GateCustom{N} <: AbstractGate{N}
         if N < 1
             error("Cannot define 0-qubit custom gate")
         end
-        if N > 2
-            error("Custom gates larger than 2 qubits are not supported")
-        end
 
         M = 1 << N
         if ndims(U) != 2 || size(U, 1) != M || size(U, 2) != M
             throw(ArgumentError("Custom matrix should be $(M)×$(M)."))
         end
 
-        # first check if 
         issymbolic = any(U) do x
             if isa(x, Complex{Num})
                 return !(Symbolics.value(real(x)) isa Number) || !(Symbolics.value(imag(x)) isa Number)
@@ -107,7 +103,8 @@ struct GateCustom{N} <: AbstractGate{N}
             return false
         end
 
-        if !issymbolic && !isapprox(U * adjoint(U), Matrix(I, M, M), rtol=1e-8)
+        uU = unwrapvalue.(U)
+        if !issymbolic && !isapprox(uU * adjoint(uU), Matrix(I, M, M), rtol=1e-8)
             throw(ArgumentError("Custom matrix not unitary (U⋅adjoint(U) ≉ I)."))
         end
 
@@ -130,9 +127,34 @@ opname(::Type{<:GateCustom}) = "Custom"
 
 inverse(g::GateCustom) = GateCustom(inv(g.U))
 
-matrix(g::GateCustom) = g.U
+function matrix(g::GateCustom)
+    U = g.U
+    map(U) do p
+        v = Symbolics.value(p)
+
+        # check for constant number
+        if !(v isa Num)
+            vv = simplify(v)
+            vvc = unwrap_const(vv)
+            vvc isa Number && return vvc
+        end
+
+        # check for something that can be evaluated to a number
+        if iscall(v)
+            vv = Symbolics.value(Symbolics.symbolic_to_float(v))
+            vv isa Number && return vv
+        end
+
+        # everything else is symbolic (functions or symbols)
+        return p
+    end
+end
 
 _matrix(::Type{GateCustom{N}}, U...) where {N} = reshape(collect(U), 2^N, 2^N)
+
+unwrappedmatrix(g::Matrix{<:Real}) = g
+
+unwrappedmatrix(g::Matrix{<:Complex}) = g
 
 function unwrappedmatrix(g::GateCustom)
     return unwrapvalue.(g.U)
@@ -149,8 +171,8 @@ getparams(g::GateCustom) = g.U
 function Base.show(io::IO, gate::GateCustom)
     print(io, "GateCustom", "(")
     io1 = IOContext(io, :compact => get(io, :compact, false), :typeinfo => Array{Symbolics.Num})
-    print(io, _decomplex(matrix(gate)))
-    print(io, ")")
+    print(io1, _decomplex(matrix(gate)))
+    print(io1, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", gate::GateCustom{N}) where {N}
@@ -183,4 +205,55 @@ function Base.show(io::IO, ::MIME"text/plain", gate::GateCustom{N}) where {N}
     end
     print("└── ")
     join(io, U[a[end], :], " ")
+end
+
+matches(::CanonicalRewrite, ::GateCustom{N}) where {N} = true
+
+function decompose_step!(builder, ::CanonicalRewrite, g::GateCustom{1}, qtargets, _, _)
+    U = unwrappedmatrix(g)
+    θ, ϕ, λ, γ = _zyz_decomposition(U)
+    push!(builder, GateU(θ, ϕ, λ, γ), qtargets[1])
+    return builder
+end
+
+function decompose_step!(builder, ::CanonicalRewrite, g::GateCustom{N}, qtargets, _, _) where {N}
+    U = unwrappedmatrix(g)
+
+    # Use QSD to decompose N-qubit unitary
+    sub_circ, _ = _qsd_decomposition(U)
+
+    # Map q1..qN from sub_circ to qtargets[1]..qtargets[N]
+    mapping = Dict(i => qtargets[i] for i in 1:N)
+
+    for inst in sub_circ
+        op = getoperation(inst)
+        qt = getqubits(inst)
+        ct = getbits(inst)
+        zt = getztargets(inst)
+
+        qt_new = [mapping[q] for q in qt]
+
+        push!(builder, op, qt_new..., ct..., zt...)
+    end
+
+    return builder
+end
+
+function Base.:(==)(left::GateCustom, right::GateCustom)
+    typeof(left) == typeof(right) || return false
+
+    # check matrices element by element
+    for (l, r) in zip(matrix(left), matrix(right))
+        issymbolic(l) == issymbolic(r) || return false
+
+        # both symbolic
+        if issymbolic(l) && issymbolic(r)
+            l === r || return false
+        end
+
+        # both not symbolic
+        isequal(l, r) || return false
+    end
+
+    return true
 end

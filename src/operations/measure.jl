@@ -37,7 +37,7 @@ julia> Measure()
 M
 
 julia> c = push!(Circuit(), Measure, 1, 1)
-1-qubit, 1-bit circuit with 1 instructions:
+1-qubit, 1-bit circuit with 1 instruction:
 └── M @ q[1], c[1]
 
 julia> push!(c, Measure(), 3, 4)
@@ -75,12 +75,12 @@ M
 
 julia> decompose(MeasureX())
 1-qubit, 1-bit circuit with 3 instructions:
-├── H @ q[1]
+├── U(π/2,0,π) @ q[1]
 ├── M @ q[1], c[1]
-└── H @ q[1]
+└── U(π/2,0,π) @ q[1]
 
 julia> c = push!(Circuit(), Measure, 1, 1)
-1-qubit, 1-bit circuit with 1 instructions:
+1-qubit, 1-bit circuit with 1 instruction:
 └── M @ q[1], c[1]
 
 julia> push!(c, Measure(), 3, 4)
@@ -95,13 +95,15 @@ opname(::Type{<:MeasureX}) = "MeasureX"
 
 inverse(::MeasureX) = error("Cannot invert measurements")
 
-function decompose!(circ::Circuit, ::MeasureX, qtargets, ctargets, _)
+matches(::CanonicalRewrite, ::MeasureX) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::MeasureX, qtargets, ctargets, _)
     q = qtargets[1]
     c = ctargets[1]
-    push!(circ, GateH(), q)
-    push!(circ, Measure(), q, c)
-    push!(circ, GateH(), q)
-    return circ
+    push!(builder, GateH(), q)
+    push!(builder, Measure(), q, c)
+    push!(builder, GateH(), q)
+    return builder
 end
 
 function Base.show(io::IO, ::MeasureX)
@@ -131,13 +133,21 @@ julia> MeasureY()
 MeasureY
 
 julia> decompose(MeasureY())
-1-qubit, 1-bit circuit with 3 instructions:
-├── HYZ @ q[1]
+1-qubit, 1-bit circuit with 11 instructions:
+├── U(π/2,0,π) @ q[1]
+├── U(0,0,π/2) @ q[1]
+├── U(π/2,0,π) @ q[1]
+├── U(0,0,π) @ q[1]
+├── U(0,0,0,-1π/4) @ q[1]
 ├── M @ q[1], c[1]
-└── HYZ @ q[1]
+├── U(π/2,0,π) @ q[1]
+├── U(0,0,π/2) @ q[1]
+├── U(π/2,0,π) @ q[1]
+├── U(0,0,π) @ q[1]
+└── U(0,0,0,-1π/4) @ q[1]
 
 julia> c = push!(Circuit(), MeasureY, 1, 1)
-1-qubit, 1-bit circuit with 1 instructions:
+1-qubit, 1-bit circuit with 1 instruction:
 └── MeasureY @ q[1], c[1]
 
 julia> push!(c, MeasureY(), 3, 4)
@@ -152,13 +162,15 @@ opname(::Type{<:MeasureY}) = "MeasureY"
 
 inverse(::MeasureY) = error("Cannot invert measurements")
 
-function decompose!(circ::Circuit, ::MeasureY, qtargets, ctargets, _)
+matches(::CanonicalRewrite, ::MeasureY) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::MeasureY, qtargets, ctargets, _)
     q = qtargets[1]
     c = ctargets[1]
-    push!(circ, GateHYZ(), q)
-    push!(circ, Measure(), q, c)
-    push!(circ, GateHYZ(), q)
-    return circ
+    push!(builder, GateHYZ(), q)
+    push!(builder, Measure(), q, c)
+    push!(builder, GateHYZ(), q)
+    return builder
 end
 
 function Base.show(io::IO, ::MeasureY)

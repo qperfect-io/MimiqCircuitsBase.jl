@@ -34,10 +34,10 @@ MR
 julia> decompose(MeasureReset())
 1-qubit, 1-bit circuit with 2 instructions:
 ├── M @ q[1], c[1]
-└── IF(c==1) X @ q[1], c[1]
+└── Reset @ q[1]
 
 julia> c = push!(Circuit(), MeasureReset(), 1, 1)
-1-qubit, 1-bit circuit with 1 instructions:
+1-qubit, 1-bit circuit with 1 instruction:
 └── MR @ q[1], c[1]
 
 julia> push!(c, MeasureReset(), 3, 4)
@@ -58,12 +58,14 @@ control(::MeasureReset, num_qubits) = error("Controlled MeasureReset is not defi
 
 iswrapper(::MeasureReset) = false
 
-function decompose!(circ::Circuit, ::MeasureReset, qtargets, ctargets, _)
+matches(::CanonicalRewrite, ::MeasureReset) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::MeasureReset, qtargets, ctargets, _)
     q = qtargets[1]
     c = ctargets[1]
-    push!(circ, Measure(), q, c)
-    push!(circ, IfStatement(GateX(), bs"1"), q, c)
-    return circ
+    push!(builder, Measure(), q, c)
+    push!(builder, Reset(), q)
+    return builder
 end
 
 @doc raw"""
@@ -84,13 +86,14 @@ julia> MeasureResetX()
 MRX
 
 julia> decompose(MeasureResetX())
-1-qubit, 1-bit circuit with 3 instructions:
-├── H @ q[1]
-├── MR @ q[1], c[1]
-└── H @ q[1]
+1-qubit, 1-bit circuit with 4 instructions:
+├── U(π/2,0,π) @ q[1]
+├── M @ q[1], c[1]
+├── Reset @ q[1]
+└── U(π/2,0,π) @ q[1]
 
 julia> c = push!(Circuit(), MeasureResetX(), 1, 1)
-1-qubit, 1-bit circuit with 1 instructions:
+1-qubit, 1-bit circuit with 1 instruction:
 └── MRX @ q[1], c[1]
 
 julia> push!(c, MeasureResetX(), 3, 4)
@@ -111,13 +114,15 @@ control(::MeasureResetX, num_qubits) = error("Controlled MeasureResetX is not de
 
 iswrapper(::MeasureResetX) = false
 
-function decompose!(circ::Circuit, ::MeasureResetX, qtargets, ctargets, _)
+matches(::CanonicalRewrite, ::MeasureResetX) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::MeasureResetX, qtargets, ctargets, _)
     q = qtargets[1]
     c = ctargets[1]
-    push!(circ, GateH(), q)
-    push!(circ, MeasureReset(), q, c)
-    push!(circ, GateH(), q)
-    return circ
+    push!(builder, GateH(), q)
+    push!(builder, MeasureReset(), q, c)
+    push!(builder, GateH(), q)
+    return builder
 end
 
 @doc raw"""
@@ -139,13 +144,22 @@ julia> MeasureResetY()
 MRY
 
 julia> decompose(MeasureResetY())
-1-qubit, 1-bit circuit with 3 instructions:
-├── HYZ @ q[1]
-├── MR @ q[1], c[1]
-└── HYZ @ q[1]
+1-qubit, 1-bit circuit with 12 instructions:
+├── U(π/2,0,π) @ q[1]
+├── U(0,0,π/2) @ q[1]
+├── U(π/2,0,π) @ q[1]
+├── U(0,0,π) @ q[1]
+├── U(0,0,0,-1π/4) @ q[1]
+├── M @ q[1], c[1]
+├── Reset @ q[1]
+├── U(π/2,0,π) @ q[1]
+├── U(0,0,π/2) @ q[1]
+├── U(π/2,0,π) @ q[1]
+├── U(0,0,π) @ q[1]
+└── U(0,0,0,-1π/4) @ q[1]
 
 julia> c = push!(Circuit(), MeasureResetY(), 1, 1)
-1-qubit, 1-bit circuit with 1 instructions:
+1-qubit, 1-bit circuit with 1 instruction:
 └── MRY @ q[1], c[1]
 
 julia> push!(c, MeasureResetY(), 3, 4)
@@ -166,13 +180,15 @@ control(::MeasureResetY, num_qubits) = error("Controlled MeasureResetY is not de
 
 iswrapper(::MeasureResetY) = false
 
-function decompose!(circ::Circuit, ::MeasureResetY, qtargets, ctargets, _)
+matches(::CanonicalRewrite, ::MeasureResetY) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::MeasureResetY, qtargets, ctargets, _)
     q = qtargets[1]
     c = ctargets[1]
-    push!(circ, GateHYZ(), q)
-    push!(circ, MeasureReset(), q, c)
-    push!(circ, GateHYZ(), q)
-    return circ
+    push!(builder, GateHYZ(), q)
+    push!(builder, MeasureReset(), q, c)
+    push!(builder, GateHYZ(), q)
+    return builder
 end
 
 @doc raw"""

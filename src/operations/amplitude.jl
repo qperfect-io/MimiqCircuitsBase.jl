@@ -35,7 +35,7 @@ julia> Amplitude(BitString("001"))
 Amplitude(bs"001")
 
 julia> c = push!(Circuit(),Amplitude(BitString("001")), 1)
-1-vars circuit with 1 instructions:
+1-vars circuit with 1 instruction:
 └── Amplitude(bs"001") @ z[1]
 
 ```

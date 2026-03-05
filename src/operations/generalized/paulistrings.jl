@@ -43,7 +43,7 @@ PauliStrings of any length are supported.
 
 ```jldoctests
 julia> c = push!(Circuit(), PauliString("XX"), 1, 2)
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 1 instruction:
 └── XX @ q[1:2]
 
 julia> push!(c, PauliString("IXYZZYXI"), 1, 2, 3, 4, 5, 6, 7, 8)
@@ -59,11 +59,11 @@ Decomposes into one-qubit Pauli gates.
 ```jldoctests
 julia> decompose(PauliString("XIYZZ"))
 5-qubit circuit with 5 instructions:
-├── X @ q[1]
-├── ID @ q[2]
-├── Y @ q[3]
-├── Z @ q[4]
-└── Z @ q[5]
+├── U(π,0,π) @ q[1]
+├── U(0,0,0) @ q[2]
+├── U(π,π/2,π/2) @ q[3]
+├── U(0,0,π) @ q[4]
+└── U(0,0,π) @ q[5]
 ```
 """
 struct PauliString{N} <: AbstractGate{N}
@@ -133,7 +133,9 @@ function _power(g::PauliString, pwr)
     end
 end
 
-function decompose!(circ::Circuit, g::PauliString{N}, qreg, _, _) where {N}
+matches(::CanonicalRewrite, ::PauliString) = true
+
+function decompose_step!(circ, ::CanonicalRewrite, g::PauliString{N}, qreg, _, _) where {N}
     for (p, q) in zip(pstring(g), qreg)
         push!(circ, convertpauli(p), q)
     end

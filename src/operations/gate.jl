@@ -43,3 +43,4 @@ function opsquared(::AbstractGate{N}) where {N}
         return Parallel(N, GateID())
     end
 end
+

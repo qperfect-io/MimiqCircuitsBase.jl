@@ -47,7 +47,7 @@ julia> matrix(GateCSWAP())
  0.0  0.0  0.0  0.0  0.0  0.0  0.0  1.0
 
 julia> c = push!(Circuit(), GateCSWAP(), 1, 2, 3)
-3-qubit circuit with 1 instructions:
+3-qubit circuit with 1 instruction:
 └── CSWAP @ q[1], q[2:3]
 
 julia> power(GateCSWAP(), 2), inverse(GateCSWAP())
@@ -59,9 +59,23 @@ julia> power(GateCSWAP(), 2), inverse(GateCSWAP())
 
 ```jldoctests
 julia> decompose(GateCSWAP())
-3-qubit circuit with 3 instructions:
+3-qubit circuit with 17 instructions:
 ├── CX @ q[3], q[2]
-├── C₂X @ q[1:2], q[3]
+├── U(π/2,0,π) @ q[3]
+├── CX @ q[2], q[3]
+├── U(0,0,-1π/4) @ q[3]
+├── CX @ q[1], q[3]
+├── U(0,0,π/4) @ q[3]
+├── CX @ q[2], q[3]
+├── U(0,0,-1π/4) @ q[3]
+├── CX @ q[1], q[3]
+├── U(0,0,π/4) @ q[2]
+├── U(0,0,π/4) @ q[3]
+├── U(π/2,0,π) @ q[3]
+├── CX @ q[1], q[2]
+├── U(0,0,π/4) @ q[1]
+├── U(0,0,-1π/4) @ q[2]
+├── CX @ q[1], q[2]
 └── CX @ q[3], q[2]
 
 ```
@@ -70,10 +84,12 @@ const GateCSWAP = typeof(Control(1, GateSWAP()))
 
 @definename GateCSWAP "CSWAP"
 
-function decompose!(circ::Circuit, ::GateCSWAP, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateCSWAP) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::GateCSWAP, qtargets, _, _)
     a, b, c = qtargets
-    push!(circ, GateCX(), c, b)
-    push!(circ, GateCCX(), a, b, c)
-    push!(circ, GateCX(), c, b)
-    return circ
+    push!(builder, GateCX(), c, b)
+    push!(builder, GateCCX(), a, b, c)
+    push!(builder, GateCX(), c, b)
+    return builder
 end

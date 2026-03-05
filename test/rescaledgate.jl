@@ -62,7 +62,7 @@ end
     @variables λ
     g = RescaledGate(GateP(λ), λ^2 * π)
     eg = evaluate(g, Dict(λ => 0.532))
-    @test getparam(eg, :m) == 0.532^2 * π
+    @test MimiqCircuitsBase.unwrapvalue(getparam(eg, :m)) == 0.532^2 * π
     @test getparam(eg, :λ) == 0.532
 end
 

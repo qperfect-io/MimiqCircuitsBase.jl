@@ -17,18 +17,19 @@
 using MimiqCircuitsBase
 using Test
 
-include("utils.jl")
+include("TestUtils.jl")
+using .TestUtils
 
 filelist = [
     "bitstrings.jl",
     "gates.jl",
+    "standardgates.jl",
     "proto.jl",
     "proto/zregister.jl",
     "instruction.jl",
     "circuit.jl",
     "control.jl",
     "inverse.jl",
-    "decompositions.jl",
     "operators.jl",
     "noise.jl",
     "power.jl",
@@ -41,8 +42,23 @@ filelist = [
     "rpauli.jl",
     "hamiltonian.jl",
     "block.jl",
+    "dsl.jl",
+    "gatedecl.jl",
     "repeat.jl",
     "listvars.jl",
+    "optimization.jl",
+    "noisemodel.jl",
+    "noisemodelproto.jl",
+    "ifstatement.jl",
+    "matrix_decompositions.jl",
+    "circuitequality.jl",
+    "dagcircuit.jl",
+    "circuittester.jl",
+    "test_rewrite_rules.jl",
+    "test_decompositions.jl",
+    "test_decomposition_bases.jl",
+    "test_parametric_wrap.jl",
+    "remove_swaps.jl",
 ]
 
 @testset "MimiqCircuitsBase.jl" begin

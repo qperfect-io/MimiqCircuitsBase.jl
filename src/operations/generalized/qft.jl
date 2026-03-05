@@ -34,7 +34,7 @@ It implements the unitary transformation.
 
 ```jldoctests
 julia> c = push!(Circuit(), QFT(10), 1:10...)
-10-qubit circuit with 1 instructions:
+10-qubit circuit with 1 instruction:
 └── QFT @ q[1:10]
 
 julia> push!(c, inverse(QFT(10)), 1:10...)
@@ -67,25 +67,17 @@ opname(::Type{<:QFT}) = "QFT"
 
 qregsizes(::QFT{N}) where {N} = (N,)
 
-function decompose!(circ::Circuit, ::QFT{N}, qubits, _, _) where {N}
+matches(::CanonicalRewrite, ::QFT) = true
+
+function decompose_step!(circ, ::CanonicalRewrite, ::QFT{N}, qubits, _, _) where {N}
     qreg = reverse(qubits)
-
     push!(circ, GateH(), qreg[1])
-
     for i in 2:N
-        # should we use the phase gradient gate instead?
-        # not yet, it is very slow
-        # push!(circ, Control(PhaseGradient(i - 1)^(1 // 2)), qreg[i:-1:1]...)
-        # or
-        #decompose!(circ, Control(PhaseGradient(i - 1)^(1 // 2)), qreg[i:-1:1], ())
-
         for j in 1:i-1
             angle = π / 2.0^(i - j)
             push!(circ, GateCP(angle), qreg[i], qreg[j])
         end
-
         push!(circ, GateH(), qreg[i])
     end
-
     return circ
 end

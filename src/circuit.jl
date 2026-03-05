@@ -1,6 +1,6 @@
 #
 # Copyright © 2022-2024 University of Strasbourg. All Rights Reserved.
-# Copyright © 2023-2025 QPerfect. All Rights Reserved.
+# Copyright © 2023-2026 QPerfect. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,12 +15,16 @@
 # limitations under the License.
 #
 
+
+
 """
     Circuit([instructions])
 
 Representation of a quantum circuit as a vector of instructions applied to the qubits.
 
 The circuit can be initialized with an optional vector of instructions.
+
+A Circuit can be manipulated as either a list of inctructions or as a direct acyclic graph (DAG) of instructions.
 
 See [`OPERATIONS`](@ref), [`GATES`](@ref), or [`GENERALIZED`](@ref) for the list
 of operations to add to circuits.
@@ -31,11 +35,11 @@ Operation can be added one by one to a circuit with the
 `push!(circuit, operation, targets...)` function
 
 ```jldoctests
-julia> c = Circuit()
+julia> c = LinearCircuit()
 empty circuit
 
 julia> push!(c, GateH(), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── H @ q[1]
 
 julia> push!(c, GateCX(), 1, 2)
@@ -70,7 +74,7 @@ Targets are not restricted to be single values, but also vectors.
 In this case a single `push!` will add multiple operations.
 
 ```jldoctests
-julia> push!(Circuit(), GateCCX(), 1, 2:4, 4:10)
+julia> push!(LinearCircuit(), GateCCX(), 1, 2:4, 4:10)
 6-qubit circuit with 3 instructions:
 ├── C₂X @ q[1:2], q[4]
 ├── C₂X @ q[1,3], q[5]
@@ -87,166 +91,47 @@ end
 
 Notice how the range `4:10` is not fully used, since `2:4` is shorter.
 
-## Display
-
-To display a a LaTeX representation of the circuit, we can just use Quantikz.jl
-
-```julia
-using Quantikz
-c = Circuit()
-...
-displaycircuit(c)
-```
-
-or
-
-```julia
-savecircuit(c, "circuit.pdf")
-```
 """
-struct Circuit
+mutable struct Circuit <: AbstractDAGCircuit{Instruction}
+    _graph::SimpleDiGraph
     _instructions::Vector{Instruction}
+    _nq::Int
+    _nb::Int
+    _nz::Int
+    _circuit_cache_valid::Bool
+    _graph_cache_valid::Bool
 end
 
-Circuit() = Circuit(Instruction[])
+# Constructors
+Circuit(insts::Vector{<:Instruction}) = Circuit(SimpleDiGraph(0), convert(Vector{Instruction}, insts), numqbz(insts)..., true, false)
+Circuit(insts::AbstractVector) = Circuit(convert(Vector{Instruction}, insts))
+Circuit() = Circuit(SimpleDiGraph(0), Instruction[], 0, 0, 0, true, true)
+Circuit(c::AbstractCircuit{Instruction}) = Circuit(SimpleDiGraph(0), deepcopy(instructions(c)), numqubits(c), numbits(c), numzvars(c), true, false)
 
-Base.iterate(c::Circuit) = iterate(c._instructions)
-Base.iterate(c::Circuit, state) = iterate(c._instructions, state)
-Base.firstindex(c::Circuit) = firstindex(c._instructions)
-Base.lastindex(c::Circuit) = lastindex(c._instructions)
-Base.length(c::Circuit) = length(c._instructions)
-Base.isempty(c::Circuit) = isempty(c._instructions)
-Base.getindex(c::Circuit, i::Integer) = getindex(c._instructions, i)
-Base.getindex(c::Circuit, i) = Circuit(getindex(c._instructions, i))
-Base.eltype(::Circuit) = Instruction
-Base.keys(c::Circuit) = keys(c._instructions)
+# caching system
+set_circuit_cache_valid!(c::Circuit, val::Bool) = c._circuit_cache_valid = val
+is_circuit_cache_valid(c::Circuit) = c._circuit_cache_valid
+set_graph_cache_valid!(c::Circuit, val::Bool) = c._graph_cache_valid = val
+is_graph_cache_valid(c::Circuit) = c._graph_cache_valid
 
-"""
-    push!(circuit::Circuit, instruction::Instruction)
-
-Add an instruction to the circuit.
-
-## Arguments
-- `circuit::Circuit`: The quantum circuit to which the instruction will be added.
-- `instruction::Instruction`: The instruction to add.
-
-## Examples
-
-```jldoctests
-julia> c=Circuit()
-empty circuit
-
-julia> push!(c, Instruction(GateX(),1)) 
-1-qubit circuit with 1 instructions:
-└── X @ q[1]
-
-julia> push!(c, Instruction(GateCX(),1, 2))
-2-qubit circuit with 2 instructions:
-├── X @ q[1]
-└── CX @ q[1], q[2]
-```
-"""
-function Base.push!(c::Circuit, g::Instruction)
-    push!(c._instructions, g)
-    return c
+function cache_resources!(c::Circuit, nq::Integer, nb::Integer, nz::Integer)
+    c._nq = nq
+    c._nb = nb
+    c._nz = nz
 end
+cache_graph!(c::Circuit, val::AbstractGraph) = c._graph = val
 
-"""
-    append!(circuit1::Circuit, circuit2::Circuit)
+# main properties
+# Getter setter
+instructions(c::Circuit) = c._instructions
+graph(c::Circuit) = c._graph
 
-Append all instructions from `circuit2` to `circuit1`.
+@doc raw"""
+    numqbz(insts::Vector{<:Instruction})
+    numqbz(c::AbstractCircuit) -> Int
 
-## Arguments
-- `circuit1::Circuit`: The target circuit to which instructions will be appended.
-- `circuit2::Circuit`: The circuit whose instructions will be appended.
+Compute the highest index of qubit targets, bit targets and zvar targets in the given vector of instructions or circuit.
 
-## Examples
-
-```jldoctests
-julia> c=Circuit()
-empty circuit
-
-julia> push!(c, GateX(), 1:4)         # Applies X to all 4 targets
-4-qubit circuit with 4 instructions:
-├── X @ q[1]
-├── X @ q[2]
-├── X @ q[3]
-└── X @ q[4]
-
-julia> c1 = Circuit()
-empty circuit
-
-julia> push!(c1, GateH(), 1:4)
-4-qubit circuit with 4 instructions:
-├── H @ q[1]
-├── H @ q[2]
-├── H @ q[3]
-└── H @ q[4]
-
-julia> append!(c,c1)
-4-qubit circuit with 8 instructions:
-├── X @ q[1]
-├── X @ q[2]
-├── X @ q[3]
-├── X @ q[4]
-├── H @ q[1]
-├── H @ q[2]
-├── H @ q[3]
-└── H @ q[4]
-"""
-function Base.append!(c::Circuit, other::Circuit)
-    append!(c._instructions, other._instructions)
-    return c
-end
-
-"""
-    insert!(circuit::Circuit, index::Integer, instruction::Instruction)
-
-Insert an instruction into the circuit at the specified index.
-
-## Arguments
-- `circuit::Circuit`: The quantum circuit where the instruction will be inserted.
-- `index::Integer`: The position at which the instruction will be inserted.
-- `instruction::Instruction`: The instruction to insert.
-
-## Examples
-
-```jldoctests
-julia> c=Circuit()
-empty circuit
-
-julia> c=Circuit()
-empty circuit
-
-julia> push!(c, GateX(), 1:4)
-4-qubit circuit with 4 instructions:
-├── X @ q[1]
-├── X @ q[2]
-├── X @ q[3]
-└── X @ q[4]
-
-julia> insert!(c, 2, Instruction(GateH(), 1))
-4-qubit circuit with 5 instructions:
-├── X @ q[1]
-├── H @ q[1]
-├── X @ q[2]
-├── X @ q[3]
-└── X @ q[4]
-"""
-function Base.insert!(c::Circuit, index, g::Instruction)
-    insert!(c._instructions, index, g)
-    return c
-end
-
-"""
-    insert!(circuit1::Circuit, index::Integer, circuit2::Circuit)
-
-Insert all instructions from `circuit2` into `circuit1` at the specified index.
-
-## Arguments
-- `circuit1::Circuit`: The target circuit where instructions will be inserted.
-- `index::Integer`: The position at which the instructions from `circuit2` will be inserted.
-- `circuit2::Circuit`: The circuit whose instructions will be inserted.
 
 ## Examples
 
@@ -254,72 +139,39 @@ Insert all instructions from `circuit2` into `circuit1` at the specified index.
 julia> c = Circuit()
 empty circuit
 
-julia> push!(c, GateX(), 1:4)
-4-qubit circuit with 4 instructions:
-├── X @ q[1]
-├── X @ q[2]
-├── X @ q[3]
-└── X @ q[4]
+julia> push!(c, Measure(), 1:2, 1:2)
+2-qubit, 2-bit circuit with 2 instructions:
+├── M @ q[1], c[1]
+└── M @ q[2], c[2]
 
-julia> c1 = Circuit()
-empty circuit
+julia> numqbz(c)
+(2, 2, 0)
 
-julia> push!(c1, GateH(), 1:4)
-4-qubit circuit with 4 instructions:
-├── H @ q[1]
-├── H @ q[2]
-├── H @ q[3]
-└── H @ q[4]
-
-julia> insert!(c,1,c1)
-4-qubit circuit with 8 instructions:
-├── H @ q[1]
-├── H @ q[2]
-├── H @ q[3]
-├── H @ q[4]
-├── X @ q[1]
-├── X @ q[2]
-├── X @ q[3]
-└── X @ q[4]
-
-julia> 
+```
 """
-function Base.insert!(c::Circuit, index::Int, g::Circuit)
-    for inst in g._instructions
-        insert!(c, index, inst)
-        index += 1
-    end
-    return c
-end
+function numqbz(insts::Vector{<:Instruction})
+    isempty(insts) && return (0, 0, 0)
 
-function specify_operations(c::Circuit)
-    counts = Dict{String,Int}()
-    for i in c._instructions
-        nq = length(i.qtargets)
-        nb = length(i.ctargets)
+    max_qubits = 0
+    max_bits = 0
+    max_zvars = 0
 
-        if nb > 0
-            qubit_key = nq > 1 ? "$(nq)_qubits" : "1_qubit"
-            bit_key = nb > 1 ? "$(nb)_bits" : "1_bit"
-            key = "$qubit_key & $bit_key"
-        else
-            key = nq > 1 ? "$(nq)_qubits" : "1_qubit"
+    for inst in insts
+        nb_qubits = maximum(getqubits(inst), init=0)
+        nb_bits = maximum(getbits(inst), init=0)
+        nb_zvars = maximum(getztargets(inst), init=0)
+        if nb_qubits > max_qubits
+            max_qubits = nb_qubits
         end
-
-        counts[key] = get(counts, key, 0) + 1
-    end
-
-    total_operations = sum(values(counts))
-    println("Total number of operations: $total_operations")
-
-    count_items = collect(counts)
-    for (idx, (key, count)) in enumerate(count_items)
-        if idx == length(count_items)
-            println("└── $count x $key")
-        else
-            println("├── $count x $key")
+        if nb_bits > max_bits
+            max_bits = nb_bits
+        end
+        if nb_zvars > max_zvars
+            max_zvars = nb_zvars
         end
     end
+
+    return max_qubits, max_bits, max_zvars
 end
 
 @doc raw"""
@@ -349,8 +201,10 @@ function numqubits(insts::Vector{<:Instruction})
     isempty(insts) && return 0
     return maximum(Iterators.map(g -> maximum(getqubits(g), init=0), insts))
 end
-
-numqubits(c::Circuit) = numqubits(c._instructions)
+function numqubits(c::Circuit)
+    _ensure_circuit_cache!(c)
+    return c._nq
+end
 
 @doc raw"""
     numbits(insts::Vector{<:Instruction})
@@ -379,15 +233,16 @@ function numbits(insts::Vector{<:Instruction})
     isempty(insts) && return 0
     return maximum(Iterators.map(g -> maximum(getbits(g), init=0), insts))
 end
-
-numbits(c::Circuit) = numbits(c._instructions)
+function numbits(c::Circuit)
+    _ensure_circuit_cache!(c)
+    return c._nb
+end
 
 @doc raw"""
     numzvars(insts::Vector{<:Instruction})
     numzvars(c::Circuit) -> Int
 
 Compute the highest index of z-targets in the given circuit.
-
 
 ## Examples
 
@@ -405,144 +260,17 @@ julia> numzvars(c)
 
 ```
 """
-function getparams(c::Circuit)
-    return reduce(vcat, getparams.(c._instructions))
-end
-
-function listvars(c::Circuit)
-    return unique(reduce(vcat, listvars.(c._instructions); init = Symbolics.Num[]))
-end
-
 function numzvars(insts::Vector{<:Instruction})
     isempty(insts) && return 0
     return maximum(Iterators.map(g -> maximum(getztargets(g), init=0), insts))
 end
-
-numzvars(c::Circuit) = numzvars(c._instructions)
-
-function inverse(c::Circuit)
-    gates = map(inverse, reverse(c._instructions))
-    return Circuit(gates)
+function numzvars(c::Circuit)
+    _ensure_circuit_cache!(c)
+    return c._nz
 end
 
-function Base.show(io::IO, c::Circuit)
-    if isempty(c)
-        print(io, "Circuit()")
-        return nothing
-    end
 
-    sep = get(io, :compact, false) ? "," : ", "
+# Circuit interface
+Base.getindex(c::Circuit, i::Integer) = getindex(c._instructions, i)
+Base.getindex(c::Circuit, i) = Circuit(getindex(c._instructions, i))
 
-    print(io, "Circuit([")
-    print(io, c[1])
-
-    if length(c) > 1
-        for inst in c[2:end]
-            print(io, sep, inst)
-        end
-    end
-
-    print(io, "])")
-
-    return nothing
-end
-
-function _print_instcontainer_header_numbers(io::IO, c)
-    nq = numqubits(c)
-    nc = numbits(c)
-    nz = numzvars(c)
-    oneprinted = false
-    if nq != 0
-        print(io, "$nq-qubit")
-        oneprinted = true
-    end
-    if nc != 0
-        if oneprinted
-            print(io, ", ")
-        end
-        print(io, "$nc-bit")
-        oneprinted = true
-    end
-    if nz != 0
-        if oneprinted
-            print(io, ", ")
-        end
-        print(io, "$nz-vars")
-        oneprinted = true
-    end
-    if oneprinted
-        print(io, " ")
-    end
-end
-
-function _print_instcontainer_header(io::IO, c::Circuit)
-    _print_instcontainer_header_numbers(io, c)
-    print(io, "circuit with $(length(c)) instructions")
-end
-
-_show_instruction(io::IO, m::MIME, inst; _...) = show(io, m, inst)
-
-function _show_instructions(io::IO, m::MIME, c)
-    rows = first(displaysize(io))
-    indent = get(io, :indent, 0)
-    last = get(io, :last, false)
-
-    indentstr = last ? "    "^indent : "│   "^indent
-    n = length(c)
-
-    if isempty(c)
-        return nothing
-    end
-
-    if rows - 4 <= 0
-        print(io, indentstr, "└── ...")
-    elseif rows - 4 >= n
-        for g in c[1:end-1]
-            print(io, indentstr, "├── ")
-            _show_instruction(io, m, g)
-            print(io, '\n')
-        end
-        print(io, indentstr, "└── ")
-        _show_instruction(io, m, c[end], last=true)
-    else
-        chunksize = div(rows - 6, 2)
-
-        for g in c[1:chunksize]
-            print(io, indentstr, "├── ")
-            _show_instruction(io, m, g)
-            print(io, '\n')
-        end
-
-        println(io, indentstr, "⋮   ⋮")
-
-        for g in c[end-chunksize:end-1]
-            print(io, indentstr, "├── ")
-            _show_instruction(io, m, g)
-            print(io, '\n')
-        end
-
-        print(io, indentstr, "└── ")
-        _show_instruction(io, m, c[end])
-    end
-end
-
-function Base.show(io::IO, m::MIME"text/plain", c::Circuit)
-    compact = get(io, :compact, false)
-
-    if !compact && !isempty(c)
-        _print_instcontainer_header(io, c)
-        print(io, ":\n")
-
-        _show_instructions(io, m, c)
-    else
-        if isempty(c)
-            print(io, "empty circuit")
-        else
-            _print_instcontainer_header(io, c)
-        end
-    end
-
-    nothing
-end
-
-Base.copy(c::Circuit) = Circuit(copy(c._instructions))

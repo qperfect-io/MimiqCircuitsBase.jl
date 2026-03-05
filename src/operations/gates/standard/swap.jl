@@ -48,7 +48,7 @@ julia> matrix(GateSWAP())
  0.0  0.0  0.0  1.0
 
 julia> c = push!(Circuit(), GateSWAP(), 1, 2)
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 1 instruction:
 └── SWAP @ q[1:2]
 
 julia> push!(c, GateSWAP, 3, 4)
@@ -82,9 +82,12 @@ opname(::Type{GateSWAP}) = "SWAP"
 
 _power(::GateSWAP, pwr) = _power_idempotent(GateSWAP(), parallel(2, GateID()), pwr)
 
-function decompose!(circ::Circuit, ::GateSWAP, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateSWAP) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::GateSWAP, qtargets, _, _)
     a, b = qtargets
-    push!(circ, GateCX(), a, b)
-    push!(circ, GateCX(), b, a)
-    push!(circ, GateCX(), a, b)
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateCX(), b, a)
+    push!(builder, GateCX(), a, b)
+    return builder
 end

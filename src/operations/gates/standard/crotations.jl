@@ -54,7 +54,7 @@ julia> matrix(GateCRX(1.989))
  0.0+0.0im  0.0+0.0im       0.0-0.838487im  0.544922+0.0im
 
 julia> c = push!(Circuit(), GateCRX(θ), 1, 2)
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 1 instruction:
 └── CRX(θ) @ q[1], q[2]
 
 julia> push!(c, GateCRX(π/8), 1, 2)
@@ -72,11 +72,11 @@ julia> power(GateCRX(θ), 2), inverse(GateCRX(θ))
 ```jldoctests; setup = :(@variables θ)
 julia> decompose(GateCRX(θ))
 2-qubit circuit with 5 instructions:
-├── P(π/2) @ q[2]
+├── U(0,0,π/2) @ q[2]
 ├── CX @ q[1], q[2]
 ├── U((-1//2)*θ,0,0) @ q[2]
 ├── CX @ q[1], q[2]
-└── U((1//2)*θ,-1π/2,0) @ q[2]
+└── U(θ / 2,-1π/2,0) @ q[2]
 
 ```
 """
@@ -84,15 +84,17 @@ const GateCRX = typeof(Control(GateRX(π)))
 
 @definename GateCRX "CRX"
 
-function decompose!(circ::Circuit, g::GateCRX, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateCRX) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, g::GateCRX, qtargets, _, _)
     a, b = qtargets
-    θ = g.op.θ
-    push!(circ, GateP(π / 2), b)
-    push!(circ, GateCX(), a, b)
-    push!(circ, GateU(-θ / 2, 0, 0), b)
-    push!(circ, GateCX(), a, b)
-    push!(circ, GateU(θ / 2, -π / 2, 0), b)
-    return circ
+    θ = getparam(g, :θ)
+    push!(builder, GateS(), b)
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateU(-θ / 2, 0, 0), b)
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateU(θ / 2, -π / 2, 0), b)
+    return builder
 end
 
 @doc raw"""
@@ -134,7 +136,7 @@ julia> matrix(GateCRY(1.989))
  0.0  0.0  0.838487   0.544922
 
 julia> c = push!(Circuit(), GateCRY(θ), 1, 2)
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 1 instruction:
 └── CRY(θ) @ q[1], q[2]
 
 julia> push!(c, GateCRY(π/8), 1, 2)
@@ -152,23 +154,25 @@ julia> power(GateCRY(θ), 2), inverse(GateCRY(θ))
 ```jldoctests; setup = :(@variables θ)
 julia> decompose(GateCRY(θ))
 2-qubit circuit with 4 instructions:
-├── RY((1//2)*θ) @ q[2]
+├── U(θ / 2,0,0) @ q[2]
 ├── CX @ q[1], q[2]
-├── RY((-1//2)*θ) @ q[2]
+├── U((-1//2)*θ,0,0) @ q[2]
 └── CX @ q[1], q[2]
 
 ```
 """
 const GateCRY = typeof(Control(GateRY(π)))
 
-function decompose!(circ::Circuit, g::GateCRY, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateCRY) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, g::GateCRY, qtargets, _, _)
     a, b = qtargets
-    θ = g.op.θ
-    push!(circ, GateRY(θ / 2), b)
-    push!(circ, GateCX(), a, b)
-    push!(circ, GateRY(-θ / 2), b)
-    push!(circ, GateCX(), a, b)
-    return circ
+    θ = getparam(g, :θ)
+    push!(builder, GateRY(θ / 2), b)
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateRY(-θ / 2), b)
+    push!(builder, GateCX(), a, b)
+    return builder
 end
 
 @doc raw"""
@@ -210,7 +214,7 @@ julia> matrix(GateCRZ(1.989))
  0.0+0.0im  0.0+0.0im       0.0+0.0im       0.544922+0.838487im
 
 julia> c = push!(Circuit(), GateCRZ(θ), 1, 2)
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 1 instruction:
 └── CRZ(θ) @ q[1], q[2]
 
 julia> push!(c, GateCRZ(π/8), 1, 2)
@@ -228,22 +232,23 @@ julia> power(GateCRZ(θ), 2), inverse(GateCRZ(θ))
 ```jldoctests; setup = :(@variables θ)
 julia> decompose(GateCRZ(θ))
 2-qubit circuit with 4 instructions:
-├── RZ((1//2)*θ) @ q[2]
+├── U(0,0,θ / 2,(-1//4)*θ) @ q[2]
 ├── CX @ q[1], q[2]
-├── RZ((-1//2)*θ) @ q[2]
+├── U(0,0,(-1//2)*θ,(1//4)*θ) @ q[2]
 └── CX @ q[1], q[2]
 
 ```
 """
 const GateCRZ = typeof(Control(GateRZ(π)))
 
-function decompose!(circ::Circuit, g::GateCRZ, qtargets, _, _)
-    a, b = qtargets
-    λ = g.op.λ
-    push!(circ, GateRZ(λ / 2), b)
-    push!(circ, GateCX(), a, b)
-    push!(circ, GateRZ(-λ / 2), b)
-    push!(circ, GateCX(), a, b)
-    return circ
-end
+matches(::CanonicalRewrite, ::GateCRZ) = true
 
+function decompose_step!(builder, ::CanonicalRewrite, g::GateCRZ, qtargets, _, _)
+    a, b = qtargets
+    λ = getparam(g, :λ)
+    push!(builder, GateRZ(λ / 2), b)
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateRZ(-λ / 2), b)
+    push!(builder, GateCX(), a, b)
+    return builder
+end

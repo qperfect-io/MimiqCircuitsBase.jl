@@ -47,14 +47,14 @@ julia> shorcode = let c = Circuit()
            push!(c, IfStatement(GateX(), bs"01"), 3, 1, 2)
            Block(c)
        end
-3-qubit, 2-bit block 2ona3chfcmcqp with 7 instructions:
+3-qubit, 2-bit block 2k6pu37sbxdcb with 7 instructions:
 ├── CX @ q[1], q[2]
 ├── CX @ q[1], q[3]
 ├── MZZ @ q[1:2], c[1]
 ├── MZZ @ q[2:3], c[2]
-├── IF(c==10) X @ q[1], c[1:2]
-├── IF(c==11) X @ q[2], c[1:2]
-└── IF(c==01) X @ q[3], c[1:2]
+├── IF(c==10) X @ q[1], condition[1:2]
+├── IF(c==11) X @ q[2], condition[1:2]
+└── IF(c==01) X @ q[3], condition[1:2]
 
 julia> c = Circuit()
 empty circuit
@@ -212,16 +212,30 @@ function Base.show(io::IO, m::MIME"text/plain", c::Block)
     nothing
 end
 
-function decompose!(circuit::Circuit, b::Block, qtargets, ctargets, ztargets)
+matches(::CanonicalRewrite, ::Block) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, b::Block, qtargets, ctargets, ztargets)
     for inst in b
         op = getoperation(inst)
         qt = getqubits(inst)
         bt = getbits(inst)
         zt = getztargets(inst)
-        push!(circuit, op, [qtargets[i] for i in qt]..., [ctargets[i] for i in bt]..., [ztargets[i] for i in zt]...)
+        push!(builder, op, [qtargets[i] for i in qt]..., [ctargets[i] for i in bt]..., [ztargets[i] for i in zt]...)
     end
-
-    return circuit
+    return builder
 end
 
 isunitary(b::Block{N,M,L}) where {N,M,L} = all(x -> isunitary(x), b)
+
+function Base.:(==)(b1::Block, b2::Block)
+    # check number of qubits, bits, zvars
+    numqubits(b1) == numqubits(b2) || return false
+    numbits(b1) == numbits(b2) || return false
+    numzvars(b1) == numzvars(b2) || return false
+
+    # check the instructions
+    length(b1) == length(b2) || return false
+    b1._instructions == b2._instructions || return true
+
+    return true
+end

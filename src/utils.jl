@@ -136,33 +136,27 @@ end
     end
 end
 
-function _symbolics_can_convert(x::Num)
-    val = Symbolics.value(x)
-    val isa Num && return false
-    val isa SymbolicUtils.BasicSymbolic{Irrational{:π}} && return true
-    val isa SymbolicUtils.BasicSymbolic{Irrational{:ℯ}} && return true
-    val isa Number && return true
-    return false
-end
-
-_substitute_irrationals(expr) = Symbolics.substitute(expr, Dict(π => Float64(π), ℯ => Float64(ℯ)))
-
-_convert_to_number(x::Num) = Symbolics.value(x)
-
 Base.cis(x::Num) = cos(x) + im * sin(x)
 Base.cispi(x::Num) = cospi(x) + im * sinpi(x)
 
 function unwrapvalue(g::Num)
     v = Symbolics.value(g)
-    if v isa Number
-        return v
-    elseif v isa SymbolicUtils.BasicSymbolic{Irrational{:π}}
-        return π
-    elseif v isa SymbolicUtils.BasicSymbolic{Irrational{:ℯ}}
-        return ℯ
-    else
-        throw(UndefinedValue(g))
+
+    # check for constant number
+    if !(v isa Num)
+        vv = simplify(v)
+        vvc = unwrap_const(vv)
+        vvc isa Number && return vvc
     end
+
+    # check for something that can be evaluated to a number
+    if iscall(v)
+        vv = Symbolics.value(Symbolics.symbolic_to_float(v))
+        vv isa Number && return vv
+    end
+
+    # everything else is symbolic (functions or symbols)
+    throw(UndefinedValue(g))
 end
 
 unwrapvalue(g::Real) = g

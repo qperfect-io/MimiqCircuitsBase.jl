@@ -71,9 +71,20 @@ function matrix end
 function matrix(g::T, ::Val{true}) where {T}
     params = map(getparams(g)) do p
         v = Symbolics.value(p)
-        v isa Number && return v
-        v isa SymbolicUtils.BasicSymbolic{Irrational{:π}} && return π
-        v isa SymbolicUtils.BasicSymbolic{Irrational{:ℯ}} && return ℯ
+        # check for constant number
+        if !(v isa Num)
+            vv = simplify(v)
+            vvc = unwrap_const(vv)
+            vvc isa Number && return vvc
+        end
+
+        # check for something that can be evaluated to a number
+        if iscall(v)
+            vv = Symbolics.value(Symbolics.symbolic_to_float(v))
+            vv isa Number && return vv
+        end
+
+        # everything else is symbolic (functions or symbols)
         return p
     end
     return _matrix(T, params...)
@@ -130,21 +141,20 @@ function unwrappedmatrix(g::T) where {T<:AbstractOperator}
     # Assumes that the parameters cannot be complex.
     params = map(getparams(g)) do p
         v = Symbolics.value(p)
-
-        if v isa Number
-            return v
-        elseif v isa SymbolicUtils.BasicSymbolic{Irrational{:π}}
-            return π
-        elseif v isa SymbolicUtils.BasicSymbolic{Irrational{:ℯ}}
-            return ℯ
+        # check for constant number
+        if !(v isa Num)
+            vv = simplify(v)
+            vvc = unwrap_const(vv)
+            vvc isa Number && return vvc
         end
 
-        vv = Symbolics.value(Symbolics.substitute(p, Dict()))
-
-        if vv isa Number
-            return vv
+        # check for something that can be evaluated to a number
+        if iscall(v)
+            vv = Symbolics.value(Symbolics.symbolic_to_float(v))
+            vv isa Number && return vv
         end
 
+        # everything else is symbolic (functions or symbols)
         throw(UnexpectedSymbolics(string(g)))
     end
 

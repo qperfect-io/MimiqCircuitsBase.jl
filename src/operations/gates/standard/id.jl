@@ -42,7 +42,7 @@ julia> matrix(GateID())
  0.0   1.0
 
 julia> c = push!(Circuit(), GateID(), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── ID @ q[1]
 
 julia> power(GateID(), 2), inverse(GateID())
@@ -54,7 +54,7 @@ julia> power(GateID(), 2), inverse(GateID())
 
 ```jldoctests
 julia> decompose(GateID())
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── U(0,0,0) @ q[1]
 
 ```
@@ -69,10 +69,12 @@ opname(::Type{GateID}) = "ID"
 
 _power(::GateID, _) = GateID()
 
-function decompose!(circ::Circuit, ::GateID, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateID) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::GateID, qtargets, _, _)
     q = qtargets[1]
-    push!(circ, GateU(0, 0, 0), q)
-    return circ
+    push!(builder, GateU(0, 0, 0), q)
+    return builder
 end
 
 isidentity(::GateID) = true

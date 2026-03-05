@@ -61,7 +61,9 @@ function _phasegradientpow_decompose!(circ, P, N, qtargets)
 end
 
 # standard decomposition
-decompose!(circ::Circuit, ::PhaseGradient{N}, qtargets, _, _) where {N} = _phasegradientpow_decompose!(circ, 1, N, qtargets)
+can_deompose(::CanonicalRewrite, ::PhaseGradient) = true
+decompose_step!(circ, ::CanonicalRewrite, ::PhaseGradient{N}, qtargets, _, _) where {N} = _phasegradientpow_decompose!(circ, 1, N, qtargets)
 
 # specialization for power
-decompose!(circ::Circuit, ::Power{P,N,PhaseGradient{N}}, qtargets, _, _) where {P,N} = _phasegradientpow_decompose!(circ, P, N, qtargets)
+can_deompose(::CanonicalRewrite, ::Power{P,N,PhaseGradient{N}}) where {P,N} = true
+decompose_step!(circ, ::CanonicalRewrite, ::Power{P,N,PhaseGradient{N}}, qtargets, _, _) where {P,N} = _phasegradientpow_decompose!(circ, P, N, qtargets)

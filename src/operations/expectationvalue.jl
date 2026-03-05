@@ -47,11 +47,11 @@ julia> ExpectationValue(GateX())
 ⟨X⟩
 
 julia> c = push!(Circuit(), ExpectationValue(GateX()), 1, 1)
-1-qubit, 1-vars circuit with 1 instructions:
+1-qubit, 1-vars circuit with 1 instruction:
 └── ⟨X⟩ @ q[1], z[1]
 
 julia> c = push!(Circuit(), ExpectationValue(SigmaPlus()), 1, 2)
-1-qubit, 2-vars circuit with 1 instructions:
+1-qubit, 2-vars circuit with 1 instruction:
 └── ⟨SigmaPlus(1)⟩ @ q[1], z[2]
 
 ```

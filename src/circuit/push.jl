@@ -112,8 +112,9 @@ julia> push!(c, GateH(), 8)
 
 ```
 """
-function Base.push!(c::Circuit, g::Operation{N,M,L}, targets::Vararg{Any,K}) where {N,M,L,K}
+function Base.push!(c::AbstractCircuit{Instruction}, g::Operation{N,M,L}, targets::Vararg{Any,K}) where {N,M,L,K}
     push!(c._instructions, g, targets...)
+    _invalidate_cache!(c)
     return c
 end
 
@@ -145,7 +146,7 @@ julia> push!(c, GateRX(π/2), 1:4)
 └── RX(π/2) @ q[4]
 ```
 """
-function Base.push!(c::Circuit, ::Type{T}, targets...) where {T<:Operation}
+function Base.push!(c::AbstractCircuit{Instruction}, ::Type{T}, targets...) where {T<:Operation}
     if numparams(T) != 0
         error("Parametric type. Use `push!(c, T(args...), targets...)` instead.")
     end

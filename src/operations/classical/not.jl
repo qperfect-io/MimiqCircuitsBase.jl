@@ -15,13 +15,32 @@
 # limitations under the License.
 #
 
-# TODO: add documentation
-"""
-    struct Not <: Operation{0,1,0}
-"""
-struct Not <: Operation{0,1,0} end
+@doc raw"""
+    struct Not <: AbstractClassical{1}
 
-opname(::Type{<:Not}) = "!"
+Classical operation that flips a classical bit:
+`0 → 1` and `1 → 0`.
+
+Acts only on classical registers and performs a deterministic logical inversion.
+
+## Examples
+
+```jldoctests
+julia> Not()
+~
+
+julia> push!(Circuit(), Not(),1)
+1-bit circuit with 1 instruction:
+└── c[1] = ~c[1]
+```
+"""
+struct Not <: AbstractClassical{1} end
+
+opname(::Type{<:Not}) = "~"
 
 inverse(::Not) = Not()
 
+function Base.show(io::IO, ::MIME"text/plain", inst::Instruction{0,1,0,<:Not})
+    c = getbit(inst, 1)
+    print(io, "c[$c] = ~c[$c]")
+end

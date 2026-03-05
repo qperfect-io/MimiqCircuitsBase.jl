@@ -46,7 +46,7 @@ julia> matrix(GateS())
  0+0im  0+1im
 
 julia> c = push!(Circuit(), GateS(), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── S @ q[1]
 
 julia> push!(c, GateS, 2)
@@ -63,7 +63,7 @@ julia> power(GateS(), 2), inverse(GateS())
 
 ```jldoctests
 julia> decompose(GateS())
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── U(0,0,π/2) @ q[1]
 
 ```
@@ -72,10 +72,12 @@ const GateS = typeof(power(GateZ(), 1 // 2))
 
 @definename GateS "S"
 
-function decompose!(circ::Circuit, ::GateS, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateS) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::GateS, qtargets, _, _)
     q = qtargets[1]
-    push!(circ, GateU(0, 0, π / 2), q)
-    return circ
+    push!(builder, GateU(0, 0, π / 2), q)
+    return builder
 end
 
 @generated _matrix(::Type{GateS}) = [1 0; 0 im]
@@ -109,7 +111,7 @@ julia> matrix(GateSDG())
  0+0im  0-1im
 
 julia> c = push!(Circuit(), GateSDG(), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── S† @ q[1]
 
 julia> push!(c, GateSDG, 2)
@@ -126,17 +128,19 @@ julia> power(GateSDG(), 2), inverse(GateSDG())
 
 ```jldoctests
 julia> decompose(GateSDG())
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── U(0,0,-1π/2) @ q[1]
 
 ```
 """
 const GateSDG = typeof(inverse(GateS()))
 
-function decompose!(circ::Circuit, ::GateSDG, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateSDG) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::GateSDG, qtargets, _, _)
     q = qtargets[1]
-    push!(circ, GateU(0, 0, -π / 2), q)
-    return circ
+    push!(builder, GateU(0, 0, -π / 2), q)
+    return builder
 end
 
 @generated _matrix(::Type{GateSDG}) = [1 0; 0 -im]

@@ -49,7 +49,7 @@ julia> matrix(GateP(1.989))
  0.0+0.0im  -0.40612+0.91382im
 
 julia> c = push!(Circuit(), GateP(λ), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── P(λ) @ q[1]
 
 julia> push!(c, GateP(π/2), 2)
@@ -63,7 +63,7 @@ julia> push!(c, GateP(π/2), 2)
 
 ```jldoctests; setup = :(@variables λ)
 julia> decompose(GateP(λ))
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── U(0,0,λ) @ q[1]
 
 ```
@@ -82,9 +82,11 @@ _matrix(::Type{GateP}, λ) = [1 0; 0 cispi(λ / π)]
 
 _matrix(::Type{GateP}, λ::Symbolics.Num) = [1 0; 0 cis(λ)]
 
-function decompose!(circ::Circuit, g::GateP, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateP) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, g::GateP, qtargets, _, _)
     q = qtargets[1]
-    push!(circ, GateU(0, 0, g.λ), q)
-    return circ
+    push!(builder, GateU(0, 0, g.λ), q)
+    return builder
 end
 

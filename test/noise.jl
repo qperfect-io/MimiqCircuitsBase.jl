@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 using Test
+using Symbolics
 
 #TODO: test specific matrices of noise channels
 
@@ -272,4 +273,55 @@ end
     ne = -0.1
     @test_throws "Value of ne must be between 0 and 1" ThermalNoise(T1, T2, time, ne)
 
+end
+
+@testset "Noise Evaluate Constant Concretization" begin
+    @variables t
+
+    dep = evaluate(Depolarizing1(1 - exp(-t / 20e6)), Dict(t => 1))
+    @test Symbolics.value(getparam(dep, :p)) isa Real
+
+    ad = evaluate(AmplitudeDamping(1 - exp(-t / 20e6)), Dict(t => 1))
+    @test Symbolics.value(getparam(ad, :gamma)) isa Real
+
+    gad = evaluate(GeneralizedAmplitudeDamping(exp(-t / 20e6), 1 - exp(-t / 20e6)), Dict(t => 1))
+    @test Symbolics.value(getparam(gad, :p)) isa Real
+    @test Symbolics.value(getparam(gad, :gamma)) isa Real
+
+    pn = evaluate(PauliNoise([exp(-t / 20e6), 1 - exp(-t / 20e6)], ["I", "X"]), Dict(t => 1))
+    @test all(x -> Symbolics.value(x) isa Real, probabilities(pn))
+
+    px = evaluate(PauliX(1 - exp(-t / 20e6)), Dict(t => 1))
+    py = evaluate(PauliY(1 - exp(-t / 20e6)), Dict(t => 1))
+    pz = evaluate(PauliZ(1 - exp(-t / 20e6)), Dict(t => 1))
+    @test Symbolics.value(getparam(px, :p)) isa Real
+    @test Symbolics.value(getparam(py, :p)) isa Real
+    @test Symbolics.value(getparam(pz, :p)) isa Real
+
+    pad = evaluate(PhaseAmplitudeDamping(exp(-t / 20e6), 1 - exp(-t / 20e6), (1 - exp(-t / 20e6)) / 2), Dict(t => 1))
+    @test Symbolics.value(getparam(pad, :p)) isa Real
+    @test Symbolics.value(getparam(pad, :gamma)) isa Real
+    @test Symbolics.value(getparam(pad, :beta)) isa Real
+
+    tn = evaluate(ThermalNoise(t + 1, t + 1, t / 10, (1 - exp(-t / 20e6)) / 2), Dict(t => 1))
+    @test Symbolics.value(getparam(tn, :T1)) isa Real
+    @test Symbolics.value(getparam(tn, :T2)) isa Real
+    @test Symbolics.value(getparam(tn, :time)) isa Real
+    @test Symbolics.value(getparam(tn, :ne)) isa Real
+
+    re = evaluate(ReadoutErr(1 - exp(-t / 20e6), exp(-t / 20e6)), Dict(t => 1))
+    @test Symbolics.value(getparam(re, :p0)) isa Real
+    @test Symbolics.value(getparam(re, :p1)) isa Real
+
+    mu = evaluate(MixedUnitary([exp(-t / 20e6), 1 - exp(-t / 20e6)], [GateID(), GateP(sin(t)^2)]), Dict(t => 1))
+    @test all(x -> Symbolics.value(x) isa Real, probabilities(mu))
+    @test all(x -> Symbolics.value(x) isa Real, getparams(unitarygates(mu)[2]))
+
+    gamma = 1 - exp(-t / 20e6)
+    kraus = Kraus([
+        Operator([1 0; 0 sqrt(1 - gamma)]),
+        Operator([0 sqrt(gamma); 0 0]),
+    ])
+    kraus_eval = evaluate(kraus, Dict(t => 1))
+    @test all(op -> all(x -> (Symbolics.value(real(x)) isa Real) && (Symbolics.value(imag(x)) isa Real), op.O), krausoperators(kraus_eval))
 end

@@ -53,7 +53,7 @@ julia> matrix(GateCX())
  0.0  0.0  1.0  0.0
 
 julia> c = push!(Circuit(), GateCX(), 1, 2)
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 1 instruction:
 └── CX @ q[1], q[2]
 
 julia> power(GateCX(), 2), inverse(GateCX())
@@ -65,7 +65,7 @@ julia> power(GateCX(), 2), inverse(GateCX())
 
 ```jldoctests
 julia> decompose(GateCX())
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 1 instruction:
 └── CX @ q[1], q[2]
 
 ```
@@ -74,8 +74,10 @@ const GateCX = typeof(Control(GateX()))
 
 @definename GateCX "CX"
 
-function decompose!(circ::Circuit, ::GateCX, qtarget, _, _)
-    return push!(circ, GateCX(), qtarget...)
+matches(::CanonicalRewrite, ::GateCX) = false
+
+function decompose_step!(builder, ::CanonicalRewrite, g::GateCX, qtargets, _, _)
+    throw(DecompositionError("`GateCX` does not have a canonical decomposition."))
 end
 
 @doc raw"""
@@ -115,7 +117,7 @@ julia> matrix(GateCY())
  0.0+0.0im  0.0+0.0im  0.0+1.0im  0.0+0.0im
 
 julia> c = push!(Circuit(), GateCY(), 1, 2)
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 1 instruction:
 └── CY @ q[1], q[2]
 
 julia> power(GateCY(), 2), inverse(GateCY())
@@ -128,9 +130,9 @@ julia> power(GateCY(), 2), inverse(GateCY())
 ```jldoctests
 julia> decompose(GateCY())
 2-qubit circuit with 3 instructions:
-├── S† @ q[2]
+├── U(0,0,-1π/2) @ q[2]
 ├── CX @ q[1], q[2]
-└── S @ q[2]
+└── U(0,0,π/2) @ q[2]
 
 ```
 """
@@ -138,11 +140,12 @@ const GateCY = typeof(Control(GateY()))
 
 @definename GateCY "CY"
 
-function decompose!(circ::Circuit, ::GateCY, qtargets, _, _)
+function decompose_step!(builder, ::CanonicalRewrite, ::GateCY, qtargets, _, _)
     a, b = qtargets
-    push!(circ, GateSDG(), b)
-    push!(circ, GateCX(), a, b)
-    push!(circ, GateS(), b)
+    push!(builder, GateSDG(), b)
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateS(), b)
+    return builder
 end
 
 @doc raw"""
@@ -182,7 +185,7 @@ julia> matrix(GateCZ())
  0.0  0.0  0.0  -1.0
 
 julia> c = push!(Circuit(), GateCZ(), 1, 2)
-2-qubit circuit with 1 instructions:
+2-qubit circuit with 1 instruction:
 └── CZ @ q[1], q[2]
 
 julia> power(GateCZ(), 2), inverse(GateCZ())
@@ -195,18 +198,19 @@ julia> power(GateCZ(), 2), inverse(GateCZ())
 ```jldoctests
 julia> decompose(GateCZ())
 2-qubit circuit with 3 instructions:
-├── H @ q[2]
+├── U(π/2,0,π) @ q[2]
 ├── CX @ q[1], q[2]
-└── H @ q[2]
+└── U(π/2,0,π) @ q[2]
 ```
 """
 const GateCZ = typeof(Control(GateZ()))
 
 @definename GateCZ "CZ"
 
-function decompose!(circ::Circuit, ::GateCZ, qtargets, _, _)
+function decompose_step!(builder, ::CanonicalRewrite, ::GateCZ, qtargets, _, _)
     a, b = qtargets
-    push!(circ, GateH(), b)
-    push!(circ, GateCX(), a, b)
-    push!(circ, GateH(), b)
+    push!(builder, GateH(), b)
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateH(), b)
+    return builder
 end

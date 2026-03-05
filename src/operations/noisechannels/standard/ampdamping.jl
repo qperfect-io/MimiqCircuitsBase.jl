@@ -44,7 +44,7 @@ Physically, it corresponds to an energy gain/loss process, such as spontaneous e
 
 ```jldoctests
 julia> push!(Circuit(), AmplitudeDamping(0.1), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── AmplitudeDamping(0.1) @ q[1]
 ```
 """
@@ -64,9 +64,9 @@ end
 function evaluate(ad::AmplitudeDamping, d::Dict=Dict())
     # Substitute value for gamma
     evaluated_gamma = Symbolics.substitute(ad.gamma, d)
-    concrete_gamma = Symbolics.value(evaluated_gamma)
 
-    if concrete_gamma isa Real
+    if !issymbolic(evaluated_gamma)
+        concrete_gamma = unwrapvalue(evaluated_gamma)
         if concrete_gamma < 0 || concrete_gamma > 1
             throw(ArgumentError("Value of gamma must be between 0 and 1 after evaluation."))
         end
@@ -133,7 +133,7 @@ and spontaneous absorption with probabilities ``p`` and ``1-p``, respectively.
 
 ```jldoctests
 julia> push!(Circuit(), GeneralizedAmplitudeDamping(0.1, 0.3), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── GeneralizedAmplitudeDamping(0.1,0.3) @ q[1]
 ```
 """
@@ -158,8 +158,8 @@ function evaluate(gad::GeneralizedAmplitudeDamping, d::Dict=Dict())
     evaluated_p = Symbolics.substitute(gad.p, d)
     evaluated_gamma = Symbolics.substitute(gad.gamma, d)
 
-    concrete_p = Symbolics.value(evaluated_p)
-    concrete_gamma = Symbolics.value(evaluated_gamma)
+    concrete_p = issymbolic(evaluated_p) ? evaluated_p : unwrapvalue(evaluated_p)
+    concrete_gamma = issymbolic(evaluated_gamma) ? evaluated_gamma : unwrapvalue(evaluated_gamma)
 
     if (concrete_p isa Real) && (concrete_gamma isa Real)
         if (concrete_p < 0 || concrete_p > 1) || (concrete_gamma < 0 || concrete_gamma > 1)
@@ -169,8 +169,8 @@ function evaluate(gad::GeneralizedAmplitudeDamping, d::Dict=Dict())
         return GeneralizedAmplitudeDamping(concrete_p, concrete_gamma)
     end
 
-    # If either p or gamma is symbolic, skip checks and return instance with evaluated values
-    return GeneralizedAmplitudeDamping(evaluated_p, evaluated_gamma)
+    # If either p or gamma is still symbolic, skip checks and return evaluated values.
+    return GeneralizedAmplitudeDamping(concrete_p, concrete_gamma)
 end
 
 

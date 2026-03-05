@@ -48,7 +48,7 @@ Operators can be used for expectation values:
 
 ```jldoctests
 julia> push!(Circuit(), ExpectationValue(Operator([0 1; 0 0])), 1, 1)
-1-qubit, 1-vars circuit with 1 instructions:
+1-qubit, 1-vars circuit with 1 instruction:
 └── ⟨Operator([0.0 1.0; 0.0 0.0])⟩ @ q[1], z[1]
 ```
 """
@@ -87,7 +87,28 @@ end
 
 opname(::Type{<:Operator}) = "Operator"
 
-matrix(g::Operator) = g.O
+function matrix(g::Operator)
+    O = g.O
+    map(O) do p
+        v = Symbolics.value(p)
+
+        # check for constant number
+        if !(v isa Num)
+            vv = simplify(v)
+            vvc = unwrap_const(vv)
+            vvc isa Number && return vvc
+        end
+
+        # check for something that can be evaluated to a number
+        if iscall(v)
+            vv = Symbolics.value(Symbolics.symbolic_to_float(v))
+            vv isa Number && return vv
+        end
+
+        # everything else is symbolic (functions or symbols)
+        return p
+    end
+end
 
 _matrix(::Type{<:Operator{N}}, O...) where {N} = reshape(collect(O), 2^N, 2^N)
 
@@ -152,4 +173,23 @@ function Base.show(io::IO, ::MIME"text/plain", op::Operator{N}) where {N}
     end
     print(io, "└── ")
     join(io, U[a[end], :], " ")
+end
+
+function Base.:(==)(left::Operator, right::Operator)
+    typeof(left) == typeof(right) || return false
+
+    # check matrices element by element
+    for (l, r) in zip(matrix(left), matrix(right))
+        issymbolic(l) == issymbolic(r) || return false
+
+        # both symbolic
+        if issymbolic(l) && issymbolic(r)
+            l === r || return false
+        end
+
+        # both not symbolic
+        isequal(l, r) || return false
+    end
+
+    return true
 end

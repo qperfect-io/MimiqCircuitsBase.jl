@@ -46,7 +46,7 @@ julia> matrix(GateSY())
  0.5+0.5im   0.5+0.5im
 
 julia> c = push!(Circuit(), GateSY(), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── SY @ q[1]
 
 julia> push!(c, GateSY, 2)
@@ -64,9 +64,9 @@ Y
 ```jldoctests
 julia> decompose(GateSY())
 1-qubit circuit with 4 instructions:
-├── S @ q[1]
-├── S @ q[1]
-├── H @ q[1]
+├── U(0,0,π/2) @ q[1]
+├── U(0,0,π/2) @ q[1]
+├── U(π/2,0,π) @ q[1]
 └── U(0,0,0,π/4) @ q[1]
 ```
 """
@@ -74,13 +74,15 @@ const GateSY = typeof(power(GateY(), 1 // 2))
 
 @definename GateSY "SY"
 
-function decompose!(circ::Circuit, ::GateSY, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateSY) = true
+
+function decompose_step!(builder, ::CanonicalRewrite, ::GateSY, qtargets, _, _)
     a = qtargets[1]
-    push!(circ, GateS(), a)
-    push!(circ, GateS(), a)
-    push!(circ, GateH(), a)
-    push!(circ, GateU(0, 0, 0, π / 4), a)
-    return circ
+    push!(builder, GateS(), a)
+    push!(builder, GateS(), a)
+    push!(builder, GateH(), a)
+    push!(builder, GateU(0, 0, 0, π / 4), a)
+    return builder
 end
 
 @generated _matrix(::Type{GateSY}) = ComplexF64[0.5+0.5im -0.5-0.5im; 0.5+0.5im 0.5+0.5im]
@@ -117,7 +119,7 @@ julia> matrix(GateSYDG())
  -0.5+0.5im  0.5-0.5im
 
 julia> c = push!(Circuit(), GateSYDG(), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── SY† @ q[1]
 
 julia> push!(c, GateSYDG, 2)
@@ -135,7 +137,9 @@ SY
 """
 const GateSYDG = typeof(inverse(GateSY()))
 
-function decompose!(circ::Circuit, ::GateSYDG, qtargets, _, _)
+matches(::CanonicalRewrite, ::GateSYDG) = true
+
+function decompose_step!(circ, ::CanonicalRewrite, ::GateSYDG, qtargets, _, _)
     a = qtargets[1]
     push!(circ, GateU(0, 0, 0, -π / 4), a)
     push!(circ, GateH(), a)

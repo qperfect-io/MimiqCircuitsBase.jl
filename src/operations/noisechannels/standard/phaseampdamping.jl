@@ -45,7 +45,7 @@ and [`ThermalNoise`](@ref).
 
 ```jldoctests
 julia> push!(Circuit(), PhaseAmplitudeDamping(0.1, 0.2, 0.3), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── PhaseAmplitudeDamping(0.1,0.2,0.3) @ q[1]
 ```
 
@@ -75,9 +75,9 @@ function evaluate(pad::PhaseAmplitudeDamping, d::Dict=Dict())
     evaluated_gamma = Symbolics.substitute(pad.gamma, d)
     evaluated_beta = Symbolics.substitute(pad.beta, d)
 
-    concrete_p = Symbolics.value(evaluated_p)
-    concrete_gamma = Symbolics.value(evaluated_gamma)
-    concrete_beta = Symbolics.value(evaluated_beta)
+    concrete_p = issymbolic(evaluated_p) ? evaluated_p : unwrapvalue(evaluated_p)
+    concrete_gamma = issymbolic(evaluated_gamma) ? evaluated_gamma : unwrapvalue(evaluated_gamma)
+    concrete_beta = issymbolic(evaluated_beta) ? evaluated_beta : unwrapvalue(evaluated_beta)
 
     if (concrete_p isa Real) && (concrete_gamma isa Real) && (concrete_beta isa Real)
 
@@ -88,7 +88,7 @@ function evaluate(pad::PhaseAmplitudeDamping, d::Dict=Dict())
         return PhaseAmplitudeDamping(concrete_p, concrete_gamma, concrete_beta)
     end
 
-    return PhaseAmplitudeDamping(evaluated_p, evaluated_gamma, evaluated_beta)
+    return PhaseAmplitudeDamping(concrete_p, concrete_gamma, concrete_beta)
 end
 
 
@@ -153,7 +153,7 @@ and [`GeneralizedAmplitudeDamping`](@ref).
 
 ```jldoctests
 julia> push!(Circuit(), ThermalNoise(0.5, 0.6, 1.2, 0.3), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── ThermalNoise(0.5,0.6,1.2,0.3) @ q[1]
 ```
 """
@@ -187,10 +187,10 @@ function evaluate(tn::ThermalNoise, d::Dict=Dict())
     evaluated_time = Symbolics.substitute(tn.time, d)
     evaluated_ne = Symbolics.substitute(tn.ne, d)
 
-    concrete_T1 = Symbolics.value(evaluated_T1)
-    concrete_T2 = Symbolics.value(evaluated_T2)
-    concrete_time = Symbolics.value(evaluated_time)
-    concrete_ne = Symbolics.value(evaluated_ne)
+    concrete_T1 = issymbolic(evaluated_T1) ? evaluated_T1 : unwrapvalue(evaluated_T1)
+    concrete_T2 = issymbolic(evaluated_T2) ? evaluated_T2 : unwrapvalue(evaluated_T2)
+    concrete_time = issymbolic(evaluated_time) ? evaluated_time : unwrapvalue(evaluated_time)
+    concrete_ne = issymbolic(evaluated_ne) ? evaluated_ne : unwrapvalue(evaluated_ne)
 
     if (concrete_T1 isa Real) && (concrete_T2 isa Real) && (concrete_time isa Real) && (concrete_ne isa Real)
         if concrete_T1 < 0
@@ -209,8 +209,8 @@ function evaluate(tn::ThermalNoise, d::Dict=Dict())
         return ThermalNoise(concrete_T1, concrete_T2, concrete_time, concrete_ne)
     end
 
-    # If any parameter is symbolic, return an instance with evaluated values
-    return ThermalNoise(evaluated_T1, evaluated_T2, evaluated_time, evaluated_ne)
+    # If any parameter is symbolic, return an instance with evaluated values.
+    return ThermalNoise(concrete_T1, concrete_T2, concrete_time, concrete_ne)
 end
 
 

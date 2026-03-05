@@ -56,15 +56,15 @@ The length of the vectors `p` and `U` must be equal.
 
 ```jldoctests
 julia> push!(Circuit(), MixedUnitary([0.9, 0.1], [[1 0; 0 1], [0 1; 1 0]]), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── MixedUnitary((0.9,Custom([1.0 0.0; 0.0 1.0])),(0.1,Custom([0.0 1.0; 1.0 0.0]))) @ q[1]
 
 julia> push!(Circuit(), MixedUnitary([0.8, 0.2], [GateID(), GateRX(0.2)]), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── MixedUnitary((0.8,ID),(0.2,RX(0.2))) @ q[1]
 
 julia> push!(Circuit(), MixedUnitary([0.8, 0.2], [[1 0; 0 1], GateRX(0.2)]), 1)
-1-qubit circuit with 1 instructions:
+1-qubit circuit with 1 instruction:
 └── MixedUnitary((0.8,Custom([1.0 0.0; 0.0 1.0])),(0.2,RX(0.2))) @ q[1]
 
 julia> @variables x
@@ -78,10 +78,58 @@ julia> evaluate(g,Dict(x=>.1))
 MixedUnitary((0.9, Custom([1.0 0.0; 0.0 1.0])), (0.1, Custom([0.0 1.0; 1.0 0.0])))
 
 julia> g= MixedUnitary([0.9, 0.1], [[1 0; 0 1], [0 1; 1 x]])
-MixedUnitary((0.9, Custom([1 0; 0 1])), (0.1, Custom([0 1; 1 x])))
+ERROR: MimiqCircuitsBase.UndefinedValue(x)
+Stacktrace:
+  [1] unwrapvalue(g::Symbolics.Num)
+    @ MimiqCircuitsBase ~/QPerfect/Code/MimiqCircuitsBase.jl/src/utils.jl:159
+  [2] _broadcast_getindex_evalf
+    @ ./broadcast.jl:699 [inlined]
+  [3] _broadcast_getindex
+    @ ./broadcast.jl:672 [inlined]
+  [4] _getindex
+    @ ./broadcast.jl:620 [inlined]
+  [5] getindex
+    @ ./broadcast.jl:616 [inlined]
+  [6] copyto_nonleaf!(dest::Matrix{Int64}, bc::Base.Broadcast.Broadcasted{Base.Broadcast.DefaultArrayStyle{2}, Tuple{Base.OneTo{Int64}, Base.OneTo{Int64}}, typeof(MimiqCircuitsBase.unwrapvalue), Tuple{Base.Broadcast.Extruded{Matrix{Symbolics.Num}, Tuple{Bool, Bool}, Tuple{Int64, Int64}}}}, iter::CartesianIndices{2, Tuple{Base.OneTo{Int64}, Base.OneTo{Int64}}}, state::CartesianIndex{2}, count::Int64)
+    @ Base.Broadcast ./broadcast.jl:1104
+  [7] copy
+    @ ./broadcast.jl:941 [inlined]
+  [8] materialize
+    @ ./broadcast.jl:894 [inlined]
+  [9] GateCustom{1}(U::Matrix{Symbolics.Num})
+    @ MimiqCircuitsBase ~/QPerfect/Code/MimiqCircuitsBase.jl/src/operations/gates/custom.jl:106
+ [10] GateCustom(U::Matrix{Symbolics.Num})
+    @ MimiqCircuitsBase ~/QPerfect/Code/MimiqCircuitsBase.jl/src/operations/gates/custom.jl:123
+ [11] #MixedUnitary##2
+    @ ~/QPerfect/Code/MimiqCircuitsBase.jl/src/operations/noisechannels/mixedunitary.jl:205 [inlined]
+ [12] iterate
+    @ ./generator.jl:48 [inlined]
+ [13] collect_to!(dest::Vector{GateCustom{1}}, itr::Base.Generator{Vector{Matrix{Symbolics.Num}}, MimiqCircuitsBase.var"#MixedUnitary##2#MixedUnitary##3"}, offs::Int64, st::Int64)
+    @ Base ./array.jl:848
+ [14] collect_to_with_first!(dest::Vector{GateCustom{1}}, v1::GateCustom{1}, itr::Base.Generator{Vector{Matrix{Symbolics.Num}}, MimiqCircuitsBase.var"#MixedUnitary##2#MixedUnitary##3"}, st::Int64)
+    @ Base ./array.jl:826
+ [15] _collect(c::Vector{Matrix{Symbolics.Num}}, itr::Base.Generator{Vector{Matrix{Symbolics.Num}}, MimiqCircuitsBase.var"#MixedUnitary##2#MixedUnitary##3"}, ::Base.EltypeUnknown, isz::Base.HasShape{1})
+    @ Base ./array.jl:820
+ [16] collect_similar
+    @ ./array.jl:732 [inlined]
+ [17] map
+    @ ./abstractarray.jl:3372 [inlined]
+ [18] MixedUnitary(p::Vector{Float64}, U::Vector{Matrix{Symbolics.Num}})
+    @ MimiqCircuitsBase ~/QPerfect/Code/MimiqCircuitsBase.jl/src/operations/noisechannels/mixedunitary.jl:201
+ [19] top-level scope
+    @ none:1
 
 julia> evaluate(g,Dict(x=>0))
-MixedUnitary((0.9, Custom([1 0; 0 1])), (0.1, Custom([0 1; 1 0])))
+ERROR: ArgumentError: Probabilities should sum to 1. Instead they are 0.9
+Stacktrace:
+ [1] MixedUnitary{1}(p::Vector{Symbolics.Num}, U::Vector{GateCustom{1}})
+   @ MimiqCircuitsBase ~/QPerfect/Code/MimiqCircuitsBase.jl/src/operations/noisechannels/mixedunitary.jl:160
+ [2] MixedUnitary(p::Vector{Symbolics.Num}, U::Vector{GateCustom{1}})
+   @ MimiqCircuitsBase ~/QPerfect/Code/MimiqCircuitsBase.jl/src/operations/noisechannels/mixedunitary.jl:193
+ [3] evaluate(m::MixedUnitary{1}, d::Dict{Symbolics.Num, Int64})
+   @ MimiqCircuitsBase ~/QPerfect/Code/MimiqCircuitsBase.jl/src/operations/noisechannels/mixedunitary.jl:180
+ [4] top-level scope
+   @ none:1
 ```
 """
 struct MixedUnitary{N} <: AbstractKrausChannel{N}
@@ -103,11 +151,11 @@ struct MixedUnitary{N} <: AbstractKrausChannel{N}
 
         # Helper function to detect symbolic elements in the probability vector
         function contains_symbolic_elements(vector)
-            any(x -> !isreal(Symbolics.value(x)), vector)
+            any(x -> issymbolic(x), vector)
         end
 
         # Perform probability sum check if all probabilities are concrete
-        if !contains_symbolic_elements(p) && !isapprox(sum(p), 1, rtol=1e-13)
+        if !contains_symbolic_elements(p) && !isapprox(sum(unwrapvalue.(p)), 1, rtol=1e-13)
             sump = sum(p)
             throw(ArgumentError("Probabilities should sum to 1. Instead they are $sump"))
         end
@@ -118,13 +166,22 @@ end
 
 function evaluate(m::MixedUnitary, d::Dict=Dict())
     # Substitute values in each element of the probability vector `p`
-    evaluated_p = [Symbolics.substitute(prob, d) for prob in m.p]
+    evaluated_p = map(m.p) do prob
+        value = Symbolics.substitute(prob, d)
+        issymbolic(value) ? value : unwrapvalue(value)
+    end
 
     # Substitute values within each unitary in `U`
     evaluated_U = [
         u isa GateCustom ?
-        GateCustom(map(x -> Symbolics.substitute(x, d), u.U)) :
-        map(x -> Symbolics.substitute(x, d), getparams(u)) |> (args -> typeof(u)(args...))
+        GateCustom(map(u.U) do x
+            value = Symbolics.substitute(x, d)
+            issymbolic(value) ? value : unwrapvalue(value)
+        end) :
+        map(getparams(u)) do x
+            value = Symbolics.substitute(x, d)
+            issymbolic(value) ? value : unwrapvalue(value)
+        end |> (args -> typeof(u)(args...))
         for u in m.U
     ]
 
@@ -202,4 +259,26 @@ function Base.show(io::IO, m::MIME"text/plain", mixedu::MixedUnitary)
     Us = unitarygates(mixedu)
     join(io, Iterators.map(x -> "($(x[1])$(sep)$(repr(m, x[2]; context=:compact => true)))", zip(ps, Us)), sep)
     print(io, ")")
+end
+
+function Base.:(==)(left::MixedUnitary, right::MixedUnitary)
+    typeof(left) == typeof(right) || return false
+
+    # check the probabilities
+    for (pl, pr) in zip(probabilities(left), probabilities(right))
+        # one symbolic one not
+        issymbolic(pl) == issymbolic(pr) || return false
+
+        # both symbolic
+        if issymbolic(pl) && issymbolic(pr)
+            pl === pr || return false
+        end
+
+        # both are not symbolic
+        isequal(pl, pr) || return false
+    end
+
+    unitarygates(left) == unitarygates(right) || return false
+
+    return true
 end
