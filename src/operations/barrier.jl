@@ -21,6 +21,14 @@
 No-op operation that does not affect the quantum state or the execution of
 a circuit, but prevents compression or optimization across it.
 
+On some backends (e.g. `MPSSim.MPSSimulator`), a *full-width* `Barrier` — one
+whose targets cover every qubit in the circuit — additionally acts as a
+compile-time segment seam: the compiler may pre-compress everything before
+such a barrier (or after it) into a reusable MPO that is shared across
+trajectories. Adding such a barrier can therefore materially change memory
+use in noisy circuits; remove it if you do not want this effect. See
+[`is_full_width_barrier`](@ref).
+
 ## Examples
 
 ```jldoctests
@@ -71,4 +79,25 @@ inverse(::Barrier{N}) where {N} = Barrier(N)
 _power(::Barrier{N}, _) where {N} = Barrier(N)
 
 isunitary(::Type{<:Barrier}) = true
+
+"""
+    is_full_width_barrier(inst, nq::Integer) -> Bool
+
+True iff `inst` is a single `Barrier` instruction whose targets cover
+every qubit index in `1:nq`. Conservative reading — a consecutive run
+of single-qubit `Barrier{1}`s that together span `1:nq` is **not**
+recognised here; insert a `Barrier(nq)` over `q[1:nq]` if you want a
+full-width barrier.
+
+Used by backends to identify "safe cut points" where a deterministic
+prefix can be pre-compressed (or a deterministic suffix can begin)
+without risk of qubit-shape drift across the seam.
+"""
+function is_full_width_barrier(inst::AbstractInstruction, nq::Integer)::Bool
+    op = getoperation(inst)
+    op isa Barrier || return false
+    qs = getqubits(inst)
+    length(qs) == nq || return false
+    return Set(qs) == Set(1:nq)
+end
 

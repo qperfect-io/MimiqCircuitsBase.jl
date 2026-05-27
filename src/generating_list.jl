@@ -228,6 +228,7 @@ julia> show_mimiq_hierarchy()
     │   │   ├── QFT
     │   │   └── RPauli
     │   ├── DiagonalOp
+    │   ├── LossyOperator
     │   ├── Operator
     │   ├── Projector0
     │   ├── Projector00
@@ -249,14 +250,20 @@ julia> show_mimiq_hierarchy()
     ├── Barrier
     ├── Block
     ├── BondDim
+    ├── CheckLoss
     ├── ExpectationValue
     ├── IfStatement
+    ├── LossErr
+    ├── MeasureCheckLoss
     ├── Multiply
     ├── Pow
+    ├── QubitLoss
+    ├── QubitReload
     ├── ReadoutErr
     ├── Repeat
     ├── SchmidtRank
-    └── VonNeumannEntropy
+    ├── VonNeumannEntropy
+    └── WhileStatement
 ```
 """
 function show_mimiq_hierarchy(base_type::Type{<:Operation}=Operation, mod::Module=parentmodule(base_type))

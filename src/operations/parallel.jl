@@ -143,6 +143,7 @@ function decompose_step!(builder, ::CanonicalRewrite, p::Parallel, qtargets, _, 
     for i in 1:numrepeats(p)
         push!(builder, op, qtargets[nq*(i-1).+(1:nq)]...)
     end
+    return builder
 end
 
 """

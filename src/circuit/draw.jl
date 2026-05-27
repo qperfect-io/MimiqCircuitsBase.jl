@@ -649,6 +649,65 @@ function asciiwidth(g::IfStatement, qubits, bits)
     return max(gw, iw)
 end
 
+function draw!(circuit::AsciiCircuit, g::WhileStatement, qubits, bits, zvars)
+    qubitrow = [getqubitrow(circuit, q) for q in qubits]
+    bitrow = getbitrow(circuit)
+    zvarrow = getzvarrow(circuit)
+
+    inner = getoperation(g)
+    nb_op = numbits(inner)
+    bs = getbitstring(g)
+    nb_cond = length(to01(bs))
+
+    op_bits = collect(bits[1:nb_op])
+    cond_bits = collect(bits[nb_op+1:nb_op+nb_cond])
+
+    ccol = getcurrentcol(circuit)
+    bstr = MimiqCircuitsBase._string_with_square(
+        MimiqCircuitsBase._findunitrange(cond_bits), ",")
+    btext = "while c$bstr==" * to01(bs)
+    drawbox!(circuit.canvas, bitrow - 1, ccol, length(btext) + 2, 3; clean=true)
+    drawtext!(circuit.canvas, btext, bitrow, ccol + 1)
+
+    setcurrentcol!(circuit, ccol + length(btext) + 2)
+    wcol = getcurrentcol(circuit)
+
+    if !isempty(qubits) || !isempty(zvars)
+        saved_col = getcurrentcol(circuit)
+        circuit.currentcol = wcol
+        draw!(circuit, inner, qubits, op_bits, zvars)
+        newcol = getcurrentcol(circuit)
+        setcurrentcol!(circuit, max(saved_col, newcol))
+        midcol = (wcol + newcol) ÷ 2
+
+        if !isempty(qubits)
+            qstoprow = maximum(qubitrow) + 1
+            drawdoublevline!(circuit.canvas, qstoprow, midcol, bitrow - qstoprow)
+            drawdoublehline!(circuit.canvas, bitrow - 1, wcol, midcol - wcol)
+            drawtext!(circuit.canvas, "╝", bitrow - 1, midcol)
+            drawtext!(circuit.canvas, "○", bitrow - 1, wcol)
+
+        elseif !isempty(zvars)
+            drawdoublevline!(circuit.canvas, bitrow + 1, midcol, zvarrow - (bitrow + 3))
+            drawdoublehline!(circuit.canvas, bitrow - 1, wcol, midcol - wcol)
+            drawtext!(circuit.canvas, "╗", bitrow - 1, midcol)
+            drawtext!(circuit.canvas, "○", bitrow - 1, wcol)
+        end
+    else
+        setcurrentcol!(circuit, wcol + length(btext) + 2)
+    end
+
+    return circuit
+end
+
+function asciiwidth(g::WhileStatement, qubits, bits)
+    val = getbitstring(g)
+    gw = asciiwidth(getoperation(g), qubits, [])
+    bstr = MimiqCircuitsBase._string_with_square(MimiqCircuitsBase._findunitrange(bits), ",")
+    iw = length("while c$bstr==" * to01(val)) + 2
+    return max(gw, iw)
+end
+
 function draw!(circuit::AsciiCircuit, ::Reset, qubits, _, _)
     qrow = getqubitrow(circuit, qubits[1])
     ccol = getcurrentcol(circuit)

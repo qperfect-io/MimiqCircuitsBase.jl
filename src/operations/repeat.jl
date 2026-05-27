@@ -88,6 +88,14 @@ iswrapper(::Type{<:Repeat}) = true
 
 getoperation(p::Repeat) = p.op
 
+# Wrapper recursion for `reorder_qubits`: forward the permutation to
+# the inner op so any qubit-indexed payload it carries is rewritten
+# in the new frame.
+function _reorder_op_internals(op::Repeat{R}, perm::AbstractVector{<:Integer}) where {R}
+    new_inner = _reorder_op_internals(getoperation(op), perm)
+    return Repeat(R, new_inner)
+end
+
 parnames(::Type{<:Repeat{N,M,L,T}}) where {N,M,L,T} = parnames(T)
 
 qregsizes(op::Repeat{N}) where {N} = qregsizes(getoperation(op))

@@ -415,6 +415,17 @@ function fromproto(g::circuit_pb.CustomOperator)
     return Operator(transpose(U))
 end
 
+function toproto(g::LossyOperator{N}) where {N}
+    O = reshape(map(toproto, transpose(g.O)), length(g.O))
+    return circuit_pb.LossyOperator(N, O, Int64[g.lossy...])
+end
+
+function fromproto(g::circuit_pb.LossyOperator)
+    M = 2^g.numqubits
+    U = reshape(map(fromproto, g.matrix), (M, M))
+    return LossyOperator(transpose(U), Tuple(Int(q) for q in g.lossy))
+end
+
 function toproto(g::RescaledGate, declcache=nothing)
     op = circuit_pb.Gate(_build_oneof(getoperation(g), declcache))
     return circuit_pb.RescaledGate(op, toproto(getscale(g)))
@@ -520,6 +531,10 @@ const OPERATIONMAP = Bijection(Dict(
     Pow => circuit_pb.OperationType.Pow,
     SetBit0 => circuit_pb.OperationType.SetBit0,
     SetBit1 => circuit_pb.OperationType.SetBit1,
+    QubitLoss => circuit_pb.OperationType.QubitLoss,
+    QubitReload => circuit_pb.OperationType.QubitReload,
+    CheckLoss => circuit_pb.OperationType.CheckLoss,
+    MeasureCheckLoss => circuit_pb.OperationType.MeasureCheckLoss,
 ))
 
 const GENERALIZEDOPERATIONMAP = Bijection(Dict(
@@ -700,6 +715,17 @@ function fromproto(c::circuit_pb.IfStatement, declcache=nothing)
     return IfStatement(op, fromproto(c.bitstring))
 end
 
+function toproto(g::WhileStatement{N}, declcache=nothing) where {N}
+    op = circuit_pb.Operation(_build_oneof(getoperation(g), declcache))
+    bs = toproto(g.bs)
+    return circuit_pb.WhileStatement(op, bs)
+end
+
+function fromproto(c::circuit_pb.WhileStatement, declcache=nothing)
+    op = fromproto(c.operation, declcache)
+    return WhileStatement(op, fromproto(c.bitstring))
+end
+
 function toproto(s::String)
     return circuit_pb.Arg(OneOf(:symbol_value, circuit_pb.Symbol(s)))
 end
@@ -720,6 +746,14 @@ end
 
 function fromproto(g::circuit_pb.ReadoutErr)
     return ReadoutErr(fromproto(g.p0), fromproto(g.p1))
+end
+
+function toproto(g::LossErr)
+    return circuit_pb.LossErr(toproto(g.p))
+end
+
+function fromproto(g::circuit_pb.LossErr)
+    return LossErr(fromproto(g.p))
 end
 
 function toproto(inst::Instruction, declcache=nothing)
@@ -776,7 +810,7 @@ function toproto_declaration(decl, declcache=nothing)
 end
 
 function _build_oneof(gop, declcache=nothing)
-    op = if !isnothing(declcache) && (gop isa GateCall || gop isa MixedUnitary || gop isa RescaledGate || gop isa Power || gop isa Control || gop isa Inverse || gop isa Parallel || gop isa ExpectationValue || gop isa IfStatement || gop isa Block || gop isa Repeat || gop isa GateDecl)
+    op = if !isnothing(declcache) && (gop isa GateCall || gop isa MixedUnitary || gop isa RescaledGate || gop isa Power || gop isa Control || gop isa Inverse || gop isa Parallel || gop isa ExpectationValue || gop isa IfStatement || gop isa WhileStatement || gop isa Block || gop isa Repeat || gop isa GateDecl)
         toproto(gop, declcache)
     else
         toproto(gop)
@@ -793,6 +827,7 @@ function _build_oneof(gop, declcache=nothing)
     op isa pauli_pb.PauliString ? OneOf(:paulistring, op) :
     op isa circuit_pb.SimpleOperator ? OneOf(:simpleoperator, op) :
     op isa circuit_pb.CustomOperator ? OneOf(:customoperator, op) :
+    op isa circuit_pb.LossyOperator ? OneOf(:lossyoperator, op) :
     op isa circuit_pb.RescaledGate ? OneOf(:rescaledgate, op) :
     op isa circuit_pb.SimpleKrausChannel ? OneOf(:simplekrauschannel, op) :
     op isa circuit_pb.CustomKrausChannel ? OneOf(:customkrauschannel, op) :
@@ -801,6 +836,7 @@ function _build_oneof(gop, declcache=nothing)
     op isa circuit_pb.PauliChannel ? OneOf(:paulichannel, op) :
     op isa circuit_pb.SimpleOperation ? OneOf(:simpleoperation, op) :
     op isa circuit_pb.IfStatement ? OneOf(:ifstatement, op) :
+    op isa circuit_pb.WhileStatement ? OneOf(:whilestatement, op) :
     op isa circuit_pb.GeneralizedOperation ? OneOf(:generalizedoperation, op) :
     op isa circuit_pb.Amplitude ? OneOf(:amplitude, op) :
     op isa circuit_pb.ExpectationValue ? OneOf(:expectationvalue, op) :
@@ -812,5 +848,6 @@ function _build_oneof(gop, declcache=nothing)
     op isa circuit_pb.Block ? OneOf(:block, op) :
     op isa circuit_pb.GateDecl ? OneOf(:gatedecl, op) :
     op isa circuit_pb.ReadoutErr ? OneOf(:readouterr, op) :
+    op isa circuit_pb.LossErr ? OneOf(:losserr, op) :
     throw(ArgumentError(lazy"Cannot wrap a `$(typeof(op))` into a ProtoBuf `OneOf`."))
 end

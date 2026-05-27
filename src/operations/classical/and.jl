@@ -54,6 +54,8 @@ opname(::Type{<:And}) = "&"
 
 inverse(::And) = error("Inverse not defined for And.")
 
+allow_bit_aliasing(::Type{<:And}) = true
+
 function Base.show(io::IO, ::MIME"text/plain", g::Instruction{0,N,0,<:And{N}}) where {N}
     compact = get(io, :compact, false)
     creg = getbits(g)

@@ -85,7 +85,23 @@ getoperation(c::IfStatement) = c.op
 
 getbitstring(c::IfStatement) = c.bs
 
+# Wrapper recursion for `reorder_qubits`: the inner op may carry
+# qubit-indexed payload (e.g. `Amplitude.bs`). The classical-bit
+# condition is qubit-independent and stays unchanged.
+function _reorder_op_internals(op::IfStatement, perm::AbstractVector{<:Integer})
+    new_inner = _reorder_op_internals(getoperation(op), perm)
+    return IfStatement(new_inner, getbitstring(op))
+end
+
 iswrapper(::Type{<:IfStatement}) = true
+
+isunitary(::Type{<:IfStatement{N,M,K,T}}) where {N,M,K,T<:Operation} = isunitary(T)
+
+# IfStatement's classical-target layout is [op_bits..., condition_bits...]; the
+# motivating use case is a body that reads or writes one of the condition bits
+# (e.g. `IfStatement(Not(), bs"1")` toggling the same bit it tests).
+allow_bit_aliasing(::Type{<:IfStatement}) = true
+allow_zvar_aliasing(::Type{<:IfStatement}) = true
 
 matches(strat::CanonicalRewrite, ifs::IfStatement) = matches(strat, getoperation(ifs))
 

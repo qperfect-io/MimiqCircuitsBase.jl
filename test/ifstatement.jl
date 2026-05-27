@@ -28,6 +28,7 @@ using Test
     @test numzvars(ifs) == 0
     @test getoperation(ifs) === gate
     @test getbitstring(ifs) == bs
+    @test isunitary(ifs) === true
 
     # Construction with a block containing both qubit, bits and zvars
     c = Circuit()
@@ -60,4 +61,5 @@ using Test
     d2 = evaluate(ifs2, Dict())
     @test getbitstring(d2) == bs2
 
+    @test isunitary(IfStatement(SetBit1(), BitString("1"))) === false
 end

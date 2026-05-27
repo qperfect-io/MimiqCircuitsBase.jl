@@ -344,10 +344,7 @@ function specify_operations(c::AbstractCircuit{T}) where {T}
     end
 end
 
-function numqbz(c::AbstractCircuit{T}) where {T}
-    _ensure_circuit_cache!(c)
-    return numqubits(c), numbits(c), numzvars(c)
-end
+numqbz(c::AbstractCircuit{T}) where {T} = numqubits(c), numbits(c), numzvars(c)
 
 function getparams(c::AbstractCircuit{T}) where {T}
     return reduce(vcat, getparams.(instructions(c)))
@@ -510,41 +507,17 @@ function _build_graph(circuit::AbstractCircuit{T}) where {T}
 end
 
 # Graphs.jl interface
-function Graphs.nv(g::AbstractCircuit{T}) where {T}
-    _ensure_graph_cache!(g)
-    return nv(graph(g))
-end
-function Graphs.ne(g::AbstractCircuit{T}) where {T}
-    _ensure_graph_cache!(g)
-    return ne(graph(g))
-end
-function Graphs.edges(g::AbstractCircuit{T}) where {T}
-    _ensure_graph_cache!(g)
-    return edges(graph(g))
-end
-function Graphs.vertices(g::AbstractCircuit{T}) where {T}
-    _ensure_graph_cache!(g)
-    return vertices(graph(g))
-end
-function Graphs.inneighbors(g::AbstractCircuit{T}, v) where {T}
-    _ensure_graph_cache!(g)
-    return inneighbors(graph(g), v)
-end
-function Graphs.outneighbors(g::AbstractCircuit{T}, v) where {T}
-    _ensure_graph_cache!(g)
-    return outneighbors(graph(g), v)
-end
+Graphs.nv(g::AbstractCircuit{T}) where {T} = nv(graph(g))
+Graphs.ne(g::AbstractCircuit{T}) where {T} = ne(graph(g))
+Graphs.edges(g::AbstractCircuit{T}) where {T} = edges(graph(g))
+Graphs.vertices(g::AbstractCircuit{T}) where {T} = vertices(graph(g))
+Graphs.inneighbors(g::AbstractCircuit{T}, v) where {T} = inneighbors(graph(g), v)
+Graphs.outneighbors(g::AbstractCircuit{T}, v) where {T} = outneighbors(graph(g), v)
+Graphs.has_edge(g::AbstractCircuit{T}, s, d) where {T} = has_edge(graph(g), s, d)
+Graphs.has_vertex(g::AbstractCircuit{T}, v) where {T} = has_vertex(graph(g), v)
 Graphs.is_directed(::Type{<:AbstractCircuit{T}}) where {T} = true
 Graphs.is_directed(g::AbstractCircuit{T}) where {T} = true
 Graphs.zero(::Type{AbstractCircuit{T}}) where {T} = AbstractCircuit{T}(SimpleDiGraph(0), T[], 0, 0, 0, false) where {T}
-function Graphs.has_edge(g::AbstractCircuit{T}, s, d) where {T}
-    _ensure_graph_cache!(g)
-    return has_edge(graph(g), s, d)
-end
-function Graphs.has_vertex(g::AbstractCircuit{T}, v) where {T}
-    _ensure_graph_cache!(g)
-    return has_vertex(graph(g), v)
-end
 
 
 """

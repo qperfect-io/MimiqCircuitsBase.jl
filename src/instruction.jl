@@ -165,7 +165,28 @@ julia> getztargets(inst)
 function getztargets end
 
 
-function _checktargets(targets, N, type="qubit")
+"""
+    allow_bit_aliasing(::Type{<:Operation}) -> Bool
+
+Whether the operation accepts repeated classical-bit targets in a single
+instruction. Defaults to `false`. Operations that read and write the same bit
+(e.g. `c[1] = c[1] & c[2]`), or wrappers whose layout exposes condition bits
+alongside body bits (e.g. `IfStatement`, `WhileStatement`), should opt in.
+
+Qubit uniqueness is a physical constraint (no-cloning) and is never relaxed.
+"""
+allow_bit_aliasing(::Type{<:Operation}) = false
+
+"""
+    allow_zvar_aliasing(::Type{<:Operation}) -> Bool
+
+Whether the operation accepts repeated z-variable targets in a single
+instruction. Defaults to `false`. Operations like `Add`, `Multiply`, `Pow` whose
+output may also appear as an input opt in.
+"""
+allow_zvar_aliasing(::Type{<:Operation}) = false
+
+function _checktargets(targets, N, type="qubit"; allow_alias::Bool=false)
     L = length(targets)
 
     if length(targets) != N
@@ -176,7 +197,7 @@ function _checktargets(targets, N, type="qubit")
         throw(ArgumentError("Target $(type)s must be positive and >=1"))
     end
 
-    if !allunique(targets)
+    if !allow_alias && !allunique(targets)
         throw(ArgumentError("Target $(type)s cannot be repeated"))
     end
 
@@ -215,8 +236,8 @@ struct Instruction{N,M,L,T<:Operation{N,M,L}} <: AbstractInstruction
     function Instruction(op::T, qtargets::NTuple{N,<:Integer}, ctargets::NTuple{M,<:Integer}, ztargets::NTuple{L,<:Integer}; checks=true) where {N,M,L,T<:Operation{N,M,L}}
         if checks
             _checktargets(qtargets, N, "qubit")
-            _checktargets(ctargets, M, "bit")
-            _checktargets(ztargets, L, "ztarget")
+            _checktargets(ctargets, M, "bit"; allow_alias=allow_bit_aliasing(T))
+            _checktargets(ztargets, L, "ztarget"; allow_alias=allow_zvar_aliasing(T))
         end
         new{N,M,L,T}(op, qtargets, ctargets, ztargets)
     end
@@ -359,7 +380,7 @@ function Base.show(io::IO, m::MIME"text/plain", g::Instruction)
 
         # group the cbits
         if nb != 0
-            if op isa IfStatement
+            if op isa IfStatement || op isa WhileStatement
                 # split: first numbits(inner_op) belong to op, rest are condition bits
                 inner_op = getoperation(op)
                 nb_op = numbits(inner_op)

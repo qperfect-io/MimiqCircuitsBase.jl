@@ -150,6 +150,9 @@ end
 # IfStatement is terminal if its inner operation is terminal
 isterminal(basis::QASMBasis, op::IfStatement) = isterminal(basis, getoperation(op))
 
+# WhileStatement is terminal if its inner operation is terminal
+isterminal(basis::QASMBasis, op::WhileStatement) = isterminal(basis, getoperation(op))
+
 # --- Fallback ---
 
 isterminal(::QASMBasis, ::Operation) = false

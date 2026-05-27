@@ -14,6 +14,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+"""
+    WIRE_FORMAT_VERSION
+
+Version of the MIMIQ wire format (protobuf schemas + JSON
+request/response envelope) spoken by this build. Versioned
+independently of the package release so API-only changes do not force
+client/executor incompatibility. Must match
+`mimiqcircuits.WIRE_FORMAT_VERSION` on the Python side. See
+`WIRE_FORMAT.md` for the surface and bump rules.
+"""
+const WIRE_FORMAT_VERSION = v"1.0.0"
+
 """
     saveproto(fname, c::Circuit)
     saveproto(fname, c::QCSResults)

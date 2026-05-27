@@ -54,6 +54,8 @@ opname(::Type{<:Or}) = "|"
 
 inverse(::Or) = error("Inverse not defined for Or.")
 
+allow_bit_aliasing(::Type{<:Or}) = true
+
 function Base.show(io::IO, ::MIME"text/plain", g::Instruction{0,N,0,<:Or{N}}) where {N}
     compact = get(io, :compact, false)
     creg = getbits(g)

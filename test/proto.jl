@@ -132,6 +132,31 @@ function base_noise_channel_test(noise_channel::AbstractKrausChannel, temp_filen
     end
 end
 
+# Base test function for operators
+function operator_channel_test(operator::T) where {T<:AbstractOperator}
+    backforth = fromproto(toproto(operator))
+    numqubits(backforth) == numqubits(operator)
+
+    @test backforth isa T
+
+    # this test should be almost the same as above, but adds also the protobuf
+    # encoding and decoding part. Just to check if there is no strange thing
+    # happening with the Protobuf library
+
+    # save
+    iobuffer = IOBuffer()
+    e = ProtoEncoder(iobuffer)
+    tp = toproto(operator)
+    encode(e, tp)
+
+    # load
+    seekstart(iobuffer)
+    loaded = fromproto(decode(ProtoDecoder(iobuffer), typeof(tp)))
+
+    @test loaded isa T
+    @test loaded == operator
+end
+
 @testset "Noise Channel Protobuf Tests" begin
     mktempdir() do tmpdir
         temp_filename = joinpath(tmpdir, "test.pb")
@@ -184,6 +209,30 @@ end
             base_noise_channel_test(kraus, temp_filename)
         end
 
+        @testset "Loss-aware Kraus Protobuf Test" begin
+            lossy1 = Kraus([Operator([1 0; 0 sqrt(0.8)]), LossyOperator([0 0; 0 sqrt(0.2)])])
+            base_noise_channel_test(lossy1, temp_filename)
+
+            # `base_noise_channel_test` pushes onto a single qubit; the
+            # 2-qubit roundtrip is exercised inline below.
+            p = 0.1
+            s2 = Operator([1 0 0 0; 0 sqrt(1 - p) 0 0; 0 0 1 0; 0 0 0 sqrt(1 - p)])
+            L_q2 = LossyOperator([0 0 0 0; 0 sqrt(p) 0 0; 0 0 0 0; 0 0 0 sqrt(p)], 2)
+            lossy2 = Kraus([s2, L_q2])
+            c2 = Circuit()
+            push!(c2, lossy2, 3, 7)
+            saveproto(temp_filename, c2)
+            loaded = loadproto(temp_filename, typeof(c2))
+            @test length(loaded._instructions) == 1
+            inst = first(loaded._instructions)
+            @test collect(inst.qtargets) == [3, 7]
+            op = getoperation(inst)
+            @test op isa Kraus{2}
+            @test hasloss(op)
+            @test lossyqubits(only(lossoperators(op))) == (2,)
+            @test op == lossy2
+        end
+
         @testset "MixedUnitary Protobuf Test" begin
             # Define complex matrices for MixedUnitary
             unitary1 = [1 0; 0 1]
@@ -195,32 +244,13 @@ end
             mu = ProjectiveNoise("X")
             base_noise_channel_test(mu, temp_filename)
         end
+
+        @testset "LossyOperator Protobuf Test" begin
+            operator_channel_test(LossyOperator([0 0; 0 sqrt(0.2)]))
+            operator_channel_test(LossyOperator([0 0 0 0; 0 sqrt(0.1) 0 0; 0 0 0 0; 0 0 0 sqrt(0.1)], 2))
+            operator_channel_test(LossyOperator(zeros(4, 4), (1, 2)))
+        end
     end
-end
-
-# Base test function for operators
-function operator_channel_test(operator::T) where {T<:AbstractOperator}
-    backforth = fromproto(toproto(operator))
-    numqubits(backforth) == numqubits(operator)
-
-    @test backforth isa T
-
-    # this test should be almost the same as above, but adds also the protobuf
-    # encoding and decoding part. Just to check if there is no strange thing
-    # happening with the Protobuf library
-
-    # save
-    iobuffer = IOBuffer()
-    e = ProtoEncoder(iobuffer)
-    tp = toproto(operator)
-    encode(e, tp)
-
-    # load
-    seekstart(iobuffer)
-    loaded = fromproto(decode(ProtoDecoder(iobuffer), typeof(tp)))
-
-    @test loaded isa T
-    @test loaded == operator
 end
 
 @testset "Operator Channel Protobuf Tests" begin

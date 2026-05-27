@@ -280,10 +280,10 @@ empty circuit
 julia> push_expval!(c, h, 1)
 1-qubit, 2-vars circuit with 5 instructions:
 ├── ⟨X⟩ @ q[1], z[1]
-├── z[1] *= 0.7
+├── z[1] = 0.7 * z[1]
 ├── ⟨Z⟩ @ q[1], z[2]
-├── z[2] *= -0.3
-└── z[1] += z[2]
+├── z[2] = -0.3 * z[2]
+└── z[1] = z[1] + z[2]
 ```
 """
 function push_expval!(circ::Circuit, hamiltonian, qubits...; firstzvar=numzvars(circ) + 1)
@@ -294,11 +294,16 @@ function push_expval!(circ::Circuit, hamiltonian, qubits...; firstzvar=numzvars(
     zvar = copy(firstzvar)
     for term in hamiltonian
         push!(circ, ExpectationValue(getoperation(term)), [qubits[i] for i in getqubits(term)]..., zvar)
-        push!(circ, Multiply(1, getcoefficient(term)), zvar)
+        # In-place scale: z[zvar] = coeff * z[zvar]. Aliasing the destination as
+        # the only input recovers the old `*=` semantics.
+        push!(circ, Multiply(2, getcoefficient(term)), zvar, zvar)
         zvar += 1
     end
 
-    push!(circ, Add(zvar - firstzvar), firstzvar:zvar-1...)
+    # In-place sum: z[firstzvar] = z[firstzvar] + z[firstzvar+1] + ... +
+    # z[zvar-1]. Aliasing the destination as the first input keeps the
+    # destination's existing value in the sum (recovering the old `+=`).
+    push!(circ, Add(zvar - firstzvar + 1), firstzvar, firstzvar:zvar-1...)
     return circ
 end
 

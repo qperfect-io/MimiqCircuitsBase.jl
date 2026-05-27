@@ -111,6 +111,13 @@ end
             base_rule_test(rule)
         end
 
+        @testset "Loss-aware Kraus OperationInstanceNoise" begin
+            gate = GateH()
+            noise = Kraus([Operator([1 0; 0 sqrt(0.8)]), LossyOperator([0 0; 0 sqrt(0.2)])])
+            rule = OperationInstanceNoise(gate, noise)
+            base_rule_test(rule)
+        end
+
         # ExactOperationInstanceQubitNoise
         @testset "ExactOperationInstanceQubitNoise" begin
             gate = GateCX()

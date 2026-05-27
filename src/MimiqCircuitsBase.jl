@@ -53,6 +53,8 @@ export cregsizes
 export zregsizes
 export iswrapper
 export listvars
+export allow_bit_aliasing
+export allow_zvar_aliasing
 include("operation.jl")
 
 # instructions apply quantum operations to specific qubits
@@ -124,6 +126,8 @@ export traverse_by_bfs
 include("graph_iterators.jl")
 
 export Circuit
+export graph
+export reorder_qubits
 include("circuit.jl")
 
 
@@ -164,6 +168,9 @@ include("operations/power.jl")
 
 export IfStatement
 include("operations/ifstatement.jl")
+
+export WhileStatement
+include("operations/whilestatement.jl")
 
 export Inverse
 export inverse
@@ -314,6 +321,7 @@ include("operations/generalized/rnz.jl")
 
 # other non-gate type instructions
 export Barrier
+export is_full_width_barrier
 include("operations/barrier.jl")
 
 export Reset
@@ -353,7 +361,11 @@ export ExpectationValue
 include("operations/expectationvalue.jl")
 
 export Operator
+export LossyOperator
+export lossyqubits
+export lossytargets
 include("operations/operators/custom.jl")
+include("operations/operators/lossyoperator.jl")
 
 export DiagonalOp
 include("operations/operators/diagonals.jl")
@@ -377,6 +389,10 @@ export SigmaPlus
 include("operations/operators/sigmas.jl")
 
 export Kraus
+export hasloss
+export lossoperators
+export survivaloperators
+export losseffect
 export MixedUnitary
 include("operations/noisechannels/kraus.jl")
 include("operations/noisechannels/mixedunitary.jl")
@@ -452,6 +468,24 @@ include("operations/complex.jl")
 # Pauli Rotation
 export RPauli
 include("operations/generalized/rpauli.jl")
+
+# loss channels
+export QubitLoss
+include("operations/losschannels/lost.jl")
+
+export QubitReload
+include("operations/losschannels/reload.jl")
+
+export LossErr
+include("operations/losschannels/losserr.jl")
+
+export CheckLoss
+include("operations/losschannels/checkloss.jl")
+
+export MeasureCheckLoss
+include("operations/losschannels/measurecheckloss.jl")
+
+export sample_losses
 
 include("dsl.jl")
 
@@ -538,6 +572,21 @@ export OptimizationRun
 export OptimizationExperiment
 include("optimization.jl")
 
+export AbstractCircuitRule
+export DropRule
+export DecorateRule
+export ReplaceRule
+export CustomRule
+export LossModel
+export replaces
+export add_rule!
+export add_drop!
+export add_replace!
+export add_decorate!
+include("circuitrules.jl")
+
+include("circuit/samplelosses.jl")
+
 export AbstractNoiseRule
 export priority
 export matches
@@ -616,6 +665,7 @@ function _generateallproto()
     gen = _generateproto("circuit.proto") || gen
     gen = _generateproto("optim.proto") || gen
     gen = _generateproto("noisemodel.proto") || gen
+    gen = _generateproto("circuitrules.proto") || gen
 
     if gen
         _clean_proto_file("bitvector.proto")
@@ -625,6 +675,7 @@ function _generateallproto()
         _clean_proto_file("circuit.proto")
         _clean_proto_file("optim.proto")
         _clean_proto_file("noisemodel.proto")
+        _clean_proto_file("circuitrules.proto")
     end
 end
 
@@ -637,6 +688,7 @@ include("proto/circuit_pb.jl")
 include("proto/qcsresults_pb.jl")
 include("proto/optim_pb.jl")
 include("proto/noisemodel_pb.jl")
+include("proto/circuitrules_pb.jl")
 
 include("proto/bitstring.jl")
 include("proto/pauli.jl")
@@ -645,10 +697,12 @@ include("proto/qcsresults.jl")
 include("proto/circuit.jl")
 include("proto/optim.jl")
 include("proto/noisemodel.jl")
+include("proto/circuitrules.jl")
 
 export show_mimiq_hierarchy
 include("generating_list.jl")
 
+export WIRE_FORMAT_VERSION
 export saveproto
 export loadproto
 include("proto/proto.jl")

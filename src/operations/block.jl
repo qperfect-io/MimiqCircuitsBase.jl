@@ -115,6 +115,22 @@ numqubits(::Type{<:Block{N}}) where {N} = N
 numbits(::Type{<:Block{N,M}}) where {N,M} = M
 numzvars(::Type{<:Block{N,M,L}}) where {N,M,L} = L
 
+# Wrapper recursion for `reorder_qubits`: a Block can hold general
+# operations including `Amplitude`. The block is treated as
+# transparent — the outer `perm` is forwarded to each inner
+# instruction's op so a wrapped `Amplitude.bs` is rewritten. The
+# instructions' local qubit / bit / zvar targets are kept as-is (the
+# block's local frame is preserved; the outer reorder only permutes
+# the block's qubit targets at the push site).
+function _reorder_op_internals(b::Block{N,M,L}, perm::AbstractVector{<:Integer}) where {N,M,L}
+    new_insts = Instruction[]
+    for inst in b
+        new_op = _reorder_op_internals(getoperation(inst), perm)
+        push!(new_insts, Instruction(new_op, getqubits(inst), getbits(inst), getztargets(inst)))
+    end
+    return Block{N,M,L}(new_insts)
+end
+
 function _check_instruction_block(inst::Instruction, nq, nc, nz)
     qt = getqubits(inst)
     ct = getbits(inst)

@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-function _checkpushtargets(targets, N, type="qubit")
+function _checkpushtargets(targets, N, type="qubit"; allow_alias::Bool=false)
     L = length(targets)
 
     if length(targets) != N
@@ -26,11 +26,13 @@ function _checkpushtargets(targets, N, type="qubit")
         throw(ArgumentError("Target $(type)s must be positive and >=1"))
     end
 
-    # PERF: this is a double pass the qubit/bit targets, but it is probably
-    # the only way of doing it.
-    for tgs in shortestzip(targets...)
-        if length(unique(tgs)) != length(tgs)
-            throw(ArgumentError("Target $(type)s must be the different"))
+    if !allow_alias
+        # PERF: this is a double pass the qubit/bit targets, but it is probably
+        # the only way of doing it.
+        for tgs in shortestzip(targets...)
+            if length(unique(tgs)) != length(tgs)
+                throw(ArgumentError("Target $(type)s must be the different"))
+            end
         end
     end
 
@@ -49,9 +51,10 @@ function Base.push!(instructions::Vector{Instruction}, g::Operation{N,M,L}, targ
         throw(ArgumentError("Wrong number of targets: given $(K) total for $N qubits, $M bits, and $L zvars operation"))
     end
 
+    T = typeof(g)
     _checkpushtargets(targets[1:N], N, "qubit")
-    _checkpushtargets(targets[N+1:N+M], M, "bit")
-    _checkpushtargets(targets[N+M+1:K], L, "zvar")
+    _checkpushtargets(targets[N+1:N+M], M, "bit"; allow_alias=allow_bit_aliasing(T))
+    _checkpushtargets(targets[N+M+1:K], L, "zvar"; allow_alias=allow_zvar_aliasing(T))
 
     for tgs in shortestzip(targets...)
         qts = tgs[1:N]

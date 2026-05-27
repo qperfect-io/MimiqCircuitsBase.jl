@@ -65,3 +65,19 @@ end
 function Base.show(io::IO, ::MIME"text/plain", op::Amplitude)
     print(io, opname(Amplitude), "(", op.bs, ")")
 end
+
+# `Amplitude` embeds a bitstring keyed by qubit index. After a qubit
+# permutation `perm[q] == new_position`, the rewritten `Amplitude`
+# must read the same amplitude of the same quantum-state component:
+# the new bitstring's bit at position `perm[q]` equals the old
+# bitstring's bit at position `q`. See `reorder_qubits` in
+# `src/circuit.jl` for the generic dispatch this hooks into.
+function _reorder_op_internals(op::Amplitude, perm::AbstractVector{<:Integer})
+    old_bs = op.bs
+    nq = length(old_bs)
+    new_bits = BitVector(undef, nq)
+    for q in 1:nq
+        new_bits[perm[q]] = old_bs[q]
+    end
+    return Amplitude(BitString(new_bits))
+end

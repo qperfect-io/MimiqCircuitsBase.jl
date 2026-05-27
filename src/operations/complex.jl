@@ -18,35 +18,44 @@
 """
     Add(N[, constant=0.0])
 
-Add several z-register variables between them and optionally a constant.
-The result is strored in the first z-register variable given.
+Sum several z-register variables (and optionally a constant) and **assign** the
+result to the first z-register variable given. The first target is the
+destination; the remaining `N-1` targets are the inputs.
+
+To accumulate into the destination instead of overwriting it, alias the
+destination as one of the inputs (z-variable aliasing is allowed for `Add`),
+e.g. `push!(c, Add(3), 1, 1, 2)` evaluates `z[1] = z[1] + z[2]`.
 
 ## Examples
 
 ```jldoctests
 julia> Add(3)
-z[?1] += z[?2] + z[?3]
+z[?1] = z[?2] + z[?3]
 
 julia> Add(4)
-z[?1] += z[?2] + z[?3] + z[?4]
+z[?1] = z[?2] + z[?3] + z[?4]
 
 julia> Add(4, 2.0)
-z[?1] += 2.0 + z[?2] + z[?3] + z[?4]
+z[?1] = 2.0 + z[?2] + z[?3] + z[?4]
 
 julia> c = push!(Circuit(), Add(3), 1,2,3)
 3-vars circuit with 1 instruction:
-└── z[1] += z[2] + z[3]
+└── z[1] = z[2] + z[3]
 
 julia> push!(c, Add(5), 1,2,3,4,5)
 5-vars circuit with 2 instructions:
-├── z[1] += z[2] + z[3]
-└── z[1] += z[2] + z[3] + z[4] + z[5]
+├── z[1] = z[2] + z[3]
+└── z[1] = z[2] + z[3] + z[4] + z[5]
 
 julia> push!(c, Add(5, 2.0), 1,2,3,4,5)
 5-vars circuit with 3 instructions:
-├── z[1] += z[2] + z[3]
-├── z[1] += z[2] + z[3] + z[4] + z[5]
-└── z[1] += 2.0 + z[2] + z[3] + z[4] + z[5]
+├── z[1] = z[2] + z[3]
+├── z[1] = z[2] + z[3] + z[4] + z[5]
+└── z[1] = 2.0 + z[2] + z[3] + z[4] + z[5]
+
+julia> push!(Circuit(), Add(3), 1, 1, 2)  # accumulate via aliasing
+2-vars circuit with 1 instruction:
+└── z[1] = z[1] + z[2]
 ```
 """
 struct Add{N} <: Operation{0,0,N}
@@ -61,13 +70,15 @@ end
 
 opname(::Type{<:Add}) = "Add"
 
+allow_zvar_aliasing(::Type{<:Add}) = true
+
 function Base.show(io::IO, ::MIME"text/plain", g::Instruction{0,0,M,<:Add}) where {M}
     space = get(io, :compact, false) ? "" : " "
 
     zvars = getztargets(g)
     op = getoperation(g)
 
-    print(io, "z[$(zvars[1])]$space+=$space")
+    print(io, "z[$(zvars[1])]$space=$space")
 
     if M > 1
         if !iszero(op.term)
@@ -84,7 +95,7 @@ end
 function Base.show(io::IO, ::MIME"text/plain", g::Add{N}) where {N}
     space = get(io, :compact, false) ? "" : " "
 
-    print(io, "z[?1]$space+=$space")
+    print(io, "z[?1]$space=$space")
 
     if N > 1
         if !iszero(g.term)
@@ -101,29 +112,39 @@ end
 """
     Multiply(N[, constant=1.0])
 
-Multiply several z-register variables between them and optionally a constant.
-The result is strored in the first z-register variable given.
+Multiply several z-register variables (and optionally a constant) and
+**assign** the result to the first z-register variable given. The first target
+is the destination; the remaining `N-1` targets are the inputs.
+
+To accumulate into the destination instead of overwriting it, alias the
+destination as one of the inputs (z-variable aliasing is allowed for
+`Multiply`), e.g. `push!(c, Multiply(3), 1, 1, 2)` evaluates
+`z[1] = z[1] * z[2]`.
 
 ## Examples
 
 ```jldoctests
 julia> Multiply(3)
-z[?1] *= z[?2] * z[?3]
+z[?1] = z[?2] * z[?3]
 
 julia> Multiply(4)
-z[?1] *= z[?2] * z[?3] * z[?4]
+z[?1] = z[?2] * z[?3] * z[?4]
 
 julia> Multiply(4, 2.0)
-z[?1] *= 2.0 * z[?2] * z[?3] * z[?4]
+z[?1] = 2.0 * z[?2] * z[?3] * z[?4]
 
 julia> c = push!(Circuit(), Multiply(4), 1,2,3,4)
 4-vars circuit with 1 instruction:
-└── z[1] *= z[2] * z[3] * z[4]
+└── z[1] = z[2] * z[3] * z[4]
 
 julia> push!(c, Multiply(5, 2.0), 1,2,3,4,5)
 5-vars circuit with 2 instructions:
-├── z[1] *= z[2] * z[3] * z[4]
-└── z[1] *= 2.0 * z[2] * z[3] * z[4] * z[5]
+├── z[1] = z[2] * z[3] * z[4]
+└── z[1] = 2.0 * z[2] * z[3] * z[4] * z[5]
+
+julia> push!(Circuit(), Multiply(3), 1, 1, 2)  # accumulate via aliasing
+2-vars circuit with 1 instruction:
+└── z[1] = z[1] * z[2]
 ```
 """
 struct Multiply{N} <: Operation{0,0,N}
@@ -139,13 +160,15 @@ end
 
 opname(::Type{<:Multiply}) = "Multiply"
 
+allow_zvar_aliasing(::Type{<:Multiply}) = true
+
 function Base.show(io::IO, ::MIME"text/plain", g::Instruction{0,0,M,<:Multiply}) where {M}
     space = get(io, :compact, false) ? "" : " "
 
     zvars = getztargets(g)
     op = getoperation(g)
 
-    print(io, "z[$(zvars[1])]$space*=$space")
+    print(io, "z[$(zvars[1])]$space=$space")
     if M > 1
         if !isone(op.factor)
             print(io, "$(op.factor)$space*$space")
@@ -161,7 +184,7 @@ end
 function Base.show(io::IO, ::MIME"text/plain", g::Multiply{N}) where {N}
     space = get(io, :compact, false) ? "" : " "
 
-    print(io, "z[?1]$space*=$space")
+    print(io, "z[?1]$space=$space")
 
     if N > 1
         if !isone(g.factor)
@@ -209,6 +232,8 @@ struct Pow <: Operation{0,0,1}
         new(exp)
     end
 end
+
+allow_zvar_aliasing(::Type{<:Pow}) = true
 
 function Base.show(io::IO, ::MIME"text/plain", g::Instruction{0,0,1,<:Pow})
     space = get(io, :compact, false) ? "" : " "

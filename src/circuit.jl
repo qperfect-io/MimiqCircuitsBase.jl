@@ -35,7 +35,7 @@ Operation can be added one by one to a circuit with the
 `push!(circuit, operation, targets...)` function
 
 ```jldoctests
-julia> c = LinearCircuit()
+julia> c = Circuit()
 empty circuit
 
 julia> push!(c, GateH(), 1)
@@ -74,7 +74,7 @@ Targets are not restricted to be single values, but also vectors.
 In this case a single `push!` will add multiple operations.
 
 ```jldoctests
-julia> push!(LinearCircuit(), GateCCX(), 1, 2:4, 4:10)
+julia> push!(Circuit(), GateCCX(), 1, 2:4, 4:10)
 6-qubit circuit with 3 instructions:
 ├── C₂X @ q[1:2], q[4]
 ├── C₂X @ q[1,3], q[5]
@@ -124,7 +124,10 @@ cache_graph!(c::Circuit, val::AbstractGraph) = c._graph = val
 # main properties
 # Getter setter
 instructions(c::Circuit) = c._instructions
-graph(c::Circuit) = c._graph
+function graph(c::Circuit)
+    _ensure_graph_cache!(c)
+    return c._graph
+end
 
 @doc raw"""
     numqbz(insts::Vector{<:Instruction})
@@ -144,8 +147,8 @@ julia> push!(c, Measure(), 1:2, 1:2)
 ├── M @ q[1], c[1]
 └── M @ q[2], c[2]
 
-julia> numqbz(c)
-(2, 2, 0)
+julia> numqubits(c)
+2
 
 ```
 """
@@ -273,4 +276,64 @@ end
 # Circuit interface
 Base.getindex(c::Circuit, i::Integer) = getindex(c._instructions, i)
 Base.getindex(c::Circuit, i) = Circuit(getindex(c._instructions, i))
+
+
+"""
+    reorder_qubits(c::Circuit, perm)
+
+Return a new `Circuit` with every qubit index rewritten through `perm`.
+
+`perm[q] == new_position`: a 1-qubit gate previously acting on qubit
+`q` ends up on qubit `perm[q]` in the result.
+
+The permutation is also folded into any operation that embeds qubit
+references *outside* `getqubits(inst)`. Today the only such payload
+is [`Amplitude`](@ref)`.bs`, a computational-basis state keyed by
+qubit index; after a permutation the rewritten `Amplitude` must read
+the same amplitude of the same quantum-state component. The general-
+operation wrappers (`IfStatement`, `WhileStatement`, `Repeat`) forward
+the permutation to their inner op so a wrapped `Amplitude` is
+rewritten too. Classical-bit conditions on `IfStatement` /
+`WhileStatement` are qubit-independent and stay unchanged. The gate-
+only wrappers (`Control`, `Inverse`, `Power`, `Parallel`) cannot hold
+an `Amplitude` at the type level (`T<:AbstractGate`), so no override
+is needed.
+
+Classical-bit (`getbits`) and z-register (`getztargets`) indices are
+left alone — they index a side register that the qubit permutation
+does not touch. The output circuit is therefore equivalent to `c`
+from the point of view of the post-execution `cstate` / `zstate`;
+only the internal qubit ordering changes.
+
+Throws `ArgumentError` when `perm` is not a permutation of
+`1:numqubits(c)`.
+"""
+function reorder_qubits(c::Circuit, perm::AbstractVector{<:Integer})
+    nq = numqubits(c)
+    if sort(collect(perm)) != collect(1:nq)
+        throw(ArgumentError(
+            "perm must be a permutation of 1:$nq; got $perm",
+        ))
+    end
+    out = Circuit()
+    for inst in c
+        op = getoperation(inst)
+        qs = getqubits(inst)
+        bs = getbits(inst)
+        zs = getztargets(inst)
+        new_qs = ntuple(i -> perm[qs[i]], length(qs))
+        new_op = _reorder_op_internals(op, perm)
+        push!(out, new_op, new_qs..., bs..., zs...)
+    end
+    return out
+end
+
+# Default: no embedded qubit refs, op is returned unchanged. Concrete
+# overrides for the only leaf with qubit-indexed payload (`Amplitude.bs`)
+# and for the general-operation wrappers that may hold it
+# (`IfStatement`, `WhileStatement`, `Repeat`) live alongside their op
+# definitions. Gate-only wrappers (`Control`, `Inverse`, `Power`,
+# `Parallel`) constrain to `T<:AbstractGate` and so cannot wrap
+# `Amplitude` at the type level — no override is needed.
+_reorder_op_internals(op::Operation, _perm::AbstractVector{<:Integer}) = op
 

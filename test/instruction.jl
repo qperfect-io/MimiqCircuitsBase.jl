@@ -25,3 +25,38 @@ using Test
     @test_throws ArgumentError Instruction(GateCX(), -1, 1)
 end
 
+@testset "Bit aliasing trait" begin
+    # Default: bit and zvar uniqueness still enforced
+    @test allow_bit_aliasing(typeof(ParityCheck())) === false
+    @test allow_zvar_aliasing(typeof(GateX())) === false
+    @test_throws ArgumentError push!(Circuit(), ParityCheck(), 1, 1, 2)
+    @test_throws ArgumentError Instruction(ParityCheck(), (), (1, 1, 2), ())
+
+    # Qubit uniqueness is never relaxed (no-cloning).
+    @test_throws ArgumentError Instruction(GateCX(), 1, 1)
+
+    # And/Or/Xor opt in: aliased bits (output == one of the inputs) accepted.
+    @test allow_bit_aliasing(typeof(And(3))) === true
+    a = Instruction(And(3), (), (1, 1, 2), ())
+    @test getbits(a) == (1, 1, 2)
+    @test push!(Circuit(), And(3), 1, 1, 2) isa Circuit
+    @test push!(Circuit(), Or(3), 1, 1, 2) isa Circuit
+    @test push!(Circuit(), Xor(3), 1, 1, 2) isa Circuit
+
+    # IfStatement opts in: body bits may overlap condition bits.
+    @test allow_bit_aliasing(typeof(IfStatement(Not(), BitString("1")))) === true
+    ifs = IfStatement(Not(), BitString("1"))
+    @test push!(Circuit(), ifs, 1, 1) isa Circuit
+
+    # Add/Multiply/Pow opt in for zvars.
+    @test allow_zvar_aliasing(typeof(Add(2))) === true
+    @test allow_zvar_aliasing(typeof(Multiply(2))) === true
+    @test allow_zvar_aliasing(typeof(Pow(2.0))) === true
+    @test push!(Circuit(), Add(2), 1, 1) isa Circuit
+    @test push!(Circuit(), Multiply(2), 1, 1) isa Circuit
+
+    # Wrappers do NOT opt in — their outer targets must remain unique.
+    @test allow_bit_aliasing(Block) === false
+    @test allow_bit_aliasing(typeof(Repeat(2, GateX()))) === false
+end
+

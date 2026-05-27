@@ -52,6 +52,11 @@ function evaluate(g::T, d::Dict=Dict()) where {T<:AbstractOperator}
     args = [Symbolics.substitute(getparam(g, n), d) for n in parnames(T)]
     return T(args...)
 end
+evaluate(g::Add{N}, d::Dict=Dict()) where {N} = Add(N, evaluate(g.term, d))
+
+evaluate(g::Multiply{N}, d::Dict=Dict()) where {N} = Multiply(N, evaluate(g.factor, d))
+
+evaluate(g::Pow, d::Dict=Dict()) = Pow(evaluate(g.exponent, d))
 
 function evaluate(control::Control{N,M,L,T}, d::Dict=Dict()) where {N,M,L,T}
     return Control(N, evaluate(control.op, d))
@@ -73,6 +78,13 @@ function evaluate(g::Operator, d::Dict=Dict())
         Symbolics.substitute(x, d)
     end
     Operator(Onew)
+end
+
+function evaluate(g::LossyOperator, d::Dict=Dict())
+    Onew = map(g.O) do x
+        Symbolics.substitute(x, d)
+    end
+    LossyOperator(Onew, g.lossy)
 end
 
 function evaluate(g::GateCall{N,M}, d::Dict=Dict()) where {N,M}

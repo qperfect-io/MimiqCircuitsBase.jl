@@ -76,6 +76,7 @@ end
 @testset "Operators definition" begin
     @test isdefined(MimiqCircuitsBase, :AbstractOperator)
     @test isdefined(MimiqCircuitsBase, :Operator)
+    @test isdefined(MimiqCircuitsBase, :LossyOperator)
     @test isdefined(MimiqCircuitsBase, :Projector0)
     @test isdefined(MimiqCircuitsBase, :Projector1)
     @test isdefined(MimiqCircuitsBase, :ProjectorX0)
@@ -168,3 +169,35 @@ end
     @test_throws "larger than 2 qubits" checkcustomoperator(3)
 end
 
+@testset "LossyOperator" begin
+    # 1-qubit shorthand
+    op = LossyOperator([0 0; 0 sqrt(0.2)])
+    @test op isa LossyOperator{1}
+    @test matrix(op) == [0 0; 0 sqrt(0.2)]
+    @test matrix(opsquared(op)) ≈ ComplexF64[0 0; 0 0.2]
+    @test lossyqubits(op) == (1,)
+
+    # explicit lossy on 1-qubit
+    @test lossyqubits(LossyOperator([0 0; 0 1], 1)) == (1,)
+    @test lossyqubits(LossyOperator([0 0; 0 1], (1,))) == (1,)
+    @test lossyqubits(LossyOperator([0 0; 0 1], [1])) == (1,)
+
+    # 2-qubit lossy needs explicit annotation
+    @test_throws "requires explicit lossy" LossyOperator(rand(4, 4))
+    @test lossyqubits(LossyOperator(zeros(4, 4), 1)) == (1,)
+    @test lossyqubits(LossyOperator(zeros(4, 4), 2)) == (2,)
+    @test lossyqubits(LossyOperator(zeros(4, 4), (1, 2))) == (1, 2)
+    # canonical sort
+    @test lossyqubits(LossyOperator(zeros(4, 4), (2, 1))) == (1, 2)
+
+    # validation
+    @test_throws "at least one lossy qubit" LossyOperator(zeros(4, 4), ())
+    @test_throws "must be in 1:2" LossyOperator(zeros(4, 4), 3)
+    @test_throws "must be unique" LossyOperator(zeros(4, 4), (1, 1))
+    @test_throws "should be 4×4" LossyOperator{2}(zeros(2, 2), (1, 2))
+    @test_throws "Dimension of LossyOperator" LossyOperator(zeros(3, 3), 1)
+
+    # equality is sensitive to lossy
+    @test LossyOperator([0 0; 0 1]) == LossyOperator([0 0; 0 1], 1)
+    @test LossyOperator(zeros(4, 4), 1) != LossyOperator(zeros(4, 4), 2)
+end

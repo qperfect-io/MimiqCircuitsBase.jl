@@ -77,59 +77,11 @@ MixedUnitary((0.9, Custom([1.0 0.0; 0.0 1.0])), (x, Custom([0.0 1.0; 1.0 0.0])))
 julia> evaluate(g,Dict(x=>.1))
 MixedUnitary((0.9, Custom([1.0 0.0; 0.0 1.0])), (0.1, Custom([0.0 1.0; 1.0 0.0])))
 
-julia> g= MixedUnitary([0.9, 0.1], [[1 0; 0 1], [0 1; 1 x]])
-ERROR: MimiqCircuitsBase.UndefinedValue(x)
-Stacktrace:
-  [1] unwrapvalue(g::Symbolics.Num)
-    @ MimiqCircuitsBase ~/QPerfect/Code/MimiqCircuitsBase.jl/src/utils.jl:159
-  [2] _broadcast_getindex_evalf
-    @ ./broadcast.jl:699 [inlined]
-  [3] _broadcast_getindex
-    @ ./broadcast.jl:672 [inlined]
-  [4] _getindex
-    @ ./broadcast.jl:620 [inlined]
-  [5] getindex
-    @ ./broadcast.jl:616 [inlined]
-  [6] copyto_nonleaf!(dest::Matrix{Int64}, bc::Base.Broadcast.Broadcasted{Base.Broadcast.DefaultArrayStyle{2}, Tuple{Base.OneTo{Int64}, Base.OneTo{Int64}}, typeof(MimiqCircuitsBase.unwrapvalue), Tuple{Base.Broadcast.Extruded{Matrix{Symbolics.Num}, Tuple{Bool, Bool}, Tuple{Int64, Int64}}}}, iter::CartesianIndices{2, Tuple{Base.OneTo{Int64}, Base.OneTo{Int64}}}, state::CartesianIndex{2}, count::Int64)
-    @ Base.Broadcast ./broadcast.jl:1104
-  [7] copy
-    @ ./broadcast.jl:941 [inlined]
-  [8] materialize
-    @ ./broadcast.jl:894 [inlined]
-  [9] GateCustom{1}(U::Matrix{Symbolics.Num})
-    @ MimiqCircuitsBase ~/QPerfect/Code/MimiqCircuitsBase.jl/src/operations/gates/custom.jl:106
- [10] GateCustom(U::Matrix{Symbolics.Num})
-    @ MimiqCircuitsBase ~/QPerfect/Code/MimiqCircuitsBase.jl/src/operations/gates/custom.jl:123
- [11] #MixedUnitary##2
-    @ ~/QPerfect/Code/MimiqCircuitsBase.jl/src/operations/noisechannels/mixedunitary.jl:205 [inlined]
- [12] iterate
-    @ ./generator.jl:48 [inlined]
- [13] collect_to!(dest::Vector{GateCustom{1}}, itr::Base.Generator{Vector{Matrix{Symbolics.Num}}, MimiqCircuitsBase.var"#MixedUnitary##2#MixedUnitary##3"}, offs::Int64, st::Int64)
-    @ Base ./array.jl:848
- [14] collect_to_with_first!(dest::Vector{GateCustom{1}}, v1::GateCustom{1}, itr::Base.Generator{Vector{Matrix{Symbolics.Num}}, MimiqCircuitsBase.var"#MixedUnitary##2#MixedUnitary##3"}, st::Int64)
-    @ Base ./array.jl:826
- [15] _collect(c::Vector{Matrix{Symbolics.Num}}, itr::Base.Generator{Vector{Matrix{Symbolics.Num}}, MimiqCircuitsBase.var"#MixedUnitary##2#MixedUnitary##3"}, ::Base.EltypeUnknown, isz::Base.HasShape{1})
-    @ Base ./array.jl:820
- [16] collect_similar
-    @ ./array.jl:732 [inlined]
- [17] map
-    @ ./abstractarray.jl:3372 [inlined]
- [18] MixedUnitary(p::Vector{Float64}, U::Vector{Matrix{Symbolics.Num}})
-    @ MimiqCircuitsBase ~/QPerfect/Code/MimiqCircuitsBase.jl/src/operations/noisechannels/mixedunitary.jl:201
- [19] top-level scope
-    @ none:1
+julia> g = MixedUnitary([0.9, 0.1], [[1 0; 0 1], [0 1; 1 0]])
+MixedUnitary((0.9, Custom([1.0 0.0; 0.0 1.0])), (0.1, Custom([0.0 1.0; 1.0 0.0])))
 
 julia> evaluate(g,Dict(x=>0))
-ERROR: ArgumentError: Probabilities should sum to 1. Instead they are 0.9
-Stacktrace:
- [1] MixedUnitary{1}(p::Vector{Symbolics.Num}, U::Vector{GateCustom{1}})
-   @ MimiqCircuitsBase ~/QPerfect/Code/MimiqCircuitsBase.jl/src/operations/noisechannels/mixedunitary.jl:160
- [2] MixedUnitary(p::Vector{Symbolics.Num}, U::Vector{GateCustom{1}})
-   @ MimiqCircuitsBase ~/QPerfect/Code/MimiqCircuitsBase.jl/src/operations/noisechannels/mixedunitary.jl:193
- [3] evaluate(m::MixedUnitary{1}, d::Dict{Symbolics.Num, Int64})
-   @ MimiqCircuitsBase ~/QPerfect/Code/MimiqCircuitsBase.jl/src/operations/noisechannels/mixedunitary.jl:180
- [4] top-level scope
-   @ none:1
+MixedUnitary((0.9, Custom([1.0 0.0; 0.0 1.0])), (0.1, Custom([0.0 1.0; 1.0 0.0])))
 ```
 """
 struct MixedUnitary{N} <: AbstractKrausChannel{N}

@@ -47,8 +47,8 @@ end
         @test matches(rule, Instruction(Measure(), 5, 1))
         @test matches(rule, Instruction(Measure(), 6, 1))
 
-        @test apply_rule(rule, Instruction(Measure(), 1, 1)) == Instruction(ReadoutErr(0.01, 0.02), 1)
-        @test apply_rule(rule, Instruction(Measure(), 2, 1)) == Instruction(ReadoutErr(0.01, 0.02), 1)
+        @test apply_rule(rule, Instruction(Measure(), 1, 1)) == [Instruction(Measure(), 1, 1), Instruction(ReadoutErr(0.01, 0.02), 1)]
+        @test apply_rule(rule, Instruction(Measure(), 2, 1)) == [Instruction(Measure(), 2, 1), Instruction(ReadoutErr(0.01, 0.02), 1)]
     end
 
     @testset "Two-qubit" begin
@@ -61,8 +61,8 @@ end
         @test matches(rule, Instruction(MeasureZZ(), 5, 6, 1))
         @test matches(rule, Instruction(MeasureZZ(), 6, 7, 1))
 
-        @test apply_rule(rule, Instruction(MeasureZZ(), 1, 2, 1)) == Instruction(ReadoutErr(0.01, 0.02), 1)
-        @test apply_rule(rule, Instruction(MeasureZZ(), 2, 3, 1)) == Instruction(ReadoutErr(0.01, 0.02), 1)
+        @test apply_rule(rule, Instruction(MeasureZZ(), 1, 2, 1)) == [Instruction(MeasureZZ(), 1, 2, 1), Instruction(ReadoutErr(0.01, 0.02), 1)]
+        @test apply_rule(rule, Instruction(MeasureZZ(), 2, 3, 1)) == [Instruction(MeasureZZ(), 2, 3, 1), Instruction(ReadoutErr(0.01, 0.02), 1)]
     end
 end
 
@@ -89,7 +89,7 @@ end
         @test !matches(rule, Instruction(Measure(), 3, 1))
         @test !matches(rule, Instruction(Measure(), 4, 1))
 
-        @test apply_rule(rule, Instruction(Measure(), 1, 1)) == Instruction(ReadoutErr(0.01, 0.02), 1)
+        @test apply_rule(rule, Instruction(Measure(), 1, 1)) == [Instruction(Measure(), 1, 1), Instruction(ReadoutErr(0.01, 0.02), 1)]
     end
 
     @testset "Two-qubit" begin
@@ -100,7 +100,7 @@ end
         @test !matches(rule, Instruction(MeasureZZ(), 3, 4, 2))
         @test !matches(rule, Instruction(MeasureZZ(), 4, 5, 2))
 
-        @test apply_rule(rule, Instruction(MeasureZZ(), 1, 2, 1)) == Instruction(ReadoutErr(0.01, 0.02), 1)
+        @test apply_rule(rule, Instruction(MeasureZZ(), 1, 2, 1)) == [Instruction(MeasureZZ(), 1, 2, 1), Instruction(ReadoutErr(0.01, 0.02), 1)]
     end
 end
 
@@ -124,8 +124,8 @@ end
         @test matches(rule, Instruction(Measure(), 5, 1))
         @test !matches(rule, Instruction(Measure(), 6, 1))
 
-        @test apply_rule(rule, Instruction(Measure(), 1, 1)) == Instruction(ReadoutErr(0.01, 0.02), 1)
-        @test apply_rule(rule, Instruction(Measure(), 3, 4)) == Instruction(ReadoutErr(0.01, 0.02), 4)
+        @test apply_rule(rule, Instruction(Measure(), 1, 1)) == [Instruction(Measure(), 1, 1), Instruction(ReadoutErr(0.01, 0.02), 1)]
+        @test apply_rule(rule, Instruction(Measure(), 3, 4)) == [Instruction(Measure(), 3, 4), Instruction(ReadoutErr(0.01, 0.02), 4)]
     end
 
     @testset "Two-qubit" begin
@@ -138,8 +138,8 @@ end
         @test matches(rule, Instruction(MeasureZZ(), 5, 3, 1))
         @test !matches(rule, Instruction(MeasureZZ(), 6, 7, 1))
 
-        @test apply_rule(rule, Instruction(MeasureZZ(), 1, 3, 1)) == Instruction(ReadoutErr(0.01, 0.02), 1)
-        @test apply_rule(rule, Instruction(MeasureZZ(), 5, 3, 2)) == Instruction(ReadoutErr(0.01, 0.02), 2)
+        @test apply_rule(rule, Instruction(MeasureZZ(), 1, 3, 1)) == [Instruction(MeasureZZ(), 1, 3, 1), Instruction(ReadoutErr(0.01, 0.02), 1)]
+        @test apply_rule(rule, Instruction(MeasureZZ(), 5, 3, 2)) == [Instruction(MeasureZZ(), 5, 3, 2), Instruction(ReadoutErr(0.01, 0.02), 2)]
     end
 end
 
@@ -176,6 +176,7 @@ end
         ) isa OperationInstanceNoise
         @test OperationInstanceNoise(Repeat(2, GateH()), AmplitudeDamping(0.01)) isa OperationInstanceNoise
         @test OperationInstanceNoise(IfStatement(GateH(), BitString("1")), AmplitudeDamping(0.01)) isa OperationInstanceNoise
+        @test OperationInstanceNoise(WhileStatement(GateH(), BitString("1")), AmplitudeDamping(0.01)) isa OperationInstanceNoise
         @test OperationInstanceNoise(GateH(), AmplitudeDamping(0.01), replace=true) isa OperationInstanceNoise
     end
 
@@ -186,9 +187,9 @@ end
         @test matches(rule, Instruction(GateH(), 3))
         @test !matches(rule, Instruction(GateRX(π / 2), 1))
 
-        @test apply_rule(rule, Instruction(GateH(), 1)) == Instruction(AmplitudeDamping(0.01), 1)
-        @test apply_rule(rule, Instruction(GateH(), 2)) == Instruction(AmplitudeDamping(0.01), 2)
-        @test apply_rule(rule, Instruction(GateH(), 3)) == Instruction(AmplitudeDamping(0.01), 3)
+        @test apply_rule(rule, Instruction(GateH(), 1)) == [Instruction(GateH(), 1), Instruction(AmplitudeDamping(0.01), 1)]
+        @test apply_rule(rule, Instruction(GateH(), 2)) == [Instruction(GateH(), 2), Instruction(AmplitudeDamping(0.01), 2)]
+        @test apply_rule(rule, Instruction(GateH(), 3)) == [Instruction(GateH(), 3), Instruction(AmplitudeDamping(0.01), 3)]
     end
 
     @testset "Two-qubit" begin
@@ -200,9 +201,9 @@ end
         @test !matches(rule, Instruction(GateH(), 1))
         @test !matches(rule, Instruction(GateH(), 2))
 
-        @test apply_rule(rule, Instruction(GateCX(), 1, 2)) == Instruction(Depolarizing2(0.01), 1, 2)
-        @test apply_rule(rule, Instruction(GateCX(), 2, 1)) == Instruction(Depolarizing2(0.01), 2, 1)
-        @test apply_rule(rule, Instruction(GateCX(), 1, 3)) == Instruction(Depolarizing2(0.01), 1, 3)
+        @test apply_rule(rule, Instruction(GateCX(), 1, 2)) == [Instruction(GateCX(), 1, 2), Instruction(Depolarizing2(0.01), 1, 2)]
+        @test apply_rule(rule, Instruction(GateCX(), 2, 1)) == [Instruction(GateCX(), 2, 1), Instruction(Depolarizing2(0.01), 2, 1)]
+        @test apply_rule(rule, Instruction(GateCX(), 1, 3)) == [Instruction(GateCX(), 1, 3), Instruction(Depolarizing2(0.01), 1, 3)]
     end
 
     @testset "Symbolic" begin
@@ -217,8 +218,8 @@ end
         @test matches(rule, Instruction(GateRX(q), 3))
         @test !matches(rule, Instruction(GateRY(0.5), 1))
 
-        @test apply_rule(rule, Instruction(GateRX(0.5), 1)) == Instruction(AmplitudeDamping(0.01 * 0.5 / π), 1)
-        @test apply_rule(rule, Instruction(GateRX(1.0), 2)) == Instruction(AmplitudeDamping(0.01 * 1.0 / π), 2)
+        @test apply_rule(rule, Instruction(GateRX(0.5), 1)) == [Instruction(GateRX(0.5), 1), Instruction(AmplitudeDamping(0.01 * 0.5 / π), 1)]
+        @test apply_rule(rule, Instruction(GateRX(1.0), 2)) == [Instruction(GateRX(1.0), 2), Instruction(AmplitudeDamping(0.01 * 1.0 / π), 2)]
         @test_throws ArgumentError apply_rule(rule, Instruction(GateRX(q), 3))
     end
 end
@@ -288,7 +289,7 @@ end
         @test !matches(rule, Instruction(GateRY(0.5), 2))
         @test !matches(rule, Instruction(GateRX(0.5), 1))
 
-        @test apply_rule(rule, Instruction(GateRX(0.5), 2)) == Instruction(AmplitudeDamping(0.01 * 0.5 / π), 2)
+        @test apply_rule(rule, Instruction(GateRX(0.5), 2)) == [Instruction(GateRX(0.5), 2), Instruction(AmplitudeDamping(0.01 * 0.5 / π), 2)]
         @test_throws ArgumentError apply_rule(rule, Instruction(GateRX(q), 2))
     end
 end
@@ -341,9 +342,9 @@ end
         @test !matches(rule, Instruction(GateH(), 3))
         @test !matches(rule, Instruction(GateH(), 5))
 
-        @test apply_rule(rule, Instruction(GateRY(0.038), 1)) == Instruction(AmplitudeDamping(0.01), 1)
-        @test apply_rule(rule, Instruction(GateRY(0.038), 3)) == Instruction(AmplitudeDamping(0.01), 3)
-        @test apply_rule(rule, Instruction(GateRY(0.038), 5)) == Instruction(AmplitudeDamping(0.01), 5)
+        @test apply_rule(rule, Instruction(GateRY(0.038), 1)) == [Instruction(GateRY(0.038), 1), Instruction(AmplitudeDamping(0.01), 1)]
+        @test apply_rule(rule, Instruction(GateRY(0.038), 3)) == [Instruction(GateRY(0.038), 3), Instruction(AmplitudeDamping(0.01), 3)]
+        @test apply_rule(rule, Instruction(GateRY(0.038), 5)) == [Instruction(GateRY(0.038), 5), Instruction(AmplitudeDamping(0.01), 5)]
     end
 
     @testset "Two-qubit" begin
@@ -358,8 +359,8 @@ end
         @test !matches(rule, Instruction(GateRX(π / 2), 2))
         @test !matches(rule, Instruction(GateP(0.05), 4))
 
-        @test apply_rule(rule, Instruction(GateCP(0.05), 2, 4)) == Instruction(Depolarizing2(0.01), 2, 4)
-        @test apply_rule(rule, Instruction(GateCP(0.05), 4, 2)) == Instruction(Depolarizing2(0.01), 4, 2)
+        @test apply_rule(rule, Instruction(GateCP(0.05), 2, 4)) == [Instruction(GateCP(0.05), 2, 4), Instruction(Depolarizing2(0.01), 2, 4)]
+        @test apply_rule(rule, Instruction(GateCP(0.05), 4, 2)) == [Instruction(GateCP(0.05), 4, 2), Instruction(Depolarizing2(0.01), 4, 2)]
     end
 
     @testset "Symbolic" begin
@@ -377,9 +378,9 @@ end
         @test !matches(rule, Instruction(GateRY(0.5), 2))
         @test !matches(rule, Instruction(GateRX(0.5), 1))
 
-        @test apply_rule(rule, Instruction(GateRX(0.5), 2)) == Instruction(AmplitudeDamping(0.01 * 0.5 / π), 2)
-        @test apply_rule(rule, Instruction(GateRX(0.5), 4)) == Instruction(AmplitudeDamping(0.01 * 0.5 / π), 4)
-        @test apply_rule(rule, Instruction(GateRX(0.5), 6)) == Instruction(AmplitudeDamping(0.01 * 0.5 / π), 6)
+        @test apply_rule(rule, Instruction(GateRX(0.5), 2)) == [Instruction(GateRX(0.5), 2), Instruction(AmplitudeDamping(0.01 * 0.5 / π), 2)]
+        @test apply_rule(rule, Instruction(GateRX(0.5), 4)) == [Instruction(GateRX(0.5), 4), Instruction(AmplitudeDamping(0.01 * 0.5 / π), 4)]
+        @test apply_rule(rule, Instruction(GateRX(0.5), 6)) == [Instruction(GateRX(0.5), 6), Instruction(AmplitudeDamping(0.01 * 0.5 / π), 6)]
         @test_throws ArgumentError apply_rule(rule, Instruction(GateRX(q), 4))
     end
 end
@@ -400,15 +401,15 @@ end
     @test !matches(rule, Instruction(MeasureZZ(), 1, 2, 1))
 
     # test the apply_rule
-    @test apply_rule(rule, Instruction(Delay(0.1), 1)) == Instruction(AmplitudeDamping(0.0001 * 0.1), 1)
-    @test apply_rule(rule, Instruction(Delay(0.2), 1)) == Instruction(AmplitudeDamping(0.0001 * 0.2), 1)
-    @test apply_rule(rule, Instruction(Delay(0.3), 2)) == Instruction(AmplitudeDamping(0.0001 * 0.3), 2)
-    @test apply_rule(rule, Instruction(Delay(0.4), 34783)) == Instruction(AmplitudeDamping(0.0001 * 0.4), 34783)
+    @test apply_rule(rule, Instruction(Delay(0.1), 1)) == [Instruction(AmplitudeDamping(0.0001 * 0.1), 1)]
+    @test apply_rule(rule, Instruction(Delay(0.2), 1)) == [Instruction(AmplitudeDamping(0.0001 * 0.2), 1)]
+    @test apply_rule(rule, Instruction(Delay(0.3), 2)) == [Instruction(AmplitudeDamping(0.0001 * 0.3), 2)]
+    @test apply_rule(rule, Instruction(Delay(0.4), 34783)) == [Instruction(AmplitudeDamping(0.0001 * 0.4), 34783)]
 
     # Constant symbolic expressions should be concretized after substitution.
     dep_rule = IdleNoise(t => Depolarizing1(1 - exp(-t / 20e6)))
-    dep_inst = apply_rule(dep_rule, Instruction(Delay(1), 1))
-    dep_p = getparam(getoperation(dep_inst), :p)
+    dep_insts = apply_rule(dep_rule, Instruction(Delay(1), 1))
+    dep_p = getparam(getoperation(dep_insts[1]), :p)
     @test dep_p isa Symbolics.Num
     @test !issymbolic(dep_p)
     @test Symbolics.value(dep_p) isa Real
@@ -427,9 +428,9 @@ end
         @test matches(rule, Instruction(GateH(), 3))
         @test !matches(rule, Instruction(GateRX(π / 2), 1))
 
-        @test apply_rule(rule, Instruction(GateH(), 1)) == Instruction(AmplitudeDamping(0.01), 1)
-        @test apply_rule(rule, Instruction(GateH(), 2)) == Instruction(AmplitudeDamping(0.01), 2)
-        @test apply_rule(rule, Instruction(GateH(), 3)) == Instruction(AmplitudeDamping(0.01), 3)
+        @test apply_rule(rule, Instruction(GateH(), 1)) == [Instruction(GateH(), 1), Instruction(AmplitudeDamping(0.01), 1)]
+        @test apply_rule(rule, Instruction(GateH(), 2)) == [Instruction(GateH(), 2), Instruction(AmplitudeDamping(0.01), 2)]
+        @test apply_rule(rule, Instruction(GateH(), 3)) == [Instruction(GateH(), 3), Instruction(AmplitudeDamping(0.01), 3)]
     end
 
     @testset "Two-qubit" begin
@@ -442,9 +443,9 @@ end
         @test !matches(rule, Instruction(GateH(), 1))
         @test !matches(rule, Instruction(GateH(), 2))
 
-        @test apply_rule(rule, Instruction(GateCX(), 1, 2)) == Instruction(Depolarizing2(0.01), 1, 2)
-        @test apply_rule(rule, Instruction(GateCX(), 2, 1)) == Instruction(Depolarizing2(0.01), 2, 1)
-        @test apply_rule(rule, Instruction(GateCX(), 1, 3)) == Instruction(Depolarizing2(0.01), 1, 3)
+        @test apply_rule(rule, Instruction(GateCX(), 1, 2)) == [Instruction(GateCX(), 1, 2), Instruction(Depolarizing2(0.01), 1, 2)]
+        @test apply_rule(rule, Instruction(GateCX(), 2, 1)) == [Instruction(GateCX(), 2, 1), Instruction(Depolarizing2(0.01), 2, 1)]
+        @test apply_rule(rule, Instruction(GateCX(), 1, 3)) == [Instruction(GateCX(), 1, 3), Instruction(Depolarizing2(0.01), 1, 3)]
     end
 end
 
@@ -649,6 +650,35 @@ end
             noisy = apply_noise_model(c, model_if)
             @test length(noisy) == 2
             @test getoperation(noisy[1]) isa IfStatement
+            @test getoperation(noisy[2]) isa AmplitudeDamping
+            @test getqubits(noisy[2]) == (1,)
+        end
+
+        @testset "WhileStatement" begin
+            c = Circuit()
+            push!(c, WhileStatement(GateH(), BitString("1")), 1, 1)
+
+            noisy = apply_noise_model(c, model)
+            @test length(noisy) == 1
+            @test getoperation(noisy[1]) isa WhileStatement
+            inner = getoperation(getoperation(noisy[1]))
+            @test inner isa Block
+            @test length(inner) == 2
+            @test getoperation(inner[1]) isa GateH
+            @test getoperation(inner[2]) isa AmplitudeDamping
+        end
+
+        @testset "WhileStatement Target Rule" begin
+            c = Circuit()
+            push!(c, WhileStatement(GateH(), BitString("1")), 1, 1)
+
+            model_while = NoiseModel([
+                OperationInstanceNoise(WhileStatement(GateH(), BitString("1")), AmplitudeDamping(0.01))
+            ])
+
+            noisy = apply_noise_model(c, model_while)
+            @test length(noisy) == 2
+            @test getoperation(noisy[1]) isa WhileStatement
             @test getoperation(noisy[2]) isa AmplitudeDamping
             @test getqubits(noisy[2]) == (1,)
         end

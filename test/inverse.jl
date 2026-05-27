@@ -41,3 +41,13 @@ using Test
         @test matrix(gate) * matrix(mygate1) ≈ I
     end
 end
+
+@testset "Inverse Decomposition" begin
+    decomp = decompose_step(Inverse(Parallel(2, GateH())))
+
+    @test length(decomp) == 2
+    @test getoperation(decomp[1]) isa GateH
+    @test getoperation(decomp[2]) isa GateH
+    @test getqubits(decomp[1]) == (2,)
+    @test getqubits(decomp[2]) == (1,)
+end

@@ -96,8 +96,8 @@ julia> push_expval!(c, h, 1, 2)
 2-qubit, 1-vars circuit with 4 instructions:
 ├── RZ(x) @ q[2]
 ├── ⟨XY⟩ @ q[1:2], z[1]
-├── z[1] *= 0.091
-└── z[1] += 0.0
+├── z[1] = 0.091 * z[1]
+└── z[1] = z[1]
 
 julia> initparams = Dict(x => 0.1)
 Dict{Symbolics.Num, Float64} with 1 entry:

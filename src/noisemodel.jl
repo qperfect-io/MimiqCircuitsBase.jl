@@ -38,97 +38,25 @@ const PRIORITY_IDLE = 200
 Abstract base type for all noise rules in the noise model.
 Each concrete noise rule defines when and how noise should be applied to circuit instructions.
 """
-abstract type AbstractNoiseRule end
+abstract type AbstractNoiseRule <: AbstractCircuitRule end
 
-"""
-    priority(rule::AbstractNoiseRule) -> Int
+# priority, before, replaces, matches, apply_rule are inherited from AbstractCircuitRule
+# (defined in circuitrules.jl). Concrete noise rule types override them as needed.
 
-Return the priority of a noise rule. Lower numbers have higher priority.
-Default priority is 100. Override this method to change rule priority.
-"""
-priority(::AbstractNoiseRule) = 100
-
-"""
-    before(rule::AbstractNoiseRule) -> Bool
-
-Return whether the noise should be applied before the operation.
-Default is false (apply after). Override for specific rule types.
-"""
-before(::AbstractNoiseRule) = false
-
-"""
-    replaces(rule::AbstractNoiseRule) -> Bool
-
-Return whether the noise instruction replaces the original instruction.
-Default is false (noise is added alongside). Override for specific rule types.
-"""
-replaces(::AbstractNoiseRule) = false
-
-"""
-    matches(rule::AbstractNoiseRule, inst::Instruction) -> Bool
-
-Check if a noise rule matches a given instruction.
-
-# Arguments
-- `rule`: The noise rule to check
-- `inst`: The instruction to potentially add noise to
-
-# Returns
-`true` if the rule applies to this instruction, `false` otherwise
-"""
-function matches(rule::AbstractNoiseRule, inst::Instruction)
-    error("matches not implemented for $(typeof(rule))")
-end
-
-"""
-    apply_rule(rule::AbstractNoiseRule, inst::Instruction) -> Union{Instruction, Nothing}
-
-Generate a noise instruction based on the rule and the matched instruction.
-
-Returns `nothing` if the rule does not match the instruction. This allows the noise
-application loop to try multiple rules without needing separate match checks.
-
-# Arguments
-- `rule`: The noise rule to apply
-- `inst`: The instruction that the rule should be applied to
-
-# Returns
-- A new `Instruction` representing the noise to be added, or
-- `nothing` if the rule does not match the instruction
-"""
-function apply_rule(rule::AbstractNoiseRule, inst::Instruction)
-    error("apply_rule not implemented for $(typeof(rule))")
-end
-
-# validate target operation types for operation-instance rules
-_is_reset(operation::Operation) =
-    operation isa Reset ||
-    operation isa ResetX ||
-    operation isa ResetY ||
-    operation isa ResetZ
-
-_supports_symbolic_operation_pattern(operation::Operation) =
-    operation isa AbstractGate ||
-    operation isa AbstractMeasurement ||
-    _is_reset(operation)
-
-_is_symbolic_operation_pattern(operation::Operation) =
-    _supports_symbolic_operation_pattern(operation) && issymbolic(operation)
-
-function _validate_rule_operation_target(operation::Operation)
-    if !(operation isa AbstractGate ||
-         operation isa AbstractMeasurement ||
-         _is_reset(operation) ||
-         operation isa Block ||
-         operation isa Repeat ||
-         operation isa IfStatement)
-        throw(ArgumentError(
-            "Rule target operation must be a gate, measurement, reset, Block, Repeat, or IfStatement operation."
-        ))
+# Helper to compose noise instruction with original based on before/replace flags
+function _compose_noise_result(inst::Instruction, noise_inst::Instruction, b::Bool, r::Bool)
+    if r
+        return Instruction[noise_inst]
+    elseif b
+        return Instruction[noise_inst, inst]
+    else
+        return Instruction[inst, noise_inst]
     end
-
-    return nothing
 end
+
+# Shared validation helpers (_is_reset, _supports_symbolic_operation_pattern,
+# _is_symbolic_operation_pattern, _validate_rule_operation_target) are defined
+# in circuitrules.jl
 
 # ######################### #
 # Concrete Noise Rule Types #
@@ -148,7 +76,8 @@ Apply readout noise to all measurement operations in the circuit.
 
 # Examples
 ```jldoctests
-rule = GlobalReadoutNoise(ReadoutErr([0.01, 0.02]))
+julia> rule = GlobalReadoutNoise(ReadoutErr(0.01, 0.02))
+GlobalReadoutNoise(ReadoutErr(0.01, 0.02))
 ```
 """
 struct GlobalReadoutNoise <: AbstractNoiseRule
@@ -163,10 +92,8 @@ function matches(rule::GlobalReadoutNoise, inst::Instruction)
 end
 
 function apply_rule(rule::GlobalReadoutNoise, inst::Instruction)
-    if !matches(rule, inst)
-        return nothing
-    end
-    return Instruction(rule.noise, getbits(inst)...)
+    matches(rule, inst) || return nothing
+    return Instruction[inst, Instruction(rule.noise, getbits(inst)...)]
 end
 
 """
@@ -181,11 +108,8 @@ Apply readout noise only to measurements on specific qubits in exact order.
 # Examples
 ```jldoctests
 # Only matches Measure on qubits [1, 2] in that exact order
-
 julia> rule = ExactQubitReadoutNoise([1, 2], ReadoutErr(0.01, 0.02))
 ExactQubitReadoutNoise([1, 2], ReadoutErr(0.01, 0.02))
-
-# Different from [2, 1]
 julia> rule2 = ExactQubitReadoutNoise([2, 1], ReadoutErr(0.02, 0.03))
 ExactQubitReadoutNoise([2, 1], ReadoutErr(0.02, 0.03))
 ```
@@ -217,10 +141,8 @@ function matches(rule::ExactQubitReadoutNoise, inst::Instruction)
 end
 
 function apply_rule(rule::ExactQubitReadoutNoise, inst::Instruction)
-    if !matches(rule, inst)
-        return nothing
-    end
-    return Instruction(rule.noise, getbits(inst)...)
+    matches(rule, inst) || return nothing
+    return Instruction[inst, Instruction(rule.noise, getbits(inst)...)]
 end
 
 """
@@ -267,10 +189,8 @@ function matches(rule::SetQubitReadoutNoise, inst::Instruction)
 end
 
 function apply_rule(rule::SetQubitReadoutNoise, inst::Instruction)
-    if !matches(rule, inst)
-        return nothing
-    end
-    return Instruction(rule.noise, getbits(inst)...)
+    matches(rule, inst) || return nothing
+    return Instruction[inst, Instruction(rule.noise, getbits(inst)...)]
 end
 
 # ================================ #
@@ -302,17 +222,12 @@ OperationInstanceNoise(GateRX(π/2), AmplitudeDamping(0.001), false, false)
 
 ## Symbolic operation matching with parameter-dependent noise
 ```jldoctests
-
 julia> @variables a
 1-element Vector{Symbolics.Num}:
  a
 
-# Matches any GateRX, applies noise that depends on the rotation angle
-
 julia> rule = OperationInstanceNoise(GateRX(a), Depolarizing1(a / π))
 OperationInstanceNoise(GateRX(a), Depolarizing(1, a / π), false, false)
-
-# When GateRX(0.4) is encountered, applies Depolarizing1(0.4 / π)
 ```
 
 ## Multi-parameter symbolic matching
@@ -328,7 +243,6 @@ OperationInstanceNoise(GateU(θ, φ, 0, 0π), Depolarizing(1, (θ^2 + φ^2) / 19
 
 ## Compact relation syntax
 ```jldoctests
-
 julia> @variables a
 1-element Vector{Symbolics.Num}:
  a
@@ -346,7 +260,7 @@ OperationInstanceNoise(Measure(), PauliX(0.02), true, false)
 ## Reset noise
 ```jldoctests
 julia> rule = OperationInstanceNoise(Reset(), Depolarizing1(0.01))
-OperationInstanceNoise(Reset(), Depolarizing(1, 0.01), false, false)
+OperationInstanceNoise(Reset, Depolarizing(1, 0.01), false, false)
 ```
 
 ## Replace matched operation
@@ -413,27 +327,12 @@ function matches(rule::OperationInstanceNoise, inst::Instruction)
 end
 
 function apply_rule(rule::OperationInstanceNoise, inst::Instruction)
-    # Check if rule matches
-    if !matches(rule, inst)
-        return nothing
-    end
+    matches(rule, inst) || return nothing
 
     op_inst = getoperation(inst)
-
-    # Non-symbolic patterns (including Block/Repeat) use static noise.
-    if !_is_symbolic_operation_pattern(rule.operation)
-        noise = rule.noise
-    else
-        # Symbolic patterns substitute parameters from the matched instruction.
-        variables = _extract_variables(rule.operation)
-        if isnothing(variables)
-            noise = rule.noise
-        else
-            noise = applyparams(op_inst, variables => rule.noise)
-        end
-    end
-
-    return Instruction(noise, getqubits(inst)...)
+    noise = _resolve_symbolic_replacement(op_inst, rule.operation, rule.noise)
+    noise_inst = Instruction(noise, getqubits(inst)...)
+    return _compose_noise_result(inst, noise_inst, rule.before, rule.replace)
 end
 
 """
@@ -452,13 +351,12 @@ The operation pattern can have symbolic parameters (see [`OperationInstanceNoise
 
 # Examples
 ```jldoctests
-@variables a
-# Only matches GateRX on qubit 1, with angle-dependent noise
+julia> @variables a
+1-element Vector{Symbolics.Num}:
+ a
 
 julia> rule = ExactOperationInstanceQubitNoise(GateRX(a), [1], AmplitudeDamping(a / π))
 ExactOperationInstanceQubitNoise(GateRX(a), [1], AmplitudeDamping(a / π), false, false)
-
-# Compact syntax
 julia> rule = ExactOperationInstanceQubitNoise(GateRX(a) => AmplitudeDamping(a / π), qubits=[1])
 ExactOperationInstanceQubitNoise(GateRX(a), [1], AmplitudeDamping(a / π), false, false)
 ```
@@ -532,27 +430,12 @@ function matches(rule::ExactOperationInstanceQubitNoise, inst::Instruction)
 end
 
 function apply_rule(rule::ExactOperationInstanceQubitNoise, inst::Instruction)
-    # Check if rule matches
-    if !matches(rule, inst)
-        return nothing
-    end
+    matches(rule, inst) || return nothing
 
     op_inst = getoperation(inst)
-
-    # Non-symbolic patterns (including Block/Repeat) use static noise.
-    if !_is_symbolic_operation_pattern(rule.operation)
-        noise = rule.noise
-    else
-        # Symbolic patterns substitute parameters from the matched instruction.
-        variables = _extract_variables(rule.operation)
-        if isnothing(variables)
-            noise = rule.noise
-        else
-            noise = applyparams(op_inst, variables => rule.noise)
-        end
-    end
-
-    return Instruction(noise, getqubits(inst)...)
+    noise = _resolve_symbolic_replacement(op_inst, rule.operation, rule.noise)
+    noise_inst = Instruction(noise, getqubits(inst)...)
+    return _compose_noise_result(inst, noise_inst, rule.before, rule.replace)
 end
 
 """
@@ -651,27 +534,12 @@ function matches(rule::SetOperationInstanceQubitNoise, inst::Instruction)
 end
 
 function apply_rule(rule::SetOperationInstanceQubitNoise, inst::Instruction)
-    # Check if rule matches
-    if !matches(rule, inst)
-        return nothing
-    end
+    matches(rule, inst) || return nothing
 
     op_inst = getoperation(inst)
-
-    # Non-symbolic patterns (including Block/Repeat) use static noise.
-    if !_is_symbolic_operation_pattern(rule.operation)
-        noise = rule.noise
-    else
-        # Symbolic patterns substitute parameters from the matched instruction.
-        variables = _extract_variables(rule.operation)
-        if isnothing(variables)
-            noise = rule.noise
-        else
-            noise = applyparams(op_inst, variables => rule.noise)
-        end
-    end
-
-    return Instruction(noise, getqubits(inst)...)
+    noise = _resolve_symbolic_replacement(op_inst, rule.operation, rule.noise)
+    noise_inst = Instruction(noise, getqubits(inst)...)
+    return _compose_noise_result(inst, noise_inst, rule.before, rule.replace)
 end
 
 # ========== #
@@ -738,24 +606,17 @@ function matches(rule::IdleNoise, inst::Instruction)
 end
 
 function apply_rule(rule::IdleNoise, inst::Instruction)
-    if !matches(rule, inst)
-        return nothing
-    end
+    matches(rule, inst) || return nothing
 
     delay = getoperation(inst)
-
-    # If relation is just a constant operation, use it directly
-    if rule.relation isa Operation
-        return Instruction(rule.relation, getqubits(inst)...)
+    noise = if rule.relation isa Operation
+        rule.relation
+    else
+        variable, target = rule.relation
+        applyparams(delay, variable => target)
     end
 
-    # Otherwise it's a Pair - extract variables and use applyparams
-    variable, target = rule.relation
-
-    # Apply the relation
-    noise = applyparams(delay, variable => target)
-
-    return Instruction(noise, getqubits(inst)...)
+    return Instruction[Instruction(noise, getqubits(inst)...)]
 end
 
 
@@ -774,7 +635,8 @@ The noise can depend on the idle time using a relation with a symbolic time vari
 
 ## Constant idle noise
 ```jldoctests
-SetIdleQubitNoise(AmplitudeDamping(0.0001), [1,2,3])
+julia> SetIdleQubitNoise(AmplitudeDamping(0.0001), [1,2,3])
+SetIdleQubitNoise(AmplitudeDamping(0.0001), Set([2, 3, 1]))
 ```
 
 ## Time-dependent idle noise
@@ -825,24 +687,17 @@ function matches(rule::SetIdleQubitNoise, inst::Instruction)
 end
 
 function apply_rule(rule::SetIdleQubitNoise, inst::Instruction)
-    if !matches(rule, inst)
-        return nothing
-    end
+    matches(rule, inst) || return nothing
 
     delay = getoperation(inst)
-
-    # If relation is just a constant operation, use it directly
-    if rule.relation isa Operation
-        return Instruction(rule.relation, getqubits(inst)...)
+    noise = if rule.relation isa Operation
+        rule.relation
+    else
+        variable, target = rule.relation
+        applyparams(delay, variable => target)
     end
 
-    # Otherwise it's a Pair - extract variables and use applyparams
-    variable, target = rule.relation
-
-    # Apply the relation
-    noise = applyparams(delay, variable => target)
-
-    return Instruction(noise, getqubits(inst)...)
+    return Instruction[Instruction(noise, getqubits(inst)...)]
 end
 
 # ============ #
@@ -864,12 +719,11 @@ Apply noise based on a custom matching function.
 # Examples
 ```jldoctests
 # Add noise to all 2-qubit operations
-
 julia> rule = CustomNoiseRule(
            inst -> numqubits(getoperation(inst)) == 2,
            inst -> Instruction(Depolarizing2(0.01), getqubits(inst)...)
        )
-CustomNoiseRule(var"#3#5"(), var"#4#6"(), 0, false, false)
+CustomNoiseRule(var"#3#4"(), var"#5#6"(), 0, false, false)
 ```
 """
 struct CustomNoiseRule <: AbstractNoiseRule
@@ -892,7 +746,11 @@ replaces(rule::CustomNoiseRule) = rule.replace
 
 matches(rule::CustomNoiseRule, inst::Instruction) = rule.matcher(inst)
 
-apply_rule(rule::CustomNoiseRule, inst::Instruction) = rule.matcher(inst) ? rule.generator(inst) : nothing
+function apply_rule(rule::CustomNoiseRule, inst::Instruction)
+    rule.matcher(inst) || return nothing
+    noise_inst = rule.generator(inst)
+    return _compose_noise_result(inst, noise_inst, rule.before, rule.replace)
+end
 
 # =========== #
 # Noise Model #
@@ -929,29 +787,17 @@ julia> @variables θ
  θ
 
 julia> model = NoiseModel([
-           # Noise that scales with rotation angle
            OperationInstanceNoise(GateRX(θ), Depolarizing1(θ / π)),
-           OperationInstanceNoise(GateRY(θ), Depolarizing1(θ / π)),
-
-           # Different noise for different qubit pairs
-           ExactOperationInstanceQubitNoise(GateCX(), [1, 2], Depolarizing2(0.01)),
-           ExactOperationInstanceQubitNoise(GateCX(), [2, 1], Depolarizing2(0.02)),
-
-           # General fallbacks
-           GlobalReadoutNoise(ReadoutErr(0.01, 0.02)),
-           IdleNoise(AmplitudeDamping(0.0001))
-       ], name="Angle-Dependent Noise Model")
-
-NoiseModel(AbstractNoiseRule[ExactOperationInstanceQubitNoise(GateCX(), [1, 2], Depolarizing(2, 0.01), false, false), ExactOperationInstanceQubitNoise(GateCX(), [2, 1], Depolarizing(2, 0.02), false, false), OperationInstanceNoise(GateRX(θ), Depolarizing(1, θ / π), false, false), OperationInstanceNoise(GateRY(θ), Depolarizing(1, θ / π), false, false), GlobalReadoutNoise(ReadoutErr(0.01, 0.02)), IdleNoise(AmplitudeDamping(0.0001))], "Angle-Dependent Noise Model")
+           OperationInstanceNoise(GateRY(θ), Depolarizing1(θ / π))])
+NoiseModel(AbstractNoiseRule[OperationInstanceNoise(GateRX(θ), Depolarizing(1, θ / π), false, false), OperationInstanceNoise(GateRY(θ), Depolarizing(1, θ / π), false, false)], "")                                                  
 ```
 
 ## Using symbolic parameters with complex expressions
 ```jldoctests
-@variables α β
-model = NoiseModel([
-    # Two-parameter operation with combined noise
-    OperationInstanceNoise(GateU(α, β, 0), Depolarizing1((α^2 + β^2) / (2π^2))),
-], name="Complex Parameter Noise")
+julia> @variables α β
+2-element Vector{Symbolics.Num}:
+ α
+ β
 ```
 """
 struct NoiseModel
@@ -1003,15 +849,9 @@ end
 
 function _apply_rules_to_instruction(inst::Instruction, model::NoiseModel)
     for rule in model.rules
-        noise = apply_rule(rule, inst)
-        if !isnothing(noise)
-            if replaces(rule)
-                return Instruction[noise], true
-            elseif before(rule)
-                return Instruction[noise, inst], true
-            else
-                return Instruction[inst, noise], true
-            end
+        result = apply_rule(rule, inst)
+        if !isnothing(result)
+            return result, true
         end
     end
 
@@ -1043,6 +883,21 @@ function _rewrite_nested_operation(op::IfStatement, model::NoiseModel, active_de
     end
 
     return IfStatement(rewritten_inner, getbitstring(op))
+end
+
+function _rewrite_nested_operation(op::WhileStatement, model::NoiseModel, active_decls::IdDict{Any,Nothing})
+    inner = getoperation(op)
+    qcanon, bcanon, zcanon = _canonical_targets(inner)
+    inner_inst = Instruction(inner, qcanon, bcanon, zcanon)
+
+    noisy_inner = _apply_noise_to_instruction(inner_inst, model, active_decls)
+    rewritten_inner = _collapse_local_instructions_to_operation(noisy_inner, inner)
+
+    if rewritten_inner === inner
+        return op
+    end
+
+    return WhileStatement(rewritten_inner, getbitstring(op))
 end
 
 function _rewrite_nested_operation(op::Parallel, model::NoiseModel, active_decls::IdDict{Any,Nothing})
@@ -1181,7 +1036,7 @@ julia> push!(c, GateRX(0.8), 2)
 julia> push!(c, Measure(), 1:2, 1:2)
 2-qubit, 2-bit circuit with 4 instructions:
 ├── RX(0.4) @ q[1]
-├── RX(0.8) @ q[2]+
+├── RX(0.8) @ q[2]
 ├── M @ q[1], c[1]
 └── M @ q[2], c[2]
 
@@ -1210,11 +1065,8 @@ julia> noisy_circuit = apply_noise_model(c, model)
 
 ## Recursive wrapper behavior (`Block`, `GateCall`, `Parallel`, `Repeat`, `IfStatement`)
 ```jldoctests
-
 julia> model = NoiseModel([OperationInstanceNoise(GateH(), AmplitudeDamping(0.01))])
 NoiseModel(AbstractNoiseRule[OperationInstanceNoise(GateH(), AmplitudeDamping(0.01), false, false)], "")
-
-# Block
 julia> c_block = Circuit()
 empty circuit
 
@@ -1362,8 +1214,6 @@ This function simplifies the process of adding different types of readout noise.
 ```jldoctests
 julia> model = NoiseModel()
 NoiseModel(AbstractNoiseRule[], "")
-
-# Global readout noise
 julia> add_readout_noise!(model, ReadoutErr(0.01, 0.02))
 NoiseModel(AbstractNoiseRule[GlobalReadoutNoise(ReadoutErr(0.01, 0.02))], "")
 
@@ -1413,9 +1263,6 @@ This function adds noise to operation instances. The `operation` parameter can b
 ```jldoctests
 julia> model = NoiseModel()
 NoiseModel(AbstractNoiseRule[], "")
-
-# Apply noise only to RX(π/2) operations
-
 julia> add_operation_noise!(model, GateRX(π/2), AmplitudeDamping(0.001))
 NoiseModel(AbstractNoiseRule[OperationInstanceNoise(GateRX(π/2), AmplitudeDamping(0.001), false, false)], "")
 ```
@@ -1444,8 +1291,6 @@ julia> @variables α β
  α
  β
 
-# Noise depends on both parameters
-
 julia> model = NoiseModel()
 NoiseModel(AbstractNoiseRule[], "")
 
@@ -1458,8 +1303,6 @@ NoiseModel(AbstractNoiseRule[OperationInstanceNoise(GateU(α, β, 0, 0π), Depol
 julia> @variables θ
 1-element Vector{Symbolics.Num}:
  θ
-
-# Only on specific qubits
 julia> model = NoiseModel()
 NoiseModel(AbstractNoiseRule[], "")
 

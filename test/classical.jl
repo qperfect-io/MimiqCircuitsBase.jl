@@ -34,3 +34,32 @@ const CLASSICALOPS = [Not(), SetBit0(), SetBit1(), And(), And(5), And(8), Or(), 
     end
 end
 
+@testset "Aliased classical/complex ops construction" begin
+    # Construction-level tests only — runtime apply! tests live in AbstractQCSs/
+    # StateVecSim test suites where AbstractQCSs is available.
+
+    # And/Or/Xor accept aliased bits.
+    @test Instruction(And(3), (), (1, 1, 2), ()) isa Instruction
+    @test Instruction(Or(3), (), (1, 1, 2), ()) isa Instruction
+    @test Instruction(Xor(3), (), (1, 1, 1), ()) isa Instruction
+
+    # Push to circuit also works.
+    @test push!(Circuit(), And(3), 1, 1, 2) isa Circuit
+    @test push!(Circuit(), Or(3), 1, 2, 2) isa Circuit
+    @test push!(Circuit(), Xor(3), 1, 1, 1) isa Circuit
+
+    # Add/Multiply accept aliased zvars.
+    @test Instruction(Add(2), (), (), (1, 1)) isa Instruction
+    @test Instruction(Multiply(2), (), (), (1, 1)) isa Instruction
+    @test push!(Circuit(), Add(2), 1, 1) isa Circuit
+    @test push!(Circuit(), Multiply(2), 1, 1) isa Circuit
+
+    # Protobuf round-trips a circuit with aliased targets.
+    let c = push!(Circuit(), And(3), 1, 1, 2)
+        testsaveloadproto(c)
+    end
+    let c = push!(Circuit(), Add(2), 1, 1)
+        testsaveloadproto(c)
+    end
+end
+

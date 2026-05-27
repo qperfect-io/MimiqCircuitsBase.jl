@@ -22,6 +22,7 @@ using Symbolics
 @testset "Noise channels definition" begin
     @test isdefined(MimiqCircuitsBase, :AbstractKrausChannel)
     @test isdefined(MimiqCircuitsBase, :Kraus)
+    @test isdefined(MimiqCircuitsBase, :LossyOperator)
     @test isdefined(MimiqCircuitsBase, :MixedUnitary)
     @test isdefined(MimiqCircuitsBase, :PauliNoise)
     @test isdefined(MimiqCircuitsBase, :AmplitudeDamping)
@@ -71,6 +72,42 @@ end
     # Wrong Kraus: dimension
     Emats = [[1 0 0; 0 sqrt(1 - p) 0; 0 0 1], [0 sqrt(p) 0; 0 0 0; 0 0 0]]
     @test_throws ArgumentError Kraus(Emats)
+end
+
+@testset "Loss-aware Kraus channel" begin
+    survival = Operator([1 0; 0 sqrt(0.8)])
+    lossy = LossyOperator([0 0; 0 sqrt(0.2)])
+    kch = Kraus([survival, lossy])
+
+    @test hasloss(kch)
+    @test !hasloss(Kraus([[1 0; 0 1]]))
+    @test lossoperators(kch) == AbstractOperator[lossy]
+    @test survivaloperators(kch) == AbstractOperator[survival]
+    @test matrix(losseffect(kch)) ≈ ComplexF64[0 0; 0 0.2]
+    @test krausmatrices(kch)[2] == [0 0; 0 sqrt(0.2)]
+
+    kch_swapped = Kraus([lossy, survival])
+    @test lossoperators(kch_swapped) == AbstractOperator[lossy]
+    @test survivaloperators(kch_swapped) == AbstractOperator[survival]
+    @test losseffect(kch_swapped) == losseffect(kch)
+
+    @test_throws "should fulfill" Kraus([survival, LossyOperator([0 0; 0 sqrt(0.1)])])
+
+    p1, p2 = 0.1, 0.05
+    surv = Operator([1 0; 0 sqrt(1 - p1 - p2)])
+    L1 = LossyOperator([0 sqrt(p1); 0 0])
+    L2 = LossyOperator([0 sqrt(p2); 0 0])
+    @test hasloss(Kraus([surv, L1, L2]))
+
+    p = 0.1
+    s2 = Operator([1 0 0 0; 0 sqrt(1 - p) 0 0; 0 0 1 0; 0 0 0 sqrt(1 - p)])
+    L_q2 = LossyOperator([0 0 0 0; 0 sqrt(p) 0 0; 0 0 0 0; 0 0 0 sqrt(p)], 2)
+    kch2 = Kraus([s2, L_q2])
+    @test lossyqubits(only(lossoperators(kch2))) == (2,)
+
+    L_both = LossyOperator([0 0 0 0; 0 0 0 0; 0 0 0 0; 0 0 0 0], (1, 2))
+    @test lossyqubits(L_both) == (1, 2)
+    @test lossyqubits(LossyOperator([0 0 0 0; 0 0 0 0; 0 0 0 0; 0 0 0 0], (2, 1))) == (1, 2)
 end
 
 @testset "Mixed Unitary channel" begin
