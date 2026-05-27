@@ -77,7 +77,9 @@ client sends version `c`:
 | equal | accept |
 
 Clients predating `WIRE_FORMAT_VERSION` do not send the field. For
-them, the executor falls back to a prior compatibility check
-(`MimiqExecutor.jl/src/utils.jl::check_legacy_api_compatibility`)
-against `pkgversion(MimiqCircuitsBase)`. The fallback is removed once
-those clients are sunset.
+them, the executor looks up `circuitsapiversion` in a small per-language
+table (`LEGACY_JULIA_WIRE_FORMAT`, `LEGACY_PYTHON_WIRE_FORMAT` in
+`MimiqExecutor.jl/src/utils.jl`) to recover the wire format that release
+implicitly spoke, then runs the same `check_wire_format`. Add an entry
+whenever a release in the wild needs continued support; drop entries
+when those clients are sunset.

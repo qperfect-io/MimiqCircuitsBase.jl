@@ -453,14 +453,16 @@ The operation pattern can have symbolic parameters (see [`OperationInstanceNoise
 - `replace::Bool`: If true, replace the matched operation with the noise operation (default: false)
 
 # Examples
+Match `GateRX` on any qubits in `{1, 2, 3}` with angle-dependent noise:
+
 ```jldoctests
-@variables a
-# Matches GateRX on any qubits in {1, 2, 3} with angle-dependent noise
+julia> @variables a
+1-element Vector{Symbolics.Num}:
+ a
 
 julia> rule = SetOperationInstanceQubitNoise(GateRX(a), [1, 2, 3], PhaseAmplitudeDamping(1, 1, a / (2π)))
 SetOperationInstanceQubitNoise(GateRX(a), Set([2, 3, 1]), PhaseAmplitudeDamping(1, 1, a / 6.283185307179586), false, false)
 
-# Compact syntax
 julia> rule = SetOperationInstanceQubitNoise(GateRX(a) => PhaseAmplitudeDamping(1, 1, a / (2π)), qubits=[1, 2, 3])
 SetOperationInstanceQubitNoise(GateRX(a), Set([2, 3, 1]), PhaseAmplitudeDamping(1, 1, a / 6.283185307179586), false, false)
 ```
@@ -1057,105 +1059,83 @@ julia> noisy_circuit = apply_noise_model(c, model)
 ├── RErr(0.01, 0.02) @ c[1]
 ├── M @ q[2], c[2]
 └── RErr(0.01, 0.02) @ c[2]
-# Result:
-# - GateRX(0.4) followed by Depolarizing1(0.4 / π) ≈ Depolarizing1(0.127)
-# - GateRX(0.8) followed by Depolarizing1(0.8 / π) ≈ Depolarizing1(0.255)
-# - Measurements followed by ReadoutErr(0.01, 0.02)
 ```
 
+Each `RX(α)` is followed by `Depolarizing1(α / π)` (so `≈ 0.127` for
+`α=0.4` and `≈ 0.255` for `α=0.8`), and each `Measure` is followed by
+`ReadoutErr(0.01, 0.02)`.
+
 ## Recursive wrapper behavior (`Block`, `GateCall`, `Parallel`, `Repeat`, `IfStatement`)
+
+Block names are randomly generated and may differ across runs; the
+`decompose_step` output is what we actually verify here.
+
+### Block
+
 ```jldoctests
-julia> model = NoiseModel([OperationInstanceNoise(GateH(), AmplitudeDamping(0.01))])
-NoiseModel(AbstractNoiseRule[OperationInstanceNoise(GateH(), AmplitudeDamping(0.01), false, false)], "")
-julia> c_block = Circuit()
-empty circuit
+julia> model = NoiseModel([OperationInstanceNoise(GateH(), AmplitudeDamping(0.01))]);
 
-julia> push!(c_block, Block(1, 0, 0, [Instruction(GateH(), (1,), (), ())]), 1)
-1-qubit circuit with 1 instruction:
-└── block 2y91k9t1raigi @ q[1]
+julia> c_block = push!(Circuit(), Block(1, 0, 0, [Instruction(GateH(), (1,), (), ())]), 1);
 
-julia> n_block = apply_noise_model(c_block, model)
-1-qubit circuit with 1 instruction:
-└── block 1gbh70af4yogd @ q[1]
-
-julia> n_block|>decompose_step
+julia> apply_noise_model(c_block, model) |> decompose_step
 1-qubit circuit with 2 instructions:
 ├── H @ q[1]
 └── AmplitudeDamping(0.01) @ q[1]
+```
 
+### GateCall
 
-# GateCall
-julia> decl = GateDecl(:local_h, (), [Instruction(GateH(), (1,), (), ())])
-gate local_h() =
-└── H @ q[1]
+```jldoctests
+julia> model = NoiseModel([OperationInstanceNoise(GateH(), AmplitudeDamping(0.01))]);
 
-julia> c_gatecall = Circuit()
-empty circuit
+julia> decl = GateDecl(:local_h, (), [Instruction(GateH(), (1,), (), ())]);
 
-julia> push!(c_gatecall, GateCall(decl), 1)
-1-qubit circuit with 1 instruction:
-└── local_h @ q[1]
+julia> c_gatecall = push!(Circuit(), GateCall(decl), 1);
 
-julia> n_gatecall = apply_noise_model(c_gatecall, model)
-1-qubit circuit with 1 instruction:
-└── block 32mk75z1nxr64 @ q[1]
-
-julia> n_gatecall|>decompose_step
+julia> apply_noise_model(c_gatecall, model) |> decompose_step
 1-qubit circuit with 2 instructions:
 ├── H @ q[1]
 └── AmplitudeDamping(0.01) @ q[1]
+```
 
-# Parallel
-julia> c_parallel = Circuit()
-empty circuit
+### Parallel
 
-julia> push!(c_parallel, Parallel(2, GateH()), 1, 2)
-2-qubit circuit with 1 instruction:
-└── ⨷ ² H @ q[1], q[2]
+```jldoctests
+julia> model = NoiseModel([OperationInstanceNoise(GateH(), AmplitudeDamping(0.01))]);
 
-julia> n_parallel = apply_noise_model(c_parallel, model)
-2-qubit circuit with 1 instruction:
-└── block 2ee4nt7tqqx9l @ q[1:2]
+julia> c_parallel = push!(Circuit(), Parallel(2, GateH()), 1, 2);
 
-julia> n_parallel|>decompose_step
+julia> apply_noise_model(c_parallel, model) |> decompose_step
 2-qubit circuit with 4 instructions:
 ├── H @ q[1]
 ├── AmplitudeDamping(0.01) @ q[1]
 ├── H @ q[2]
 └── AmplitudeDamping(0.01) @ q[2]
+```
 
-# Repeat
-julia> c_repeat = Circuit()
-empty circuit
+### Repeat
 
-julia> push!(c_repeat, Repeat(2, GateH()), 1)
-1-qubit circuit with 1 instruction:
-└── ∏² H @ q[1]
+```jldoctests
+julia> model = NoiseModel([OperationInstanceNoise(GateH(), AmplitudeDamping(0.01))]);
 
-julia> n_repeat = apply_noise_model(c_repeat, model)
-1-qubit circuit with 1 instruction:
-└── block 33yafv6sg3yxg @ q[1]
+julia> c_repeat = push!(Circuit(), Repeat(2, GateH()), 1);
 
-julia> n_repeat|>decompose_step
+julia> apply_noise_model(c_repeat, model) |> decompose_step
 1-qubit circuit with 4 instructions:
 ├── H @ q[1]
 ├── AmplitudeDamping(0.01) @ q[1]
 ├── H @ q[1]
 └── AmplitudeDamping(0.01) @ q[1]
+```
 
-# IfStatement
-julia> c_if = Circuit()
-empty circuit
+### IfStatement
 
-julia> push!(c_if, IfStatement(GateH(), BitString("1")), 1, 1)
-1-qubit, 1-bit circuit with 1 instruction:
-└── IF(c==1) H @ q[1], condition[1]
+```jldoctests
+julia> model = NoiseModel([OperationInstanceNoise(GateH(), AmplitudeDamping(0.01))]);
 
-julia> n_if = apply_noise_model(c_if, model)
-1-qubit, 1-bit circuit with 1 instruction:
-└── IF(c==1) block 2mvmsxvfbxhb2 @ q[1], condition[1]
+julia> c_if = push!(Circuit(), IfStatement(GateH(), BitString("1")), 1, 1);
 
-julia> n_if|>decompose_step
+julia> apply_noise_model(c_if, model) |> decompose_step
 1-qubit, 1-bit circuit with 2 instructions:
 ├── IF(c==1) H @ q[1], condition[1]
 └── IF(c==1) AmplitudeDamping(0.01) @ q[1], condition[1]
@@ -1211,19 +1191,31 @@ This function simplifies the process of adding different types of readout noise.
 - If `qubits` is provided and `exact` is `true`, an `ExactQubitReadoutNoise` rule is added
 
 # Examples
+Add a global readout-noise rule:
+
 ```jldoctests
-julia> model = NoiseModel()
-NoiseModel(AbstractNoiseRule[], "")
+julia> model = NoiseModel();
+
 julia> add_readout_noise!(model, ReadoutErr(0.01, 0.02))
 NoiseModel(AbstractNoiseRule[GlobalReadoutNoise(ReadoutErr(0.01, 0.02))], "")
+```
 
-# Readout noise on a specific set of qubits
+Add readout noise on a specific set of qubits:
+
+```jldoctests
+julia> model = NoiseModel();
+
 julia> add_readout_noise!(model, ReadoutErr(0.03, 0.04), qubits=[1, 3])
-NoiseModel(AbstractNoiseRule[SetQubitReadoutNoise(Set([3, 1]), ReadoutErr(0.03, 0.04)), GlobalReadoutNoise(ReadoutErr(0.01, 0.02))], "")
+NoiseModel(AbstractNoiseRule[SetQubitReadoutNoise(Set([3, 1]), ReadoutErr(0.03, 0.04))], "")
+```
 
-# Readout noise for an exact qubit order
+Add readout noise for an exact qubit order:
+
+```jldoctests
+julia> model = NoiseModel();
+
 julia> add_readout_noise!(model, ReadoutErr(0.05, 0.06), qubits=[2, 1], exact=true)
-NoiseModel(AbstractNoiseRule[ExactQubitReadoutNoise([2, 1], ReadoutErr(0.05, 0.06)), SetQubitReadoutNoise(Set([3, 1]), ReadoutErr(0.03, 0.04)), GlobalReadoutNoise(ReadoutErr(0.01, 0.02))], "")
+NoiseModel(AbstractNoiseRule[ExactQubitReadoutNoise([2, 1], ReadoutErr(0.05, 0.06))], "")
 ```
 """
 function add_readout_noise!(model::NoiseModel, noise::ReadoutErr;
@@ -1268,20 +1260,19 @@ NoiseModel(AbstractNoiseRule[OperationInstanceNoise(GateRX(π/2), AmplitudeDampi
 ```
 
 ## Symbolic operation matching with angle-dependent noise
-```jldoctests
-julia> @variables θ
-1-element Vector{Symbolics.Num}:
- θ
-julia> model = NoiseModel()
-NoiseModel(AbstractNoiseRule[], "")
 
-# Apply noise to all RX operations, with noise strength proportional to angle
+Apply noise to all `RX` operations with noise strength proportional to
+the angle. At evaluation time, e.g. `GateRX(0.4)` is followed by
+`Depolarizing1(0.4 / π) ≈ Depolarizing1(0.127)`, and `GateRX(1.2)` by
+`Depolarizing1(1.2 / π) ≈ Depolarizing1(0.382)`.
+
+```jldoctests
+julia> @variables θ;
+
+julia> model = NoiseModel();
 
 julia> add_operation_noise!(model, GateRX(θ), Depolarizing1(θ / π))
 NoiseModel(AbstractNoiseRule[OperationInstanceNoise(GateRX(θ), Depolarizing(1, θ / π), false, false)], "")
-
-# When GateRX(0.4) is encountered, Depolarizing1(0.4 / π) ≈ Depolarizing1(0.127) is applied
-# When GateRX(1.2) is encountered, Depolarizing1(1.2 / π) ≈ Depolarizing1(0.382) is applied
 ```
 
 ## Symbolic multi-parameter operations
@@ -1299,19 +1290,24 @@ NoiseModel(AbstractNoiseRule[OperationInstanceNoise(GateU(α, β, 0, 0π), Depol
 ```
 
 ## Qubit-specific symbolic noise
+
+Match the operation when applied to *any* of the listed qubits:
+
 ```jldoctests
-julia> @variables θ
-1-element Vector{Symbolics.Num}:
- θ
-julia> model = NoiseModel()
-NoiseModel(AbstractNoiseRule[], "")
+julia> @variables θ;
+
+julia> model = NoiseModel();
 
 julia> add_operation_noise!(model, GateRX(θ), Depolarizing1(θ / π), qubits=[1, 2, 3], exact=false)
 NoiseModel(AbstractNoiseRule[SetOperationInstanceQubitNoise(GateRX(θ), Set([2, 3, 1]), Depolarizing(1, θ / π), false, false)], "")
+```
 
-# Only on exact qubit order
-julia> model = NoiseModel()
-NoiseModel(AbstractNoiseRule[], "")
+Match only on an exact qubit order:
+
+```jldoctests
+julia> @variables θ;
+
+julia> model = NoiseModel();
 
 julia> add_operation_noise!(model, GateRX(θ), Depolarizing1(θ / π), qubits=[1], exact=true)
 NoiseModel(AbstractNoiseRule[ExactOperationInstanceQubitNoise(GateRX(θ), [1], Depolarizing(1, θ / π), false, false)], "")

@@ -55,23 +55,24 @@ register:
                  repo="git@gitlab.qperfect.io:development/mimiq/MimiqCircuitsBase.jl.git")
       '
 
-pages:
-  stage: deploy
-  image: julia:1
+# Build the docs on devel and merge requests so a broken build fails
+# the pipeline, but don't deploy anywhere — only `main` publishes to
+# GitLab Pages (see the `pages` job below).
+docs:
+  stage: test
   <<: *setup_julia
   rules:
-    - if: $CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/
-      variables:
-        DOCS_VERSION: $CI_COMMIT_TAG
-    - if: $CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+-private$/
-      variables:
-        DOCS_VERSION: $CI_COMMIT_TAG
-    - if: $CI_COMMIT_BRANCH == "main"
-      variables:
-        DOCS_VERSION: "dev"
     - if: $CI_COMMIT_BRANCH == "devel"
-      variables:
-        DOCS_VERSION: "devel"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  script:
+    - julia --project=docs -e 'import Pkg; Pkg.develop(Pkg.PackageSpec(path=pwd())); Pkg.instantiate()'
+    - julia --project=docs docs/make.jl
+
+pages:
+  stage: deploy
+  <<: *setup_julia
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
   script:
     - julia --project=docs -e 'import Pkg; Pkg.develop(Pkg.PackageSpec(path=pwd())); Pkg.instantiate()'
     - julia --project=docs docs/make.jl
@@ -81,9 +82,7 @@ pages:
     paths:
       - public
   publish: public
-  pages:
-    path_prefix: $DOCS_VERSION
   environment:
-    name: pages/$DOCS_VERSION
-    url: $CI_PAGES_URL/$DOCS_VERSION
+    name: pages
+    url: $CI_PAGES_URL
   resource_group: pages-deploy

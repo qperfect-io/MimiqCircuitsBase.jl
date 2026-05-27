@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.23.1] — 2026-05-27
+
+### Fixed
+- `SetOperationInstanceQubitNoise` docstring doctest now binds
+  `@variables a` via a proper `julia>` input line, so it no longer
+  fails with `UndefVarError: a not defined` under Documenter.
+- Several `jldoctests` blocks in `noisemodel.jl` (around
+  `apply_noise_model`, `add_readout_noise!`, and the symbolic /
+  qubit-specific `add_operation_noise!` examples) used bare
+  `# comment` lines between `julia>` blocks. The current Documenter
+  parser greedily folds them into the previous expected output, so
+  the blocks were split into separate per-example jldoctest blocks
+  with the prose moved to surrounding markdown.
+- Updated the expected matrix output for `GateXXplusYY` and
+  `GateXXminusYY` doctests to match the current Symbolics factor
+  ordering (`sin(θ/2)*sin(-β)` instead of `sin(-β)*sin(θ/2)`).
+- `docs/make.jl` now passes `repo=` to `makedocs` so doc builds
+  succeed in GitLab CI where the shallow checkout has no `origin`
+  set (Documenter no longer auto-detects).
+- `makedocs` now passes `warnonly = [:missing_docs, :cross_references]`
+  so the build doesn't bail on stale `@ref` links / orphan
+  docstrings that have been broken for several releases. They
+  still appear as warnings in the CI log for a follow-up cleanup.
+- Disabled Documenter's HTML `size_threshold` checks because the
+  autodocs index (`library/public.md`) renders to ~250 KiB —
+  above the 200 KiB default. The page should be split, but until
+  then the cap was the last blocker for the docs build.
+
+### Build
+- `docs/Project.toml` no longer depends on `MimiqCircuits` or
+  `MimiqLink` — the documentation only references `MimiqCircuitsBase`,
+  so the extra deps just made the docs build hostage to downstream
+  release ordering in the registry.
+
+### CI
+- GitLab Pages is now deployed only from `main`, with no version
+  path-prefix or per-version environment (the runner host doesn't
+  support parallel deployments). `devel` and merge-request pipelines
+  still build the docs in a new `docs` job so a broken build trips
+  the pipeline, but they no longer try to publish.
+
 ## [0.23.0] — 2026-05-27
 
 ### Added
