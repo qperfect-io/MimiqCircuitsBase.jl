@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo.svg" alt="MIMIQ" width="380">
+</p>
+
 # MimiqCircuitsBase.jl
 
 [![Build Status](https://github.com/qperfect-io/MimiqCircuitsBase.jl/workflows/CI/badge.svg)](https://github.com/qperfect-io/MimiqCircuitsBase.jl/actions)

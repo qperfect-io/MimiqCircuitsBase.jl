@@ -89,6 +89,49 @@ using Graphs
         @test outneighbors(c, 4) == [5]
     end
 
+    @testset "Amplitude depends on all qubits" begin
+        # Amplitude reads ⟨bs|ψ⟩ over the whole register without declaring any
+        # qubit, so it depends on the last gate of every qubit and precedes any
+        # later gate — a full-register barrier.
+        c = Circuit()
+        push!(c, GateH(), 1)                          # 1
+        push!(c, GateH(), 2)                          # 2
+        push!(c, Amplitude(BitString(Bool[0, 0])), 1) # 3 — reads qubits 1, 2
+        push!(c, GateX(), 2)                          # 4 — after the read
+
+        @test sort(inneighbors(c, 3)) == [1, 2]
+        @test 3 in inneighbors(c, 4)
+
+        for insts in (collect(traverse_by_bfs(c)), collect(traverse_by_dfs(c)))
+            pos(T) = findfirst(x -> getoperation(x) isa T, insts)
+            amp = findfirst(x -> getoperation(x) isa Amplitude, insts)
+            @test pos(GateH) < amp
+            @test amp < findlast(x -> getoperation(x) isa GateX, insts)
+        end
+    end
+
+    @testset "Global observables depend on all qubits" begin
+        # BondDim / SchmidtRank / VonNeumannEntropy declare only the bond they
+        # probe, but the entanglement across that cut is set by gates on either
+        # side, so they depend on every qubit and act as full-register barriers.
+        for makeop in (BondDim, SchmidtRank, VonNeumannEntropy)
+            c = Circuit()
+            push!(c, GateH(), 1)        # 1
+            push!(c, GateH(), 2)        # 2
+            push!(c, makeop(), 1, 1)    # 3 — probes bond at qubit 1, reads 1, 2
+            push!(c, GateX(), 2)        # 4 — after the read
+
+            @test sort(inneighbors(c, 3)) == [1, 2]
+            @test 3 in inneighbors(c, 4)
+
+            for insts in (collect(traverse_by_bfs(c)), collect(traverse_by_dfs(c)))
+                obs = findfirst(x -> getoperation(x) isa makeop, insts)
+                @test findfirst(x -> getoperation(x) isa GateH, insts) < obs
+                @test obs < findlast(x -> getoperation(x) isa GateX, insts)
+            end
+        end
+    end
+
     @testset "Traversal" begin
         c = Circuit()
         push!(c, GateH(), 1)

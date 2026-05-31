@@ -529,8 +529,20 @@ It simply serves as a middle man/type providing the method to build the DAG from
 abstract type AbstractDAGCircuit{T} <: AbstractCircuit{T} end
 
 
+# Qubits an instruction depends on for DAG ordering. The global state
+# observables read a property set by the whole circuit history rather than the
+# wires they declare: `Amplitude` reads ⟨bs|ψ⟩ over the entire register and
+# declares no qubit, while `BondDim`, `SchmidtRank`, and `VonNeumannEntropy`
+# declare only the bond they probe but depend on gates on either side of the
+# cut. Each is treated as acting on every qubit, so it follows all earlier
+# gates and precedes all later ones — a full-register synchronisation point.
+_dag_qubits(inst, nq) =
+    getoperation(inst) isa Union{Amplitude,BondDim,SchmidtRank,VonNeumannEntropy} ?
+    (1:nq) : getqubits(inst)
+
 function _build_graph(circuit::AbstractDAGCircuit{T}) where {T}
     n = length(circuit)
+    nq = numqubits(circuit)
     g = SimpleDiGraph(n)
 
     last_op_q = Dict{Int,Int}()
@@ -539,7 +551,7 @@ function _build_graph(circuit::AbstractDAGCircuit{T}) where {T}
 
     for (i, inst) in enumerate(circuit)
         # Check dependencies for qubits
-        for q in getqubits(inst)
+        for q in _dag_qubits(inst, nq)
             if haskey(last_op_q, q)
                 prev = last_op_q[q]
                 add_edge!(g, prev, i)

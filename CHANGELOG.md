@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.23.3] — 2026-06-01
+
+### Fixed
+- `Circuit`'s dependency graph now treats `BondDim`, `SchmidtRank`, and
+  `VonNeumannEntropy` as depending on every qubit, so `traverse_by_bfs` /
+  `traverse_by_dfs` keep them after the gates that affect the bond they probe.
+  Like `Amplitude`, their value is set by the whole circuit history, so a
+  topological traversal could previously float them ahead of those gates; they
+  now act as full-register synchronisation points.
+
+## [0.23.2] — 2026-06-01
+
+### Fixed
+- `Circuit`'s dependency graph now treats `Amplitude` as depending on every
+  qubit, so `traverse_by_bfs` / `traverse_by_dfs` keep it after the gates whose
+  state it reads. It reads `⟨bs|ψ⟩` over the whole register without declaring
+  any qubit, so a topological traversal could previously float it ahead of
+  those gates; it now acts as a full-register synchronisation point.
+
+### CI
+- The GitLab `register` job now fires only on `-private` tags. The
+  bare public `vX.Y.Z` tag is registered into QPerfectRegistry by
+  the GitHub Actions workflow on the public remote; the previous
+  rule attempted both and could double-register.
+
 ## [0.23.1] — 2026-05-27
 
 ### Fixed
