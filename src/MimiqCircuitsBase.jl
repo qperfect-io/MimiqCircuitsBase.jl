@@ -390,6 +390,7 @@ include("operations/operators/sigmas.jl")
 
 export Kraus
 export hasloss
+export haslossybranch
 export lossoperators
 export survivaloperators
 export losseffect
@@ -445,6 +446,8 @@ export QubitCoordinates
 export ShiftCoordinates
 export ObservableInclude
 export Tick
+export Lost
+export Reloaded
 export getnotes
 include("operations/annotations.jl")
 
@@ -470,22 +473,18 @@ export RPauli
 include("operations/generalized/rpauli.jl")
 
 # loss channels
-export QubitLoss
-include("operations/losschannels/lost.jl")
-
-export QubitReload
-include("operations/losschannels/reload.jl")
-
-export LossErr
-include("operations/losschannels/losserr.jl")
-
-export CheckLoss
-include("operations/losschannels/checkloss.jl")
-
-export MeasureCheckLoss
-include("operations/losschannels/measurecheckloss.jl")
+export Loss
+export Reload
+export Check
+export MeasureCheck
+include("operations/losschannels/loss.jl")
+include("operations/losschannels/deprecated.jl")
 
 export sample_losses
+export lower_losses
+export resolve_losses
+export sample_loss_scenario
+export lossmodel_rewrite
 
 include("dsl.jl")
 
@@ -533,7 +532,7 @@ export @circuit, @block, @on, @gatedecl
 # include("circuit_macro.jl") # consolidated in dsl.jl
 
 
-export evaluate
+export evaluate, evaluate!
 @reexport using Symbolics: @variables, inverse, variable
 include("evaluate.jl")
 
@@ -541,6 +540,9 @@ export issymbolic
 include("symbolics.jl")
 
 include("instruction_extra.jl")
+
+export fuse
+include("fusion.jl")
 
 export GATES
 export OPERATIONS

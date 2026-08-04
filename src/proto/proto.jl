@@ -25,7 +25,7 @@ client/executor incompatibility. Must match
 `mimiqcircuits.WIRE_FORMAT_VERSION` on the Python side. See
 `WIRE_FORMAT.md` for the surface and bump rules.
 """
-const WIRE_FORMAT_VERSION = v"1.0.0"
+const WIRE_FORMAT_VERSION = v"1.1.0"
 
 """
     saveproto(fname, c::Circuit)
@@ -60,7 +60,12 @@ for (T, PT) in [
 ]
     eval(quote
         function saveproto(io::IO, c::$T)
-            iobuffer = IOBuffer()
+            # PipeBuffer, not IOBuffer. A seekable IOBuffer makes ProtoBuf
+            # back-patch each message length via truncate, which reallocates
+            # and copies the whole buffer per sub-message (IOBuffer is
+            # Memory-backed on Julia 1.11+), giving O(ngates^2) serialization.
+            # PipeBuffer avoids that and stays linear.
+            iobuffer = PipeBuffer()
             e = ProtoEncoder(iobuffer)
             encode(e, toproto(c))
             write(io, take!(iobuffer))

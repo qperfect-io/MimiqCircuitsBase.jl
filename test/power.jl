@@ -24,4 +24,19 @@
 
         @test matrix(g)^pwr ≈ matrix(power(g, pwr))
     end
+
+    # Diagonal GateU (θ = 0): the phase lives in λ, which used to be dropped when
+    # sin(θ/2) ≈ 0, so power returned the identity. Regression for the Shor
+    # modular-arithmetic decomposition bug (√ of GateU(0,0,π,0) must be
+    # GateU(0,0,π/2,0), not the identity).
+    for g in (
+        GateU(0, 0, π, 0),
+        GateU(0, 0, π / 2, 0),
+        GateU(0, 0, 2π / 3, 0),
+        GateU(0, π / 5, π / 7, 0),
+    )
+        for pwr in (1 // 2, 1 // 3, -1 // 2, 2, 0.37)
+            @test matrix(g)^pwr ≈ matrix(power(g, pwr))
+        end
+    end
 end

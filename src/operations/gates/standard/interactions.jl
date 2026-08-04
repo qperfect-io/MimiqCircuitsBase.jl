@@ -429,10 +429,10 @@ XXplusYY(θ, β)
 
 julia> matrix(GateXXplusYY(θ, β))
 4×4 Matrix{Complex{Symbolics.Num}}:
- 1                                         0    …  0
- 0                                cos(θ / 2)       0
- 0  sin(θ / 2)*sin(-β) - im*sin(θ / 2)*cos(-β)     0
- 0                                         0       1
+ 1                              0               …  0
+ 0                     cos(θ / 2)                  0
+ 0  sin(-β)*sin(θ / 2) - im*cos(-β)*sin(θ / 2)     0
+ 0                              0                  1
 
 julia> c = push!(Circuit(), GateXXplusYY(θ, β), 1, 2)
 2-qubit circuit with 1 instruction:
@@ -545,10 +545,10 @@ XXminusYY(θ, β)
 
 julia> matrix(GateXXminusYY(θ, β))
 4×4 Matrix{Complex{Symbolics.Num}}:
-          cos(θ / 2)                       …  sin(θ / 2)*sin(-β) - im*sin(θ / 2)*cos(-β)
-                   0                                                                 0
-                   0                                                                 0
- sin(β)*sin(θ / 2) - im*sin(θ / 2)*cos(β)                                   cos(θ / 2)
+          cos(θ / 2)                       …  sin(-β)*sin(θ / 2) - im*cos(-β)*sin(θ / 2)
+                   0                                                      0
+                   0                                                      0
+ sin(θ / 2)*sin(β) - im*cos(β)*sin(θ / 2)                        cos(θ / 2)
 
 julia> c = push!(Circuit(), GateXXminusYY(θ, β), 1, 2)
 2-qubit circuit with 1 instruction:

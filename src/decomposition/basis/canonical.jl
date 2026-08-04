@@ -68,11 +68,10 @@ isterminal(::CanonicalBasis, ::Delay) = true
 
 # Noise channels
 isterminal(::CanonicalBasis, ::AbstractKrausChannel) = true
-isterminal(::CanonicalBasis, ::QubitLoss) = true
-isterminal(::CanonicalBasis, ::QubitReload) = true
-isterminal(::CanonicalBasis, ::LossErr) = true
-isterminal(::CanonicalBasis, ::CheckLoss) = true
-isterminal(::CanonicalBasis, ::MeasureCheckLoss) = true
+isterminal(::CanonicalBasis, ::Loss) = true
+isterminal(::CanonicalBasis, ::Reload) = true
+isterminal(::CanonicalBasis, ::Check) = true
+isterminal(::CanonicalBasis, ::MeasureCheck) = true
 
 # IfStatement: terminal if inner operation is terminal
 isterminal(::CanonicalBasis, op::IfStatement) = isterminal(CanonicalBasis(), getoperation(op))

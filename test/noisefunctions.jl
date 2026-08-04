@@ -101,6 +101,36 @@ push!(KRAUSCHANNELS, Reset())
 end
 
 
+@testset "Sample Mixed Unitaries with loss" begin
+    # Second branch (probability 1) loses local qubit 1; mapped to qubit 5.
+    much = MixedUnitary([0.0, 1.0], [GateID(), GateX()]; lossy=[Int[], [1]])
+    @test hasloss(much)
+
+    c = push!(Circuit(), much, 5)
+    s = sample_mixedunitaries(c; rng=MersenneTwister(0))
+    @test getoperation(s[1]) == GateX()
+    @test getqubits(s[1]) == (5,)
+    @test getoperation(s[2]) == Loss(1.0)
+    @test getqubits(s[2]) == (5,)
+
+    # A lossy identity branch still emits the loss even with ids=false.
+    much0 = MixedUnitary([1.0, 0.0], [GateID(), GateX()]; lossy=[[1], Int[]])
+    s0 = sample_mixedunitaries(push!(Circuit(), much0, 3); rng=MersenneTwister(0))
+    @test length(s0) == 1
+    @test getoperation(s0[1]) == Loss(1.0)
+    @test getqubits(s0[1]) == (3,)
+
+    # Two-qubit branch: local lossy qubit 2 maps to the second target.
+    much2 = MixedUnitary([1.0], [GateCX()]; lossy=[[2]])
+    s2 = sample_mixedunitaries(push!(Circuit(), much2, 3, 5); rng=MersenneTwister(0))
+    @test getoperation(s2[1]) == GateCX()
+    @test getoperation(s2[2]) == Loss(1.0)
+    @test getqubits(s2[2]) == (5,)
+
+    # Lossless channels keep behaving as before.
+    @test !hasloss(MixedUnitary([0.9, 0.1], [GateID(), GateX()]))
+end
+
 @testset "Add noise functions" begin
     rng = MersenneTwister(42)
 

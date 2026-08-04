@@ -69,6 +69,15 @@ issymbolic(n::Number) = false
 
 issymbolic(::AbstractString) = false
 
+# Non-numeric operation parameters (e.g. the `IfStatement` condition) are
+# never symbolic. Without this, `issymbolic` of a circuit containing an
+# `IfStatement` throws, since `getparams` yields the condition `BitString`.
+issymbolic(::BitString) = false
+
+# Some operation parameters are collections (e.g. a `Kraus` channel's list of
+# operators); the operation is symbolic if any element is.
+issymbolic(v::AbstractVector) = any(issymbolic, v)
+
 issymbolic(op::Operation) = any(issymbolic, getparams(op))
 
 issymbolic(inst::Instruction) = issymbolic(getoperation(inst))

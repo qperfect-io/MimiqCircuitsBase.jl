@@ -489,7 +489,7 @@ function Base.show(io::IO, m::MIME"text/plain", c::AbstractCircuit{T}) where {T}
     nothing
 end
 
-Base.copy(c::AbstractCircuit{T}) where {T} = Circuit(copy(instructions(c)), numqubits(c), numbits(c), numzvars(c), is_circuit_cache_valid(c))
+Base.copy(c::AbstractCircuit{T}) where {T} = Circuit(copy(instructions(c)))
 
 function Base.:(==)(c1::AbstractCircuit{T}, c2::AbstractCircuit{T}) where {T}
     length(c1) == length(c2) || return false

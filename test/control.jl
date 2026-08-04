@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 using Test
+using LinearAlgebra: I, opnorm
 
 @testset "Constructor" begin
     @test_throws ArgumentError Control(0, GateX())
@@ -38,5 +39,52 @@ using Test
             @test matrix(mygate1) == matrix(mygate2)
         end
     end
+end
+
+@testset "Decomposition matches matrix" begin
+    # A multi-controlled multi-target gate decomposes by decomposing the inner
+    # gate first and re-wrapping each resulting single-target gate as
+    # Control(N, ·), which recurses through power(GateU, 1/2). Diagonal inner
+    # gates (θ = 0) used to lose their phase there, so the decomposition of the
+    # whole operation no longer matched its matrix. This is the operation shape
+    # that silently miscomputed Shor's modular arithmetic.
+    tomat(M) = ComplexF64.(MimiqCircuitsBase.unwrapvalue.(M))
+
+    function decomposed_unitary(op)
+        n = numqubits(op)
+        c = Circuit()
+        push!(c, op, (1:n)...)
+        return tomat(matrix(decompose(c)))
+    end
+
+    # Reference unitary for Control(N, gate): identity except the bottom-right
+    # block (all controls set) which holds the gate's matrix.
+    function control_matrix(ncontrols, gate)
+        g = tomat(matrix(gate))
+        d = size(g, 1)
+        dim = 2^ncontrols * d
+        m = Matrix{ComplexF64}(I, dim, dim)
+        m[end-d+1:end, end-d+1:end] = g
+        return m
+    end
+
+    # A two-qubit gate built from diagonal phase gates (Draper-adder shape).
+    sub = Circuit()
+    push!(sub, GateP(π), 1)
+    push!(sub, GateP(π / 2), 2)
+    twop = GateDecl(:twop, (), sub)()
+
+    # Controls of a single-qubit diagonal GateU/GateP: matrix(op) is available.
+    for op in (Control(2, GateU(0, 0, π, 0)), Control(2, GateP(π)))
+        @test opnorm(tomat(matrix(op)) - decomposed_unitary(op)) < 1e-10
+    end
+
+    # Control of a multi-target GateCall: matrix(Control(·, GateCall)) is not
+    # defined, so compare the decomposition against the reference control matrix
+    # built from the (available) matrix of the wrapped gate. This is the exact
+    # operation shape (multi-control of a multi-target block of diagonal gates)
+    # that used to decompose to the identity on the target register.
+    op = Control(2, twop)
+    @test opnorm(control_matrix(2, twop) - decomposed_unitary(op)) < 1e-10
 end
 

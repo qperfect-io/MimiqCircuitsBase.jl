@@ -113,8 +113,10 @@ julia> show_mimiq_hierarchy()
 └── Operation
     ├── AbstractAnnotation
     │   ├── Detector
+    │   ├── Lost
     │   ├── ObservableInclude
     │   ├── QubitCoordinates
+    │   ├── Reloaded
     │   ├── ShiftCoordinates
     │   └── Tick
     ├── AbstractClassical
@@ -250,16 +252,15 @@ julia> show_mimiq_hierarchy()
     ├── Barrier
     ├── Block
     ├── BondDim
-    ├── CheckLoss
+    ├── Check
     ├── ExpectationValue
     ├── IfStatement
-    ├── LossErr
-    ├── MeasureCheckLoss
+    ├── Loss
+    ├── MeasureCheck
     ├── Multiply
     ├── Pow
-    ├── QubitLoss
-    ├── QubitReload
     ├── ReadoutErr
+    ├── Reload
     ├── Repeat
     ├── SchmidtRank
     ├── VonNeumannEntropy

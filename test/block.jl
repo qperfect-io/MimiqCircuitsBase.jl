@@ -168,4 +168,21 @@ using MimiqCircuitsBase
         @test getoperation(restored_block[1]) isa GateH
         @test getoperation(restored_block[2]) isa Block
     end
+
+    @testset "Evaluate" begin
+        @variables x
+        b = Block(1, 0, 0)
+        push!(b, GateRX(x), 1)
+        c = Circuit()
+        push!(c, b, 1)
+        @test issymbolic(c)
+
+        c2 = evaluate(c, Dict(x => 0.5))
+        @test !issymbolic(c2)
+        # Substitution reaches the gate inside the block.
+        inner = getoperation(c2[1])
+        @test inner isa Block
+        @test !issymbolic(inner)
+        @test getoperation(inner[1]) == GateRX(0.5)
+    end
 end

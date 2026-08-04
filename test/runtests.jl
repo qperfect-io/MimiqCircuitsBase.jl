@@ -64,6 +64,7 @@ filelist = [
     "test_decomposition_bases.jl",
     "test_parametric_wrap.jl",
     "remove_swaps.jl",
+    "fusion.jl",
 ]
 
 @testset "MimiqCircuitsBase.jl" begin

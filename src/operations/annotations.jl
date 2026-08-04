@@ -282,3 +282,59 @@ end
 function Base.show(io::IO, ::MIME"text/plain", a::Tick)
     show(io, a)
 end
+
+@doc raw"""
+    Lost()
+
+A passive marker recording that a qubit became lost at this point.
+
+`Lost` carries no effect on execution. It is emitted by [`lower_losses`](@ref)
+so the resolved circuit still shows where losses landed, and it may be added by
+hand for documentation.
+
+See also [`Reloaded`](@ref), [`Loss`](@ref).
+
+## Examples
+
+```jldoctests
+julia> push!(Circuit(), Lost(), 1)
+1-qubit circuit with 1 instruction:
+└── Lost @ q[1]
+```
+"""
+struct Lost <: AbstractAnnotation{1,0,0} end
+
+opname(::Type{<:Lost}) = "Lost"
+
+getnotes(::Lost) = []
+
+Base.show(io::IO, ::Lost) = print(io, opname(Lost))
+Base.show(io::IO, ::MIME"text/plain", ::Lost) = print(io, opname(Lost))
+
+@doc raw"""
+    Reloaded()
+
+A passive marker recording that a qubit was reloaded at this point.
+
+`Reloaded` carries no effect on execution. It is emitted by
+[`lower_losses`](@ref) next to the [`Reset`](@ref) that performs the reload,
+and may be added by hand for documentation.
+
+See also [`Lost`](@ref), [`Reload`](@ref).
+
+## Examples
+
+```jldoctests
+julia> push!(Circuit(), Reloaded(), 1)
+1-qubit circuit with 1 instruction:
+└── Reloaded @ q[1]
+```
+"""
+struct Reloaded <: AbstractAnnotation{1,0,0} end
+
+opname(::Type{<:Reloaded}) = "Reloaded"
+
+getnotes(::Reloaded) = []
+
+Base.show(io::IO, ::Reloaded) = print(io, opname(Reloaded))
+Base.show(io::IO, ::MIME"text/plain", ::Reloaded) = print(io, opname(Reloaded))

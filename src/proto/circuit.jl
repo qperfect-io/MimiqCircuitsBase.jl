@@ -493,13 +493,20 @@ function fromproto(g::circuit_pb.DepolarizingChannel)
     return Depolarizing(g.numqubits, fromproto(g.probability))
 end
 
+# Bitmask helpers: qubit q (1-based) ↔ bit q-1.
+_lossy_to_mask(l) = reduce(|, (Int64(1) << (q - 1) for q in l); init=zero(Int64))
+_mask_to_lossy(m) = [q for q in 1:(8 * sizeof(m)) if !iszero(m & (Int64(1) << (q - 1)))]
+
 function toproto(g::MixedUnitary{N}, declcache=nothing) where {N}
-    rgs = map(op -> toproto(op, declcache), krausoperators(g))
-    return circuit_pb.MixedUnitaryChannel(rgs)
+    rgs = map((p, U) -> toproto(RescaledGate(U, sqrt(p)), declcache), g.p, g.U)
+    masks = haslossybranch(g) ? Int64[_lossy_to_mask(l) for l in g.lossy] : Int64[]
+    return circuit_pb.MixedUnitaryChannel(rgs, masks)
 end
 
 function fromproto(g::circuit_pb.MixedUnitaryChannel, declcache=nothing)
-    return MixedUnitary(map(x -> fromproto(x, declcache), g.operators))
+    mu = MixedUnitary(map(x -> fromproto(x, declcache), g.operators))
+    isempty(g.lossy_masks) && return mu
+    return MixedUnitary(mu.p, mu.U; lossy=[_mask_to_lossy(m) for m in g.lossy_masks])
 end
 
 function toproto(g::PauliNoise{N}) where {N}
@@ -531,10 +538,9 @@ const OPERATIONMAP = Bijection(Dict(
     Pow => circuit_pb.OperationType.Pow,
     SetBit0 => circuit_pb.OperationType.SetBit0,
     SetBit1 => circuit_pb.OperationType.SetBit1,
-    QubitLoss => circuit_pb.OperationType.QubitLoss,
-    QubitReload => circuit_pb.OperationType.QubitReload,
-    CheckLoss => circuit_pb.OperationType.CheckLoss,
-    MeasureCheckLoss => circuit_pb.OperationType.MeasureCheckLoss,
+    Reload => circuit_pb.OperationType.Reload,
+    Check => circuit_pb.OperationType.Check,
+    MeasureCheck => circuit_pb.OperationType.MeasureCheck,
 ))
 
 const GENERALIZEDOPERATIONMAP = Bijection(Dict(
@@ -574,6 +580,8 @@ function toproto(g::T) where {T<:Operation}
 end
 
 function fromproto(g::circuit_pb.SimpleOperation)
+    # Legacy: pre-redesign `QubitLoss` (certain loss) folded into `Loss`.
+    g.mtype == circuit_pb.OperationType.QubitLoss && return Loss()
     T = get(inv(OPERATIONMAP), g.mtype, nothing)
     isnothing(T) && error(lazy"Unsupported ProtoBuf SimpleOperation type $(g.mtype).")
     params = map(fromproto, g.parameters)
@@ -642,6 +650,8 @@ const ANNOTATIONMAP = Bijection(Dict(
     QubitCoordinates => circuit_pb.AnnotationType.QubitCoordinates,
     ShiftCoordinates => circuit_pb.AnnotationType.ShiftCoordinates,
     Tick => circuit_pb.AnnotationType.Tick,
+    Lost => circuit_pb.AnnotationType.Lost,
+    Reloaded => circuit_pb.AnnotationType.Reloaded,
 ))
 
 const GENERALIZEDANNOTATIONMAP = Bijection(Dict(
@@ -678,9 +688,9 @@ function fromproto(g::circuit_pb.SimpleAnnotation)
     isnothing(T) && error(lazy"Unsupported ProtoBuf SimpleAnnotation type $(g.mtype).")
     notes = map(x -> fromproto(x), g.notes)
 
-    if T == Tick
+    if T in (Tick, Lost, Reloaded)
         if !isempty(notes)
-            @warn "Ignoring notes for Tick annotation."
+            @warn "Ignoring notes for $(T) annotation."
         end
 
         return T()
@@ -748,12 +758,12 @@ function fromproto(g::circuit_pb.ReadoutErr)
     return ReadoutErr(fromproto(g.p0), fromproto(g.p1))
 end
 
-function toproto(g::LossErr)
-    return circuit_pb.LossErr(toproto(g.p))
+function toproto(g::Loss)
+    return circuit_pb.Loss(toproto(g.p))
 end
 
-function fromproto(g::circuit_pb.LossErr)
-    return LossErr(fromproto(g.p))
+function fromproto(g::circuit_pb.Loss)
+    return Loss(fromproto(g.p))
 end
 
 function toproto(inst::Instruction, declcache=nothing)
@@ -848,6 +858,6 @@ function _build_oneof(gop, declcache=nothing)
     op isa circuit_pb.Block ? OneOf(:block, op) :
     op isa circuit_pb.GateDecl ? OneOf(:gatedecl, op) :
     op isa circuit_pb.ReadoutErr ? OneOf(:readouterr, op) :
-    op isa circuit_pb.LossErr ? OneOf(:losserr, op) :
+    op isa circuit_pb.Loss ? OneOf(:loss, op) :
     throw(ArgumentError(lazy"Cannot wrap a `$(typeof(op))` into a ProtoBuf `OneOf`."))
 end

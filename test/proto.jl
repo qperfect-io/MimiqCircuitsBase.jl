@@ -239,6 +239,13 @@ end
             unitary2 = [0 1; 1 0]
             mu = MixedUnitary([0.5, 0.5], [unitary1, unitary2])
             base_noise_channel_test(mu, temp_filename)
+
+            # Lossy branches must survive the round-trip.
+            mul = MixedUnitary([0.0, 1.0], [GateID(), GateX()]; lossy=[Int[], [1]])
+            base_noise_channel_test(mul, temp_filename)
+            c = push!(Circuit(), mul, 1)
+            saveproto(temp_filename, c)
+            @test getoperation(loadproto(temp_filename, Circuit)[1]).lossy == mul.lossy
         end
         @testset "ProjectiveNoise" begin
             mu = ProjectiveNoise("X")
@@ -277,6 +284,63 @@ end
                 op = optype(3.123)
                 operator_channel_test(optype(3.123))
             end
+        end
+    end
+end
+
+@testset "Loss Operations Protobuf Tests" begin
+    mktempdir() do tmpdir
+        temp_filename = joinpath(tmpdir, "loss.pb")
+
+        @testset "single operation roundtrip" begin
+            # each loss op and annotation survives encode→decode on its own
+            for (op, q, c) in [
+                (Loss(0.3), 1, ()),
+                (Loss(), 1, ()),
+                (Reload(), 1, ()),
+                (Check(), (1,), (1,)),
+                (MeasureCheck(), (1,), (1, 2)),
+                (Lost(), 1, ()),
+                (Reloaded(), 1, ()),
+            ]
+                circuit = Circuit()
+                push!(circuit, op, q..., c...)
+                saveproto(temp_filename, circuit)
+                loaded = loadproto(temp_filename, Circuit)
+                @test length(loaded) == 1
+                @test getoperation(loaded[1]) == op
+            end
+        end
+
+        @testset "circuit roundtrip" begin
+            circuit = Circuit()
+            push!(circuit, Loss(0.5), 1)
+            push!(circuit, Loss(), 2)
+            push!(circuit, Check(), 1, 1)
+            push!(circuit, MeasureCheck(), 2, 1, 2)
+            push!(circuit, Reload(), 2)
+            push!(circuit, Lost(), 1)
+            push!(circuit, Reloaded(), 2)
+
+            saveproto(temp_filename, circuit)
+            loaded = loadproto(temp_filename, Circuit)
+
+            @test length(loaded) == length(circuit)
+            for (orig, new) in zip(circuit, loaded)
+                @test getoperation(orig) == getoperation(new)
+                @test getqubits(orig) == getqubits(new)
+                @test getbits(orig) == getbits(new)
+            end
+        end
+
+        @testset "legacy QubitLoss decodes to Loss()" begin
+            # Pre-redesign circuits encoded certain loss as the parameterless
+            # QubitLoss (OperationType 16). New decoders fold it into Loss() so
+            # those circuits keep loading; the encoder only ever emits Loss.
+            emptyparams = toproto(Reload()).parameters
+            legacy = circuit_pb.SimpleOperation(circuit_pb.OperationType.QubitLoss, emptyparams)
+            @test fromproto(legacy) == Loss()
+            @test toproto(Loss()) isa circuit_pb.Loss
         end
     end
 end

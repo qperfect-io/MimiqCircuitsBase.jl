@@ -87,6 +87,22 @@ end
         @test issymbolic(c)
     end
 
+    @testset "Feed-forward conditions are not symbolic" begin
+        # An IfStatement's parameters include its BitString condition;
+        # issymbolic must treat it as non-symbolic, not error on it.
+        @test !issymbolic(bs"101")
+        c = Circuit()
+        push!(c, Measure(), 1, 1)
+        push!(c, IfStatement(GateX(), bs"1"), 1, 1)
+        @test !issymbolic(c)
+
+        @variables x
+        cs = Circuit()
+        push!(cs, Measure(), 1, 1)
+        push!(cs, IfStatement(GateRX(x), bs"1"), 1, 1)
+        @test issymbolic(cs)
+    end
+
     @testset "Evaluate" begin
         @variables x y
         c = Circuit()
@@ -102,6 +118,19 @@ end
 
         c3 = evaluate(c, Dict(x => rand(), y => rand()))
         @test !issymbolic(c3)
+    end
+
+    @testset "Evaluate in place" begin
+        @variables x y
+        c = Circuit()
+        push!(c, GateU(x, y, 0.0), 1)
+        push!(c, GateCX(), 1, 2)
+
+        ret = evaluate!(c, Dict(x => 0.3, y => 0.4))
+        @test ret === c                 # mutates and returns the same circuit
+        @test !issymbolic(c)
+        @test numqubits(c) == 2
+        @test length(c) == 2
     end
 
     @testset "Simple Gates" begin
@@ -181,5 +210,20 @@ end
         @test !issymbolic(Power(Inverse(Control(4, GateU(rand(3)...))), 3))
         @test issymbolic(Inverse(Power(GateU(rand(2)..., x), 3)))
         @test issymbolic(Inverse(Control(2, GateU(x, rand(2)...))))
+    end
+
+    @testset "copy" begin
+        c = Circuit()
+        push!(c, GateH(), 1)
+        push!(c, GateCX(), 1, 2)
+
+        c2 = copy(c)
+        @test c2 == c
+        @test numqubits(c2) == numqubits(c)
+
+        # The copy is independent: mutating it leaves the original unchanged.
+        push!(c2, GateX(), 3)
+        @test length(c) == 2
+        @test length(c2) == 3
     end
 end

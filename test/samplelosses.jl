@@ -17,393 +17,399 @@
 using Random
 using Symbolics
 
-@testset "sample_losses" begin
-    @testset "default LossModel: drops everything" begin
-        c = Circuit()
-        push!(c, QubitLoss(), 2)
-        push!(c, GateCX(), 1, 2)
-        push!(c, GateH(), 1)
+# any leftover loss operation after lowering is a bug
+_has_loss_ops(c) = any(c) do inst
+    getoperation(inst) isa Union{Loss,Reload,Check,MeasureCheck}
+end
 
-        sampled = sample_losses(c)
-
-        @test length(sampled) == 2
-        @test getoperation(sampled[1]) isa QubitLoss
-        @test getoperation(sampled[2]) isa GateH
+@testset "loss operations" begin
+    @testset "constructors" begin
+        @test Loss() == Loss(1.0)
+        @test_throws ArgumentError Loss(1.5)
+        @test_throws ArgumentError Loss(-0.1)
     end
 
-    @testset "DropRule: explicit drop" begin
-        c = Circuit()
-        push!(c, QubitLoss(), 2)
-        push!(c, GateCX(), 1, 2)
-
-        lm = LossModel([DropRule(GateCX())])
-        sampled = sample_losses(c; lossmodel=lm)
-
-        @test length(sampled) == 1
-        @test getoperation(sampled[1]) isa QubitLoss
+    # ----------------------------------------------------------------- #
+    # deprecated aliases: old names map onto the redesigned ops         #
+    # ----------------------------------------------------------------- #
+    @testset "deprecated loss aliases" begin
+        @test (@test_deprecated LossErr(0.2)) == Loss(0.2)
+        @test (@test_deprecated QubitLoss()) == Loss(1.0)
+        @test (@test_deprecated QubitReload()) == Reload()
+        @test (@test_deprecated CheckLoss()) == Check()
+        @test (@test_deprecated MeasureCheckLoss()) == MeasureCheck()
     end
 
-    @testset "DropRule: catch-all" begin
-        c = Circuit()
-        push!(c, QubitLoss(), 2)
-        push!(c, GateCX(), 1, 2)
-        push!(c, GateCZ(), 1, 2)
+    # ----------------------------------------------------------------- #
+    # sample_losses: resolve randomness only                            #
+    # ----------------------------------------------------------------- #
+    @testset "sample_losses" begin
+        @testset "certain loss kept, everything else passes through" begin
+            c = Circuit()
+            push!(c, Loss(), 2)
+            push!(c, GateCX(), 1, 2)
+            push!(c, Check(), 2, 1)
+            push!(c, MeasureCheck(), 2, 1, 2)
+            sampled = sample_losses(c)
+            @test length(sampled) == 4
+            @test getoperation(sampled[1]) == Loss(1.0)
+            @test getoperation(sampled[2]) isa GateCX
+            @test getoperation(sampled[3]) isa Check
+            @test getoperation(sampled[4]) isa MeasureCheck
+        end
 
-        lm = LossModel([DropRule()])
-        sampled = sample_losses(c; lossmodel=lm)
+        @testset "deterministic with p=1 and p=0" begin
+            one = sample_losses(push!(Circuit(), Loss(1.0), 1); rng=MersenneTwister(42))
+            @test length(one) == 1 && getoperation(one[1]) == Loss(1.0)
+            zero = sample_losses(push!(Circuit(), Loss(0.0), 1); rng=MersenneTwister(42))
+            @test isempty(zero)
+        end
 
-        @test length(sampled) == 1
-        @test getoperation(sampled[1]) isa QubitLoss
+        @testset "Reload/Check/MeasureCheck are not touched" begin
+            c = Circuit()
+            push!(c, Reload(), 1)
+            push!(c, Check(), 1, 1)
+            sampled = sample_losses(c)
+            @test getoperation(sampled[1]) isa Reload
+            @test getoperation(sampled[2]) isa Check
+        end
     end
 
-    @testset "ReplaceRule: CX → Depolarizing1" begin
-        c = Circuit()
-        push!(c, QubitLoss(), 2)
-        push!(c, GateCX(), 1, 2)
+    # ----------------------------------------------------------------- #
+    # lower_losses: bookkeeping into primitives                         #
+    # ----------------------------------------------------------------- #
+    @testset "lower_losses bookkeeping" begin
+        @testset "Loss becomes a Lost marker" begin
+            lowered = lower_losses(push!(Circuit(), Loss(), 1))
+            @test getoperation(lowered[1]) isa Lost
+            @test !_has_loss_ops(lowered)
+        end
 
-        lm = LossModel([ReplaceRule(GateCX() => Depolarizing1(0.2))])
-        sampled = sample_losses(c; lossmodel=lm)
+        @testset "lower_losses treats any remaining Loss as certain" begin
+            lowered = lower_losses(push!(Circuit(), Loss(0.3), 1))
+            @test getoperation(lowered[1]) isa Lost
+        end
 
-        @test length(sampled) == 2
-        @test getoperation(sampled[1]) isa QubitLoss
-        @test getoperation(sampled[2]) isa Depolarizing1
-        @test getqubits(sampled[2]) == (1,)
+        @testset "already-lost qubit: second Loss is ignored" begin
+            c = Circuit()
+            push!(c, Loss(), 1)
+            push!(c, Loss(), 1)
+            push!(c, GateH(), 2)
+            lowered = lower_losses(c)
+            @test length(lowered) == 2
+            @test getoperation(lowered[1]) isa Lost
+            @test getoperation(lowered[2]) isa GateH
+        end
+
+        @testset "Reload always resets and restores presence" begin
+            # reload of a lost qubit
+            c = Circuit()
+            push!(c, Loss(), 2)
+            push!(c, Reload(), 2)
+            push!(c, GateCX(), 1, 2)
+            lowered = lower_losses(c)
+            @test getoperation(lowered[1]) isa Lost
+            @test getoperation(lowered[2]) isa Reset
+            @test getoperation(lowered[3]) isa Reloaded
+            @test getoperation(lowered[4]) isa GateCX   # q2 present again
+
+            # reload of a present qubit still resets (default policy)
+            present = lower_losses(push!(Circuit(), Reload(), 1))
+            @test getoperation(present[1]) isa Reset
+            @test getoperation(present[2]) isa Reloaded
+        end
+
+        @testset "Check: 1 when present, 0 when lost" begin
+            present = lower_losses(push!(Circuit(), Check(), 1, 1))
+            @test getoperation(present[1]) isa SetBit1
+            c = Circuit()
+            push!(c, Loss(), 1)
+            push!(c, Check(), 1, 1)
+            @test getoperation(lower_losses(c)[end]) isa SetBit0
+        end
+
+        @testset "MeasureCheck: present measures, lost reads 0" begin
+            mc = lower_losses(push!(Circuit(), MeasureCheck(), 1, 1, 2))
+            @test getoperation(mc[1]) isa Measure
+            @test getoperation(mc[2]) isa SetBit1
+            c = Circuit()
+            push!(c, Loss(), 1)
+            push!(c, MeasureCheck(), 1, 1, 2)
+            low = lower_losses(c)
+            @test getoperation(low[end-1]) isa SetBit0
+            @test getoperation(low[end]) isa SetBit0
+        end
+
+        @testset "measurement on a lost qubit reads 0" begin
+            c = Circuit()
+            push!(c, Loss(), 1)
+            push!(c, Measure(), 1, 1)
+            @test getoperation(lower_losses(c)[end]) isa SetBit0
+        end
     end
 
-    @testset "ReplaceRule: surviving qubit selection" begin
-        c = Circuit()
-        push!(c, QubitLoss(), 1)  # qubit 1 is lost (not qubit 2)
-        push!(c, GateCX(), 1, 2)
+    # ----------------------------------------------------------------- #
+    # gates touching lost qubits                                        #
+    # ----------------------------------------------------------------- #
+    @testset "gates on lost qubits" begin
+        @testset "no lost qubits: passes through" begin
+            c = Circuit()
+            push!(c, GateCX(), 1, 2)
+            push!(c, GateH(), 1)
+            lowered = lower_losses(c; lossmodel=LossModel([DropRule()]))
+            @test length(lowered) == 2
+            @test getoperation(lowered[1]) isa GateCX
+            @test getoperation(lowered[2]) isa GateH
+        end
 
-        lm = LossModel([ReplaceRule(GateCX() => Depolarizing1(0.2))])
-        sampled = sample_losses(c; lossmodel=lm)
+        @testset "all qubits lost: always dropped" begin
+            c = Circuit()
+            push!(c, Loss(), 1)
+            push!(c, Loss(), 2)
+            push!(c, GateCX(), 1, 2)
+            lm = LossModel([ReplaceRule(GateCX() => Depolarizing1(0.5))])
+            lowered = lower_losses(c; lossmodel=lm)
+            @test length(lowered) == 2
+            @test all(i -> getoperation(lowered[i]) isa Lost, 1:2)
+        end
 
-        @test length(sampled) == 2
-        @test getoperation(sampled[2]) isa Depolarizing1
-        @test getqubits(sampled[2]) == (2,)  # surviving qubit is 2
+        @testset "some lost, default model drops the gate" begin
+            c = Circuit()
+            push!(c, Loss(), 2)
+            push!(c, GateCX(), 1, 2)
+            push!(c, GateH(), 2)
+            lowered = lower_losses(c)
+            @test length(lowered) == 1
+            @test getoperation(lowered[1]) isa Lost
+        end
+
+        @testset "1-qubit gate / noise on lost qubit is dropped" begin
+            for op in (GateH(), Depolarizing1(0.1))
+                c = Circuit()
+                push!(c, Loss(), 1)
+                push!(c, op, 1)
+                lowered = lower_losses(c)
+                @test length(lowered) == 1
+                @test getoperation(lowered[1]) isa Lost
+            end
+        end
     end
 
-    @testset "DecorateRule: original filtered, decoration on surviving qubits kept" begin
-        c = Circuit()
-        push!(c, QubitLoss(), 2)
-        push!(c, GateCX(), 1, 2)
+    # ----------------------------------------------------------------- #
+    # LossModel rules                                                   #
+    # ----------------------------------------------------------------- #
+    @testset "LossModel rules" begin
+        @testset "DropRule explicit and catch-all" begin
+            c = Circuit()
+            push!(c, Loss(), 2)
+            push!(c, GateCX(), 1, 2)
+            @test length(lower_losses(c; lossmodel=LossModel([DropRule(GateCX())]))) == 1
+            @test length(lower_losses(c; lossmodel=LossModel([DropRule()]))) == 1
+        end
 
-        # CX touches lost q2 → filtered. Broadcast decoration: q1 survives, q2 filtered.
-        lm = LossModel([DecorateRule(GateCX(), Depolarizing1(0.1))])
-        sampled = sample_losses(c; lossmodel=lm)
+        @testset "ReplaceRule puts noise on the surviving qubit" begin
+            c = Circuit()
+            push!(c, Loss(), 2)
+            push!(c, GateCX(), 1, 2)
+            out = lower_losses(c; lossmodel=LossModel([ReplaceRule(GateCX() => Depolarizing1(0.2))]))
+            @test getoperation(out[2]) isa Depolarizing1
+            @test getqubits(out[2]) == (1,)
+            @test !_has_loss_ops(out)
+        end
 
-        @test length(sampled) == 2
-        @test getoperation(sampled[1]) isa QubitLoss
-        @test getoperation(sampled[2]) isa Depolarizing1
-        @test getqubits(sampled[2]) == (1,)
-    end
+        @testset "DecorateRule keeps decoration on survivors" begin
+            c = Circuit()
+            push!(c, Loss(), 2)
+            push!(c, GateCX(), 1, 2)
+            out = lower_losses(c; lossmodel=LossModel([DecorateRule(GateCX(), Depolarizing1(0.1))]))
+            @test getoperation(out[2]) isa Depolarizing1
+            @test getqubits(out[2]) == (1,)
+            # no lost qubits on the gate → rules not consulted
+            c2 = Circuit()
+            push!(c2, Loss(), 3)
+            push!(c2, GateCX(), 1, 2)
+            out2 = lower_losses(c2; lossmodel=LossModel([DecorateRule(GateCX(), Depolarizing1(0.1))]))
+            @test getoperation(out2[2]) isa GateCX
+        end
 
-    @testset "DecorateRule: no lost qubits, keeps everything" begin
-        c = Circuit()
-        push!(c, QubitLoss(), 3)
-        push!(c, GateCX(), 1, 2)  # neither q1 nor q2 is lost
-
-        lm = LossModel([DecorateRule(GateCX(), Depolarizing1(0.1))])
-        sampled = sample_losses(c; lossmodel=lm)
-
-        # No lost qubits on CX → passes through unchanged (rules not consulted)
-        @test length(sampled) == 2
-        @test getoperation(sampled[1]) isa QubitLoss
-        @test getoperation(sampled[2]) isa GateCX
-    end
-
-    @testset "DecorateRule: before=true, original filtered" begin
-        c = Circuit()
-        push!(c, QubitLoss(), 2)
-        push!(c, GateCX(), 1, 2)
-
-        lm = LossModel([DecorateRule(GateCX(), Depolarizing1(0.1); before=true)])
-        sampled = sample_losses(c; lossmodel=lm)
-
-        # CX on (1,2) filtered (q2 lost). Only decoration on q1 survives.
-        @test length(sampled) == 2
-        @test getoperation(sampled[2]) isa Depolarizing1
-        @test getqubits(sampled[2]) == (1,)
-    end
-
-    @testset "CustomRule" begin
-        c = Circuit()
-        push!(c, QubitLoss(), 2)
-        push!(c, GateCX(), 1, 2)
-
-        lm = LossModel([
-            CustomRule(
+        @testset "CustomRule single, multiple, and drop" begin
+            c = Circuit()
+            push!(c, Loss(), 2)
+            push!(c, GateCX(), 1, 2)
+            single = LossModel([CustomRule(
                 inst -> getoperation(inst) isa GateCX,
                 (inst, lost; rng=nothing) -> begin
-                    qs = collect(getqubits(inst))
-                    alive = [q for q in qs if !get(lost, q, false)]
-                    return Instruction(Depolarizing1(0.05), alive[1])
-                end,
-            ),
-        ])
-        sampled = sample_losses(c; lossmodel=lm)
+                    alive = [q for q in getqubits(inst) if !get(lost, q, false)]
+                    Instruction(Depolarizing1(0.05), alive[1])
+                end)])
+            out = lower_losses(c; lossmodel=single)
+            @test getoperation(out[2]) isa Depolarizing1
+            @test getqubits(out[2]) == (1,)
 
-        @test length(sampled) == 2
-        @test getoperation(sampled[2]) isa Depolarizing1
-        @test getqubits(sampled[2]) == (1,)
-    end
-
-    @testset "CustomRule: emit multiple instructions" begin
-        c = Circuit()
-        push!(c, QubitLoss(), 1)
-        push!(c, GateCZ(), 1, 2)
-
-        lm = LossModel([
-            CustomRule(
+            cz = Circuit()
+            push!(cz, Loss(), 1)
+            push!(cz, GateCZ(), 1, 2)
+            multi = LossModel([CustomRule(
                 inst -> getoperation(inst) isa GateCZ,
                 (inst, lost; rng=nothing) -> begin
-                    qs = collect(getqubits(inst))
-                    alive = [q for q in qs if !get(lost, q, false)]
-                    return [
-                        Instruction(GateH(), alive[1]),
-                        Instruction(Depolarizing1(0.1), alive[1]),
-                    ]
-                end,
-            ),
-        ])
-        sampled = sample_losses(c; lossmodel=lm)
+                    alive = [q for q in getqubits(inst) if !get(lost, q, false)]
+                    [Instruction(GateH(), alive[1]), Instruction(Depolarizing1(0.1), alive[1])]
+                end)])
+            outm = lower_losses(cz; lossmodel=multi)
+            @test getoperation(outm[2]) isa GateH
+            @test getoperation(outm[3]) isa Depolarizing1
+            @test getqubits(outm[2]) == (2,)
 
-        @test length(sampled) == 3
-        @test getoperation(sampled[2]) isa GateH
-        @test getoperation(sampled[3]) isa Depolarizing1
-        @test getqubits(sampled[2]) == (2,)
+            drop = LossModel([CustomRule(inst -> true, (inst, lost; rng=nothing) -> nothing)])
+            @test length(lower_losses(c; lossmodel=drop)) == 1
+        end
+
+        @testset "first match wins" begin
+            c = Circuit()
+            push!(c, Loss(), 2)
+            push!(c, GateCX(), 1, 2)
+            push!(c, GateCZ(), 1, 2)
+            lm = LossModel([
+                ReplaceRule(GateCX() => Depolarizing1(0.2)),
+                ReplaceRule(GateCZ() => Depolarizing1(0.1)),
+            ])
+            out = lower_losses(c; lossmodel=lm)
+            @test getoperation(out[2]).p ≈ 0.2
+            @test getoperation(out[3]).p ≈ 0.1
+        end
+
+        @testset "DropRule has higher priority than a broad replace" begin
+            @variables θ
+            c = Circuit()
+            push!(c, Loss(), 2)
+            push!(c, GateRXX(0.3), 1, 2)
+            push!(c, GateRXX(0.2), 1, 2)
+            lm = LossModel([ReplaceRule(GateRXX(θ), GateZ()), DropRule(GateRXX(0.2))])
+            out = lower_losses(c; lossmodel=lm)
+            @test length(out) == 2
+            @test getoperation(out[2]) isa GateZ
+            @test getqubits(out[2]) == (1,)
+        end
+
+        @testset "N-qubit gate replacements" begin
+            # 1-qubit replacement broadcasts, lost target filtered
+            c = Circuit()
+            push!(c, Loss(), 3)
+            push!(c, GateCCX(), 1, 2, 3)
+            out = lower_losses(c; lossmodel=LossModel([ReplaceRule(GateCCX() => Depolarizing1(0.2))]))
+            @test length(out) == 3
+            @test getqubits(out[2]) == (1,)
+            @test getqubits(out[3]) == (2,)
+
+            # matching qubit-count replacement touches the lost qubit → filtered
+            out2 = lower_losses(c; lossmodel=LossModel([ReplaceRule(GateCCX(), Depolarizing(3, 0.1))]))
+            @test length(out2) == 1
+            @test getoperation(out2[1]) isa Lost
+
+            # explicit vector replacement, lost target filtered
+            out3 = lower_losses(c; lossmodel=LossModel([ReplaceRule(GateCCX(), [
+                Instruction(Depolarizing1(0.1), 1),
+                Instruction(Depolarizing1(0.2), 2),
+                Instruction(Depolarizing1(0.3), 3),
+            ])]))
+            @test length(out3) == 3
+            @test getqubits(out3[2]) == (1,)
+            @test getqubits(out3[3]) == (2,)
+        end
     end
 
-    @testset "CustomRule: return nothing (drop)" begin
-        c = Circuit()
-        push!(c, QubitLoss(), 2)
-        push!(c, GateCX(), 1, 2)
-
-        lm = LossModel([
-            CustomRule(
-                inst -> true,
-                (inst, lost; rng=nothing) -> nothing,
-            ),
-        ])
-        sampled = sample_losses(c; lossmodel=lm)
-
-        @test length(sampled) == 1
-        @test getoperation(sampled[1]) isa QubitLoss
-    end
-
-    @testset "multiple rules: first match wins" begin
-        c = Circuit()
-        push!(c, QubitLoss(), 2)
-        push!(c, GateCX(), 1, 2)
-        push!(c, GateCZ(), 1, 2)
-
-        lm = LossModel([
-            ReplaceRule(GateCX() => Depolarizing1(0.2)),
-            ReplaceRule(GateCZ() => Depolarizing1(0.1)),
-        ])
-        sampled = sample_losses(c; lossmodel=lm)
-
-        @test length(sampled) == 3
-        @test getoperation(sampled[2]) isa Depolarizing1
-        dep_cx = getoperation(sampled[2])
-        @test dep_cx.p ≈ 0.2  # CX rule matched
-        dep_cz = getoperation(sampled[3])
-        @test dep_cz.p ≈ 0.1  # CZ rule matched
-    end
-
-    @testset "DropRule has higher priority than broad replace rule" begin
+    # ----------------------------------------------------------------- #
+    # symbolic probabilities                                            #
+    # ----------------------------------------------------------------- #
+    @testset "symbolic loss probability" begin
         @variables θ
-
-        c = Circuit()
-        push!(c, QubitLoss(), 2)
-        push!(c, GateRXX(0.3), 1, 2)
-        push!(c, GateRXX(0.2), 1, 2)
-
-        lm = LossModel([
-            ReplaceRule(GateRXX(θ), GateZ()),
-            DropRule(GateRXX(0.2)),
-        ])
-        sampled = sample_losses(c; lossmodel=lm)
-
-        @test length(sampled) == 2
-        @test getoperation(sampled[1]) isa QubitLoss
-        @test getoperation(sampled[2]) isa GateZ
-        @test getqubits(sampled[2]) == (1,)
+        @test Symbolics.value(evaluate(Loss(θ), Dict(θ => 0.5)).p) ≈ 0.5
+        # sampling needs a numeric probability
+        @test_throws ArgumentError sample_losses(push!(Circuit(), Loss(θ), 1))
     end
 
-    @testset "all qubits lost: always dropped" begin
+    # ----------------------------------------------------------------- #
+    # resolve_losses: sample then lower                                 #
+    # ----------------------------------------------------------------- #
+    @testset "resolve_losses" begin
         c = Circuit()
-        push!(c, QubitLoss(), 1)
-        push!(c, QubitLoss(), 2)
-        push!(c, GateCX(), 1, 2)
+        push!(c, Loss(), 1)
+        push!(c, GateX(), 1)
+        push!(c, Check(), 1, 1)
+        out = resolve_losses(c)
+        @test getoperation(out[1]) isa Lost
+        @test getoperation(out[end]) isa SetBit0
+        @test !_has_loss_ops(out)
 
-        lm = LossModel([ReplaceRule(GateCX() => Depolarizing1(0.5))])
-        sampled = sample_losses(c; lossmodel=lm)
-
-        @test length(sampled) == 2  # only the two QubitLoss
-        @test all(i -> getoperation(sampled[i]) isa QubitLoss, 1:2)
+        # impossible loss leaves the gate intact
+        c0 = Circuit()
+        push!(c0, Loss(0.0), 1)
+        push!(c0, GateX(), 1)
+        out0 = resolve_losses(c0)
+        @test length(out0) == 1
+        @test getoperation(out0[1]) isa GateX
     end
 
-    @testset "broadcast 1-qubit replacement on N-qubit gate" begin
-        c = Circuit()
-        push!(c, QubitLoss(), 3)
-        push!(c, GateCCX(), 1, 2, 3)  # 3-qubit, q3 lost → 2 surviving
+    # ----------------------------------------------------------------- #
+    # sample_loss_scenario                                              #
+    # ----------------------------------------------------------------- #
+    @testset "sample_loss_scenario" begin
+        function scenario_circuit()
+            c = Circuit()
+            push!(c, Loss(0.2), 1)
+            push!(c, GateCX(), 1, 2)
+            push!(c, Loss(0.4), 2)
+            push!(c, GateH(), 3)
+            return c
+        end
 
-        # 1-qubit replacement broadcasts to all 3 qubits, lost one filtered out
-        lm = LossModel([ReplaceRule(GateCCX() => Depolarizing1(0.2))])
-        sampled = sample_losses(c; lossmodel=lm)
+        @testset "select one site by index" begin
+            out = sample_loss_scenario(scenario_circuit(), 1)
+            @test length(out) == 2
+            @test getoperation(out[1]) isa Lost
+            @test getqubits(out[1]) == (1,)
+            @test getoperation(out[2]) isa GateH
+        end
 
-        @test length(sampled) == 3  # QubitLoss + 2 surviving depolarizing
-        @test getoperation(sampled[2]) isa Depolarizing1
-        @test getqubits(sampled[2]) == (1,)
-        @test getoperation(sampled[3]) isa Depolarizing1
-        @test getqubits(sampled[3]) == (2,)
-    end
+        @testset "select a later site" begin
+            out = sample_loss_scenario(scenario_circuit(), 2)
+            @test length(out) == 3
+            @test getoperation(out[1]) isa GateCX
+            @test getoperation(out[2]) isa Lost
+            @test getqubits(out[2]) == (2,)
+            @test getoperation(out[3]) isa GateH
+        end
 
-    @testset "N-qubit gates: matching qubit count replacement filtered" begin
-        c = Circuit()
-        push!(c, QubitLoss(), 3)
-        push!(c, GateCCX(), 1, 2, 3)  # 3-qubit, q3 lost
+        @testset "force multiple sites" begin
+            out = sample_loss_scenario(scenario_circuit(), [1, 2])
+            @test length(out) == 3
+            @test getoperation(out[1]) isa Lost
+            @test getoperation(out[2]) isa Lost
+            @test getoperation(out[3]) isa GateH
+            @test !_has_loss_ops(out)
+        end
 
-        # Matching qubit count replacement: Depolarizing(3,...) replaces CCX
-        # But the 3-qubit instruction touches q3 (lost) → filtered out
-        lm = LossModel([ReplaceRule(GateCCX(), Depolarizing(3, 0.1))])
-        sampled = sample_losses(c; lossmodel=lm)
-        @test length(sampled) == 1  # only QubitLoss, replacement was filtered
-        @test getoperation(sampled[1]) isa QubitLoss
-    end
+        @testset "chosen probability p=0 loses nothing" begin
+            out = sample_loss_scenario(scenario_circuit(), [1, 2]; p=0.0)
+            @test length(out) == 2
+            @test getoperation(out[1]) isa GateCX
+            @test getoperation(out[2]) isa GateH
+        end
 
-    @testset "N-qubit gates: vector replacement" begin
-        c = Circuit()
-        push!(c, QubitLoss(), 3)
-        push!(c, GateCCX(), 1, 2, 3)  # q3 lost
-
-        # Form 1: vector of canonical instructions, q3's instruction filtered
-        lm = LossModel([ReplaceRule(GateCCX(), [
-            Instruction(Depolarizing1(0.1), 1),
-            Instruction(Depolarizing1(0.2), 2),
-            Instruction(Depolarizing1(0.3), 3),
-        ])])
-        sampled = sample_losses(c; lossmodel=lm)
-
-        @test length(sampled) == 3  # QubitLoss + 2 surviving
-        @test getqubits(sampled[2]) == (1,)
-        @test getqubits(sampled[3]) == (2,)
-    end
-
-    @testset "no lost qubits: passes through" begin
-        c = Circuit()
-        push!(c, GateCX(), 1, 2)
-        push!(c, GateH(), 1)
-
-        lm = LossModel([DropRule()])
-        sampled = sample_losses(c; lossmodel=lm)
-
-        @test length(sampled) == 2
-        @test getoperation(sampled[1]) isa GateCX
-        @test getoperation(sampled[2]) isa GateH
-    end
-
-    @testset "CheckLoss and MeasureCheckLoss always kept" begin
-        c = Circuit()
-        push!(c, QubitLoss(), 1)
-        push!(c, CheckLoss(), 1, 1)
-        push!(c, MeasureCheckLoss(), 1, 1, 2)
-
-        sampled = sample_losses(c)
-
-        @test length(sampled) == 3
-        @test getoperation(sampled[2]) isa CheckLoss
-        @test getoperation(sampled[3]) isa MeasureCheckLoss
-    end
-
-    @testset "QubitReload resets loss status" begin
-        c = Circuit()
-        push!(c, QubitLoss(), 2)
-        push!(c, QubitReload(), 2)
-        push!(c, GateCX(), 1, 2)
-
-        sampled = sample_losses(c)
-
-        @test length(sampled) == 3
-        @test getoperation(sampled[1]) isa QubitLoss
-        @test getoperation(sampled[2]) isa QubitReload
-        @test getoperation(sampled[3]) isa GateCX
-    end
-
-    @testset "LossErr: deterministic with p=1" begin
-        c = Circuit()
-        push!(c, LossErr(1.0), 1)
-        push!(c, GateCX(), 1, 2)
-
-        sampled = sample_losses(c; rng=MersenneTwister(42))
-
-        @test length(sampled) == 1
-        @test getoperation(sampled[1]) isa QubitLoss
-    end
-
-    @testset "LossErr: deterministic with p=0" begin
-        c = Circuit()
-        push!(c, LossErr(0.0), 1)
-        push!(c, GateCX(), 1, 2)
-
-        sampled = sample_losses(c; rng=MersenneTwister(42))
-
-        @test length(sampled) == 1
-        @test getoperation(sampled[1]) isa GateCX
-    end
-
-    @testset "LossErr: already-lost qubit ignored" begin
-        c = Circuit()
-        push!(c, QubitLoss(), 1)
-        push!(c, LossErr(1.0), 1)  # should be ignored, q1 already lost
-        push!(c, GateH(), 2)
-
-        sampled = sample_losses(c; rng=MersenneTwister(42))
-
-        @test length(sampled) == 2
-        @test getoperation(sampled[1]) isa QubitLoss
-        @test getoperation(sampled[2]) isa GateH
-    end
-
-    @testset "QubitReload on non-lost qubit is a no-op" begin
-        c = Circuit()
-        push!(c, QubitReload(), 1)  # qubit 1 was never lost
-        push!(c, GateH(), 1)
-
-        sampled = sample_losses(c)
-
-        @test length(sampled) == 1
-        @test getoperation(sampled[1]) isa GateH
-    end
-
-    @testset "1-qubit gate on lost qubit is dropped" begin
-        c = Circuit()
-        push!(c, QubitLoss(), 1)
-        push!(c, GateH(), 1)
-
-        sampled = sample_losses(c)
-
-        @test length(sampled) == 1
-        @test getoperation(sampled[1]) isa QubitLoss
-    end
-
-    @testset "1-qubit noise on lost qubit is dropped" begin
-        c = Circuit()
-        push!(c, QubitLoss(), 1)
-        push!(c, Depolarizing1(0.1), 1)
-
-        sampled = sample_losses(c)
-
-        @test length(sampled) == 1
-        @test getoperation(sampled[1]) isa QubitLoss
+        @testset "validation" begin
+            c = push!(Circuit(), Loss(0.2), 1)
+            @test_throws ArgumentError sample_loss_scenario(c, 0)
+            @test_throws ArgumentError sample_loss_scenario(c, 2)
+            @test_throws ArgumentError sample_loss_scenario(c, [1, 2])
+            @test_throws ArgumentError sample_loss_scenario(c, 1; p=-0.1)
+            @test_throws ArgumentError sample_loss_scenario(c, 1; p=1.1)
+            @test_throws ArgumentError sample_loss_scenario(Circuit(), [1])
+        end
     end
 
     @testset "LossModel display" begin
         lm = LossModel([ReplaceRule(GateCX() => Depolarizing1(0.2)), DropRule()])
         @test occursin("2 rules", string(lm))
-
-        lm2 = LossModel(; name="my_model")
-        @test occursin("my_model", string(lm2))
+        @test occursin("my_model", string(LossModel(; name="my_model")))
     end
 end

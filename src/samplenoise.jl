@@ -23,6 +23,11 @@ Samples one unitary gate for each mixed unitary Kraus channel in the circuit.
 This is possible because for mixed unitary noise channels the
 probabilities of each Kraus operator are fixed (state-independent).
 
+If the sampled branch is marked lossy (see the `lossy` argument of
+[`MixedUnitary`](@ref)), a certain [`Loss`](@ref) is also emitted on each of its
+lossy qubits. Run this before [`sample_losses`](@ref) so those losses are
+resolved together with any user-declared ones.
+
 Note: This function is internally called (before applying any gate) when
 executing a circuit with noise using trajectories, but it can also be used to
 generate samples of circuits without running them.
@@ -135,8 +140,17 @@ function sample_mixedunitaries(c::Circuit; rng=Random.GLOBAL_RNG, ids=false)
 
             # Substitute noise by instance
             gate = unitarygates(op)[index]
+            qubits = getqubits(inst)
             if ids || !isidentity(gate)
-                push!(scirc, unitarygates(op)[index], getqubits(inst)...)
+                push!(scirc, gate, qubits...)
+            end
+            # A lossy branch loses its marked qubits: emit a certain Loss, to be
+            # resolved by sample_losses / lower_losses. Loss fires regardless of
+            # whether the (possibly identity) gate was added.
+            if op isa MixedUnitary
+                for lq in op.lossy[index]
+                    push!(scirc, Loss(1.0), qubits[lq])
+                end
             end
         else
             push!(scirc, inst)

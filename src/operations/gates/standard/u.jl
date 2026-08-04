@@ -103,8 +103,16 @@ function _power(g::GateU, pwr)
 
     γ = angle(Up[1, 1])
     θ = 2 * acos(clamp(abs(Up[1, 1]), -1, 1))
-    ϕ = sin(θ / 2) ≈ 0 ? 0.0 : angle(Up[2, 1] / sin(θ / 2)) - γ
-    λ = sin(θ / 2) ≈ 0 ? 0.0 : angle(-Up[1, 2] / sin(θ / 2)) - γ
+    if sin(θ / 2) ≈ 0
+        # Diagonal matrix: the off-diagonal entries are zero, so ϕ and λ cannot
+        # be read from them. Only ϕ + λ is fixed (by Up[2,2] = e^{i(ϕ+λ+γ)}),
+        # so pick ϕ = 0 and put the whole phase in λ.
+        ϕ = 0.0
+        λ = angle(Up[2, 2]) - γ
+    else
+        ϕ = angle(Up[2, 1] / sin(θ / 2)) - γ
+        λ = angle(-Up[1, 2] / sin(θ / 2)) - γ
+    end
 
     return GateU(θ, ϕ, λ, γ)
 end

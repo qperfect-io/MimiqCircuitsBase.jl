@@ -97,6 +97,12 @@ function evaluate(ev::ExpectationValue, d::Dict=Dict())
     return ExpectationValue(evaluate(getoperation(ev), d))
 end
 
+# A Block holds a sub-circuit; substitute its inner instructions so parameters
+# inside the block are evaluated too.
+function evaluate(b::Block{N,M,L}, d::Dict=Dict()) where {N,M,L}
+    return Block{N,M,L}([evaluate(inst, d) for inst in b])
+end
+
 evaluate(g::Operation, ::Dict) = g
 
 function evaluate(inst::Instruction, d::Dict)
@@ -117,9 +123,11 @@ function evaluate(circ::Circuit, d::Dict)
 end
 
 function evaluate!(circ::Circuit, d::Dict)
-    for i in eachindex(circ)
-        circ[i] = evaluate(circ[i], d)
+    insts = circ._instructions
+    for i in eachindex(insts)
+        insts[i] = evaluate(insts[i], d)
     end
+    _invalidate_cache!(circ)
     return circ
 end
 

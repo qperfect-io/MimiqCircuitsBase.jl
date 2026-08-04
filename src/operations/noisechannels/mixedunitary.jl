@@ -16,7 +16,7 @@
 #
 
 @doc raw"""
-    MixedUnitary(p,U)
+    MixedUnitary(p, U; lossy=nothing)
 
 Custom ``N`` qubit mixed unitary channel specified by a list of
 unitary gates and a list of probabilities that add up to 1.
@@ -49,8 +49,12 @@ and [`RescaledGate`](@ref).
 * `p`: Vector of probabilities, must be positive real numbers and add up to 1.
 * `U`: Vector of either complex-valued ``2^N \times 2^N`` matrices or unitary gates acting
   on ``N`` qubits. Both can be mixed.
+* `lossy`: Optional vector marking, per branch, which qubits in `1:N` leak when that
+  branch is drawn (e.g. `[Int[], [1]]` makes the second branch lose qubit 1). Branches
+  default to lossless. A lossy branch is resolved by [`sample_mixedunitaries`](@ref),
+  which emits a [`Loss`](@ref) on the marked qubits when the branch is sampled.
 
-The length of the vectors `p` and `U` must be equal.
+The length of the vectors `p`, `U`, and (when given) `lossy` must be equal.
 
 ## Examples
 
@@ -82,13 +86,18 @@ MixedUnitary((0.9, Custom([1.0 0.0; 0.0 1.0])), (0.1, Custom([0.0 1.0; 1.0 0.0])
 
 julia> evaluate(g,Dict(x=>0))
 MixedUnitary((0.9, Custom([1.0 0.0; 0.0 1.0])), (0.1, Custom([0.0 1.0; 1.0 0.0])))
+
+julia> MixedUnitary([0.9, 0.1], [[1 0; 0 1], [0 1; 1 0]]; lossy=[Int[], [1]])
+MixedUnitary((0.9, Custom([1.0 0.0; 0.0 1.0])), (0.1, Custom([0.0 1.0; 1.0 0.0])); lossy=((), (1,)))
 ```
 """
 struct MixedUnitary{N} <: AbstractKrausChannel{N}
     p::Vector{Num}
     U::Vector{AbstractGate}
+    lossy::Vector{Vector{Int}}
 
-    function MixedUnitary{N}(p::Vector{<:Number}, U::Vector{<:AbstractGate}) where {N}
+    function MixedUnitary{N}(p::Vector{<:Number}, U::Vector{<:AbstractGate},
+        lossy=[Int[] for _ in U]) where {N}
         if N < 1
             error("Cannot define a 0-qubit custom noise channel")
         end
@@ -99,6 +108,10 @@ struct MixedUnitary{N} <: AbstractKrausChannel{N}
 
         if length(p) != length(U)
             throw(ArgumentError("Lists of probabilities and unitaries must have the same length."))
+        end
+
+        if length(lossy) != length(U)
+            throw(ArgumentError("Lists of unitaries and lossy masks must have the same length."))
         end
 
         # Helper function to detect symbolic elements in the probability vector
@@ -112,7 +125,15 @@ struct MixedUnitary{N} <: AbstractKrausChannel{N}
             throw(ArgumentError("Probabilities should sum to 1. Instead they are $sump"))
         end
 
-        return new{N}(p, U)
+        masks = Vector{Int}[
+            let qs = sort!(unique(Int.(m)))
+                all(1 <= q <= N for q in qs) ||
+                    throw(ArgumentError("Lossy qubit indices must be in 1:$N, got $qs."))
+                qs
+            end for m in lossy
+        ]
+
+        return new{N}(p, U, masks)
     end
 end
 
@@ -138,10 +159,10 @@ function evaluate(m::MixedUnitary, d::Dict=Dict())
     ]
 
     # Return a new MixedUnitary instance with evaluated probabilities and updated unitaries
-    return MixedUnitary(evaluated_p, evaluated_U)
+    return MixedUnitary(evaluated_p, evaluated_U; lossy=m.lossy)
 end
 
-function MixedUnitary(p::Vector{<:Number}, U::Vector{<:AbstractGate})
+function MixedUnitary(p::Vector{<:Number}, U::Vector{<:AbstractGate}; lossy=nothing)
     if isempty(p) || isempty(U)
         error("Vectors of probabilities and unitaries cannot be empty")
     end
@@ -151,10 +172,10 @@ function MixedUnitary(p::Vector{<:Number}, U::Vector{<:AbstractGate})
         error("Gates acting on different numbers of qubits provided.")
     end
 
-    return MixedUnitary{N}(p, U)
+    return isnothing(lossy) ? MixedUnitary{N}(p, U) : MixedUnitary{N}(p, U, lossy)
 end
 
-function MixedUnitary(p::Vector{<:Number}, U::Vector)
+function MixedUnitary(p::Vector{<:Number}, U::Vector; lossy=nothing)
     if isempty(p) || isempty(U)
         error("Vectors of probabilities and unitary matrices cannot be empty")
     end
@@ -174,7 +195,7 @@ function MixedUnitary(p::Vector{<:Number}, U::Vector)
         error("Gates acting on different numbers of qubits provided.")
     end
 
-    return MixedUnitary{N}(p, Us)
+    return isnothing(lossy) ? MixedUnitary{N}(p, Us) : MixedUnitary{N}(p, Us, lossy)
 end
 
 function MixedUnitary(kraus::Vector{<:RescaledGate})
@@ -189,11 +210,24 @@ unitarygates(mixedU::MixedUnitary) = mixedU.U
 
 ismixedunitary(::Type{T}) where {T<:MixedUnitary} = true
 
-function krausoperators(mixedU::MixedUnitary)
-    gates = unitarygates(mixedU)
-    scales = sqrt.(probabilities(mixedU))
-    return RescaledGate.(gates, scales)
+# Lossless branches stay rescaled unitaries; a lossy branch becomes a LossyOperator
+# (with √p folded into the matrix) so the generic loss helpers (hasloss,
+# lossoperators, losseffect) see it. The trajectory path never needs this: it
+# samples a branch directly (see sample_mixedunitaries).
+function krausoperators(mixedU::MixedUnitary{N}) where {N}
+    map(probabilities(mixedU), unitarygates(mixedU), mixedU.lossy) do p, U, l
+        s = sqrt(p)
+        isempty(l) ? RescaledGate(U, s) : LossyOperator{N}(s .* matrix(U), Tuple(l))
+    end
 end
+
+"""
+    haslossybranch(channel::MixedUnitary)
+
+Whether any branch of the channel loses qubits when drawn (see the `lossy`
+argument of [`MixedUnitary`](@ref)).
+"""
+haslossybranch(mixedU::MixedUnitary) = any(!isempty, mixedU.lossy)
 
 function Base.show(io::IO, mixedu::MixedUnitary)
     print(io, opname(mixedu), "(")
@@ -201,6 +235,7 @@ function Base.show(io::IO, mixedu::MixedUnitary)
     ps = probabilities(mixedu)
     Us = unitarygates(mixedu)
     join(io, Iterators.map(x -> (x[1], repr(x[2]; context=:compact => true)), zip(ps, Us)), sep)
+    haslossybranch(mixedu) && print(io, "; lossy=", Tuple(Tuple(l) for l in mixedu.lossy))
     print(io, ")")
 end
 
@@ -210,6 +245,7 @@ function Base.show(io::IO, m::MIME"text/plain", mixedu::MixedUnitary)
     ps = probabilities(mixedu)
     Us = unitarygates(mixedu)
     join(io, Iterators.map(x -> "($(x[1])$(sep)$(repr(m, x[2]; context=:compact => true)))", zip(ps, Us)), sep)
+    haslossybranch(mixedu) && print(io, "; lossy=", Tuple(Tuple(l) for l in mixedu.lossy))
     print(io, ")")
 end
 
@@ -231,6 +267,8 @@ function Base.:(==)(left::MixedUnitary, right::MixedUnitary)
     end
 
     unitarygates(left) == unitarygates(right) || return false
+
+    left.lossy == right.lossy || return false
 
     return true
 end
