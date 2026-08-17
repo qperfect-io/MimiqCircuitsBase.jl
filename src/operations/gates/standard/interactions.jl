@@ -394,6 +394,10 @@ function decompose_step!(builder, ::CanonicalRewrite, g::GateRZX, qtargets, _, _
     return builder
 end
 
+# The symbolic matrix printed in the examples below contains commutative
+# products whose factor order is not reproducible: the same Symbolics version
+# prints `sin(-β)*sin(θ / 2)` on one machine and `sin(θ / 2)*sin(-β)` on
+# another. The doctest filters neutralise that order, so do not drop them.
 @doc raw"""
     GateXXplusYY(θ, β)
 
@@ -418,7 +422,7 @@ See also [`GateRXX`](@ref), [`GateRYY`](@ref), [`GateRZZ`](@ref),
 
 ## Examples
 
-```jldoctests
+```jldoctests; filter = [r"sin\(θ / 2\)\*sin\(-?β\)|sin\(-?β\)\*sin\(θ / 2\)", r"im\*cos\(-?β\)|cos\(-?β\)\*im"]
 julia> @variables θ β
 2-element Vector{Symbolics.Num}:
  θ
@@ -429,10 +433,10 @@ XXplusYY(θ, β)
 
 julia> matrix(GateXXplusYY(θ, β))
 4×4 Matrix{Complex{Symbolics.Num}}:
- 1                              0               …  0
- 0                     cos(θ / 2)                  0
- 0  sin(-β)*sin(θ / 2) - im*cos(-β)*sin(θ / 2)     0
- 0                              0                  1
+ 1                           0                  …  0
+ 0                  cos(θ / 2)                     0
+ 0  sin(θ / 2)*sin(-β) - cos(-β)*im*sin(θ / 2)     0
+ 0                           0                     1
 
 julia> c = push!(Circuit(), GateXXplusYY(θ, β), 1, 2)
 2-qubit circuit with 1 instruction:
@@ -510,6 +514,10 @@ function decompose_step!(builder, ::CanonicalRewrite, g::GateXXplusYY, qtargets,
     return builder
 end
 
+# The symbolic matrix printed in the examples below contains commutative
+# products whose factor order is not reproducible: the same Symbolics version
+# prints `sin(-β)*sin(θ / 2)` on one machine and `sin(θ / 2)*sin(-β)` on
+# another. The doctest filters neutralise that order, so do not drop them.
 @doc raw"""
     GateXXminusYY(θ, β)
 
@@ -534,7 +542,7 @@ See also [`GateRXX`](@ref), [`GateRYY`](@ref), [`GateRZZ`](@ref),
 
 ## Examples
 
-```jldoctests
+```jldoctests; filter = [r"sin\(θ / 2\)\*sin\(-?β\)|sin\(-?β\)\*sin\(θ / 2\)", r"im\*cos\(-?β\)|cos\(-?β\)\*im"]
 julia> @variables θ β
 2-element Vector{Symbolics.Num}:
  θ
@@ -545,10 +553,10 @@ XXminusYY(θ, β)
 
 julia> matrix(GateXXminusYY(θ, β))
 4×4 Matrix{Complex{Symbolics.Num}}:
-          cos(θ / 2)                       …  sin(-β)*sin(θ / 2) - im*cos(-β)*sin(θ / 2)
-                   0                                                      0
-                   0                                                      0
- sin(θ / 2)*sin(β) - im*cos(β)*sin(θ / 2)                        cos(θ / 2)
+          cos(θ / 2)                       …  sin(θ / 2)*sin(-β) - cos(-β)*im*sin(θ / 2)
+                   0                                                   0
+                   0                                                   0
+ sin(β)*sin(θ / 2) - cos(β)*im*sin(θ / 2)                     cos(θ / 2)
 
 julia> c = push!(Circuit(), GateXXminusYY(θ, β), 1, 2)
 2-qubit circuit with 1 instruction:

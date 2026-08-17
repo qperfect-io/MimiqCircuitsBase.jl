@@ -16,11 +16,20 @@
 
 # Clustering gate-fusion pass.
 #
-# Replaces maximal runs of fusible unitary gates acting on ≤ `max_support`
-# qubits with a single `GateCustom` whose matrix is the ordered product of the
-# run. Boundaries (measurements, resets, noise channels, control flow,
-# barriers, and anything without a concrete numeric unitary) are emitted
-# verbatim and are never fused across on a shared wire.
+# Replaces runs of fusible unitary gates spanning ≤ `max_support` qubits with a
+# single `GateCustom` whose matrix is the ordered product of the run.
+# Boundaries (measurements, resets, noise channels, control flow, barriers, and
+# anything without a concrete numeric unitary) are emitted verbatim and are
+# never fused across on a shared wire.
+#
+# Clusters grow by absorbing the clusters that own a gate's wires. Merging is
+# what makes `max_support` above two useful: on an entangling circuit every
+# wire is owned after the first layer, so a gate that could only ever extend a
+# single cluster would start a fresh one every time.
+#
+# Merging two clusters is only sound when nothing outside them sits in between,
+# otherwise the contracted DAG gains a cycle and the circuit cannot be
+# reordered. The `isopen` flag is what keeps that safe: see `seal!` below.
 
 # An instruction is fusible iff it is a plain unitary gate with a concrete
 # numeric matrix on ≤ N qubits. Requiring `AbstractGate` already excludes
@@ -55,9 +64,12 @@ end
 @doc raw"""
     fuse(c::Circuit; max_support::Int=2) -> Circuit
 
-Fuse maximal runs of adjacent unitary gates acting on at most `max_support`
-qubits into single [`GateCustom`](@ref) blocks, preserving the circuit's overall
-unitary exactly.
+Fuse runs of unitary gates spanning at most `max_support` qubits into single
+[`GateCustom`](@ref) blocks, preserving the circuit's overall unitary exactly.
+
+Raising `max_support` lets a block cover more wires and so emit fewer, wider
+blocks. Which gates end up together is decided greedily, so the result is not
+guaranteed to be the smallest possible circuit.
 
 Non-unitary or opaque operations — measurements, resets, noise channels,
 `Barrier`, `IfStatement`/`WhileStatement`, and gates with symbolic parameters —
@@ -89,28 +101,44 @@ function fuse(c::Circuit; max_support::Int=2)::Circuit
     n = length(c)
     nq = numqubits(c)
 
-    owner = Dict{Int,Int}()             # qubit -> id of the fusible cluster owning it
+    owner = Dict{Int,Int}()             # qubit -> id of the cluster owning it
     members = Vector{Vector{Int}}()     # cluster id -> instruction indices (ascending)
     support = Vector{Set{Int}}()        # cluster id -> qubits it spans
     kinds = Vector{Symbol}()            # cluster id -> :fuse | :pass
+    isopen = Vector{Bool}()             # cluster id -> still owns all of its support
     clusterof = Vector{Int}(undef, n)
 
     function newcluster!(i, qs, k)
         push!(members, [i])
         push!(support, Set{Int}(qs))
         push!(kinds, k)
+        push!(isopen, k === :fuse)
         return length(members)
+    end
+
+    # A cluster stays *open* while it owns every wire it spans, which makes it a
+    # sink in the contracted DAG: nothing downstream depends on it yet. Losing a
+    # wire to a later instruction gives it a successor, and from then on merging
+    # it could close a cycle (`A → X → B` with `X` left outside), so it is
+    # sealed for good.
+    function seal!(qs)
+        for q in qs
+            g = get(owner, q, 0)
+            g == 0 || (isopen[g] = false)
+        end
     end
 
     for i in 1:n
         inst = c[i]
         if !_is_fusible(inst, max_support)
-            cid = newcluster!(i, collect(getqubits(inst)), :pass)
             # The boundary *owns* every wire it depends on, so a later gate on
             # one of those wires can't fuse back into a cluster that sits before
             # the boundary. A few global observables synchronise the whole
             # register in the DAG, so mirror `_dag_qubits` here.
-            for q in _dag_qubits(inst, nq)
+            dq = _dag_qubits(inst, nq)
+            seal!(dq)
+            cid = newcluster!(i, collect(getqubits(inst)), :pass)
+            for q in dq
                 owner[q] = cid
             end
             clusterof[i] = cid
@@ -118,35 +146,67 @@ function fuse(c::Circuit; max_support::Int=2)::Circuit
         end
 
         qs = getqubits(inst)
-        live = Set{Int}(owner[q] for q in qs if haskey(owner, q))
-        if length(live) == 1
-            g = first(live)
-            # Join only a fusible cluster that already owns the immediate
-            # predecessor on each shared wire (fresh wires carry no owner). A
-            # boundary-owned wire has `kinds[g] == :pass`, which blocks the join.
-            if kinds[g] == :fuse && length(union(support[g], qs)) <= max_support
-                push!(members[g], i)
-                union!(support[g], qs)
-                for q in qs
-                    owner[q] = g
-                end
-                clusterof[i] = g
-                continue
+
+        # Candidates are the open fusible clusters owning this gate's wires.
+        # Merging several of them at once is what lets a cluster grow past two
+        # qubits: every one absorbed is an operation removed from the output, so
+        # take them cheapest-first to fit as many as `max_support` allows.
+        cand = Int[]
+        for q in qs
+            g = get(owner, q, 0)
+            g == 0 && continue
+            kinds[g] === :fuse && isopen[g] && !(g in cand) && push!(cand, g)
+        end
+        sort!(cand; by=g -> length(setdiff(support[g], qs)))
+
+        S = Set{Int}(qs)
+        chosen = Int[]
+        for g in cand
+            u = union(S, support[g])
+            if length(u) <= max_support
+                S = u
+                push!(chosen, g)
             end
         end
-        # 0 live (all wires fresh), ≥2 live (a bridge that would merge
-        # clusters), a boundary-owned wire, or a single owner the gate no
-        # longer fits: start a fresh cluster.
-        cid = newcluster!(i, collect(qs), :fuse)
-        for q in qs
-            owner[q] = cid
+
+        if isempty(chosen)
+            seal!(qs)
+            cid = newcluster!(i, collect(qs), :fuse)
+            for q in qs
+                owner[q] = cid
+            end
+            clusterof[i] = cid
+            continue
         end
-        clusterof[i] = cid
+
+        # Fold the chosen clusters into the earliest of them. Any other cluster
+        # holding one of this gate's wires loses it here, so it is sealed.
+        s = minimum(chosen)
+        for q in qs
+            g = get(owner, q, 0)
+            (g == 0 || g in chosen) || (isopen[g] = false)
+        end
+        for g in chosen
+            g == s && continue
+            append!(members[s], members[g])
+            for j in members[g]
+                clusterof[j] = s
+            end
+            union!(support[s], support[g])
+            empty!(members[g])          # folded away, emits nothing
+            empty!(support[g])
+        end
+        push!(members[s], i)
+        union!(support[s], qs)
+        clusterof[i] = s
+        for q in S
+            owner[q] = s
+        end
     end
 
     # Contract the instruction DAG by cluster id and topologically sort it: any
     # topological order is a valid, equivalent circuit (independent clusters
-    # commute). Single-owner greedy keeps every cluster convex, so this is a DAG.
+    # commute). Merging only sinks keeps every cluster convex, so this is a DAG.
     nc = length(members)
     cg = SimpleDiGraph(nc)
     for e in edges(c)
@@ -157,13 +217,14 @@ function fuse(c::Circuit; max_support::Int=2)::Circuit
 
     out = Circuit()
     for cid in order
+        isempty(members[cid]) && continue
         if kinds[cid] == :pass || length(members[cid]) == 1  # no singleton demotion
             for i in members[cid]
                 push!(out, c[i])  # verbatim: keeps qubits, bits and zvars intact
             end
         else
             S = sort!(collect(support[cid]))
-            push!(out, GateCustom(_synthesize(c, members[cid], S)), S...)
+            push!(out, GateCustom(_synthesize(c, sort!(members[cid]), S)), S...)
         end
     end
     return out

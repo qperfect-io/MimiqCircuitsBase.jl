@@ -108,11 +108,54 @@ end
     end
 
     rng = MersenneTwister(20260711)
-    for N in 1:3, _ in 1:120
+    for N in 1:5, _ in 1:120
         nq = rand(rng, 1:6)
         c = randcirc(rng, nq, rand(rng, 2:18))
         f = fuse(c; max_support=N)
         @test length(f) <= length(c)
         @test isapprox(_circuit_unitary(c, nq), _circuit_unitary(f, nq); atol=1e-9)
+    end
+end
+
+@testset "fuse — clusters merge past two qubits" begin
+    # Brick-wall entangling layers: after the first layer every wire is owned,
+    # so each later gate bridges two clusters. Fusion used to refuse every such
+    # bridge, which pinned the output at the max_support = 2 result no matter
+    # how wide the budget was.
+    function brickwall(nq, layers)
+        c = Circuit()
+        for l in 1:layers, q in (isodd(l) ? (1:2:nq-1) : (2:2:nq-1))
+            push!(c, GateH(), q)
+            push!(c, GateCX(), q, q + 1)
+        end
+        return c
+    end
+
+    nq = 5
+    c = brickwall(nq, 4)
+    counts = [length(fuse(c; max_support=k)) for k in 2:nq]
+    @test issorted(counts; rev=true)          # wider budget never fuses worse
+    @test counts[end] < counts[1]             # ... and here it fuses strictly better
+
+    # A cluster wider than two qubits has to actually be emitted.
+    @test any(numqubits(getoperation(inst)) > 2 for inst in fuse(c; max_support=4))
+
+    ref = _circuit_unitary(c, nq)
+    for k in (2, nq)
+        @test isapprox(ref, _circuit_unitary(fuse(c; max_support=k), nq); atol=1e-9)
+    end
+end
+
+@testset "fuse — merging never closes a cycle" begin
+    # g1 and g3 both look mergeable at g4, but g2 sits between them: fusing the
+    # two into one block would need g2 to run both after and before it.
+    c = Circuit()
+    push!(c, GateCX(), 1, 2)
+    push!(c, GateCX(), 2, 3)
+    push!(c, GateCX(), 3, 4)
+    push!(c, GateCX(), 1, 4)
+    ref = _circuit_unitary(c, 4)
+    for k in 2:4
+        @test isapprox(ref, _circuit_unitary(fuse(c; max_support=k), 4); atol=1e-9)
     end
 end

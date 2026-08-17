@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.24.5] — 2026-08-18
+
+### Fixed
+- `fuse` merges the clusters owning a gate's wires instead of only extending a single one, so `max_support` above 2 now produces wider blocks. On entangling circuits every wire is owned after the first layer, which made every later gate start a fresh cluster and pinned the output at the `max_support = 2` result. A quantum volume circuit on 30 qubits at depth 30 now fuses to 426 blocks at `max_support = 2` and 151 at `max_support = 4`, where before it gave 456 at every setting.
+
 ## [0.24.4] — 2026-08-05
 
 ### Docs
