@@ -2,6 +2,7 @@ using MimiqCircuitsBase
 using LinearAlgebra
 using Random
 using Test
+using Symbolics
 
 const _MCB = MimiqCircuitsBase
 
@@ -157,5 +158,43 @@ end
     ref = _circuit_unitary(c, 4)
     for k in 2:4
         @test isapprox(ref, _circuit_unitary(fuse(c; max_support=k), 4); atol=1e-9)
+    end
+end
+
+@testset "matrix(::Vector{Instruction}) keeps a stable element type" begin
+    # The contract is `Complex{Num}` regardless of content: deriving the element
+    # type from whether any gate happens to be symbolic would make the return
+    # type depend on the argument's *value*, and every caller type-unstable.
+    @variables θ
+    @test eltype(matrix([Instruction(GateH(), 1), Instruction(GateCX(), 1, 2)])) == Complex{Num}
+    @test eltype(matrix([Instruction(GateH(), 1), Instruction(GateRZ(θ), 1)])) == Complex{Num}
+    @test eltype(matrix([Instruction(GateX(), 1)])) == Complex{Num}
+    @test eltype(matrix(Circuit())) == Complex{Num}
+
+    # Gate matrices span Int64/Float64/ComplexF64/Num/Complex{Num}, and Symbolics
+    # leaves promote_type(ComplexF64, Num) ambiguous. `GateRY` with a symbolic
+    # angle is the only gate yielding a plain `Num` matrix, so mixing it with a
+    # complex numeric gate is what a naive promotion trips over.
+    @test eltype(matrix([Instruction(GateRY(θ), 1)])) == Complex{Num}
+    for other in (Instruction(GateRZ(0.5), 1), Instruction(GateP(0.3), 1), Instruction(GateH(), 1))
+        @test eltype(matrix([other, Instruction(GateRY(θ), 1)])) == Complex{Num}
+    end
+
+    # ... while the numeric fold `fuse` uses stays on BLAS types
+    insts = [Instruction(GateH(), 1), Instruction(GateCX(), 1, 2), Instruction(GateRZ(0.5), 2)]
+    @test eltype(_MCB._foldmatrices(map(i -> matrix(i, 2), insts), 2, ComplexF64)) == ComplexF64
+end
+
+@testset "_index_permutation matches the obvious form" begin
+    # All permutations of 1:n, without pulling in a dependency for it.
+    allperms(n) = (collect(p) for p in Iterators.product(ntuple(_ -> 1:n, n)...)
+                   if length(unique(p)) == n)
+
+    slow(qperm, nq) = sortperm(map(0:(2^nq-1)) do i
+        _MCB.bitstring_to_integer(BitString(nq, i)[qperm])
+    end)
+
+    for nq in 1:5, qperm in allperms(nq)
+        @test _MCB._index_permutation(qperm, nq) == slow(qperm, nq)
     end
 end

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.24.6] — 2026-08-18
+
+### Fixed
+- `matrix(::Vector{Instruction})` and `matrix(::Circuit)` evaluate the product numerically when no gate carries a symbolic parameter, converting once at the end, instead of putting every intermediate through SymbolicUtils. The return type is unchanged — still `Matrix{Complex{Num}}` in every case, so callers see no difference other than speed. Folding a 51-gate 6-qubit circuit drops from 124 s to 4.2 ms. Circuits containing a symbolic parameter take the symbolic path exactly as before.
+- `fuse` builds each block with a `ComplexF64` fold rather than through `matrix(::Vector{Instruction})`, which is where it previously spent essentially all of its time: a 590-gate bricklayer circuit on 20 qubits at `max_support = 5` drops from 141 s to 28 ms, and a 20-qubit QFT at `max_support = 3` from 1.76 s to 3.8 ms. `fuse` only ever fuses gates with concrete numeric matrices, so this changes no results.
+
+### Performance
+- `_reorder_qubits_matrix!` derives its index permutation from the `nq` basis indices and inverts it by scatter, instead of building all `2^nq` images as `BigInt`s through `BitString` and recovering the permutation with `sortperm`. Worth a further 1.07–1.31x on `fuse`. The permutation itself was verified against the previous expression over every qubit subset and ordering for `nq` up to 6.
+
 ## [0.24.5] — 2026-08-18
 
 ### Fixed

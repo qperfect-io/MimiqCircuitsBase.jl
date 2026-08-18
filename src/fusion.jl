@@ -50,15 +50,20 @@ end
 
 # Dense matrix for a cluster: re-express each member on its local position
 # within the sorted support `S`, then compose in circuit order (later gate on
-# the left). `matrix(::Vector{Instruction})` embeds each to the k-qubit space
-# and folds the product, so k = |S|.
+# the left), embedding each to the k-qubit space with k = |S|.
+#
+# Folds in `ComplexF64` rather than going through
+# `matrix(::Vector{Instruction})`, whose contract is to return `Complex{Num}`:
+# `_is_fusible` has already established that every member has a concrete numeric
+# matrix, and `GateCustom` converts the result on construction anyway.
 function _synthesize(c::Circuit, members::Vector{Int}, S::Vector{Int})
     localinsts = map(sort(members)) do i
         inst = c[i]
         lq = map(q -> findfirst(==(q), S), getqubits(inst))
         Instruction(getoperation(inst), lq...)
     end
-    return matrix(localinsts)
+    N = length(S)
+    return _foldmatrices(map(inst -> matrix(inst, N), localinsts), N, ComplexF64)
 end
 
 @doc raw"""

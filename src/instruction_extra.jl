@@ -44,12 +44,36 @@ function matrix(inst::Instruction{N,0,0,<:AbstractGate}, L) where {N}
     return _reorder_qubits_matrix!(Matrix(M), qubits, L)
 end
 
+# Whether a gate-matrix element type carries symbolic expressions. Gate matrices
+# span `Int64`, `Float64`, `ComplexF64`, `Num` (`GateRY` with a symbolic angle)
+# and `Complex{Num}`; note that Symbolics leaves `promote_type(ComplexF64, Num)`
+# ambiguous, so these types must be classified rather than promoted.
+_issymbolictype(::Type{T}) where {T} = T <: Num || T <: Complex{<:Num}
+
+# Product of already-embedded factors in circuit order (later gate on the left),
+# all converted to `T` up front so every step is one BLAS call.
+function _foldmatrices(Ms, N, ::Type{T}) where {T}
+    factors = [convert(Matrix{T}, M) for M in Ms]
+    return foldl(*, Iterators.reverse(factors); init=Matrix{T}(I, 2^N, 2^N))
+end
+
 function matrix(insts::Vector{<:Instruction})
     N = numqubits(insts)
 
-    iter = Iterators.map(insts) do inst
-        matrix(inst, N)
+    Ms = map(inst -> matrix(inst, N), insts)
+
+    # Always `Matrix{Complex{Num}}`, as before: making the element type depend on
+    # whether any gate happens to be symbolic would make the return type a
+    # function of the argument's *value*, and every caller type-unstable with it.
+    #
+    # A numeric circuit still gets the fast path — the product runs in
+    # `ComplexF64` and is converted once at the end, rather than putting every
+    # intermediate through SymbolicUtils. Callers that want the numeric matrix
+    # itself, and can establish that nothing is symbolic, should fold with
+    # `_foldmatrices(..., ComplexF64)` directly; `fuse` does.
+    if !isempty(Ms) && !any(M -> _issymbolictype(eltype(M)), Ms)
+        return convert(Matrix{Complex{Num}}, _foldmatrices(Ms, N, ComplexF64))
     end
 
-    return foldl(*, Iterators.reverse(iter); init=Matrix{Complex{Num}}(I, 2^N, 2^N))
+    return _foldmatrices(Ms, N, Complex{Num})
 end
