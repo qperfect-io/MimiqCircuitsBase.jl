@@ -33,38 +33,39 @@ function _zyz_decomposition(U::AbstractMatrix)
     u10 = U[2, 1]
     u11 = U[2, 2]
 
-    # Calculate theta from diagonal magnitude
-    cos_theta_2 = min(abs(u00), 1.0)
-    theta = 2 * acos(cos_theta_2)
+    # cos(θ/2) and sin(θ/2) read straight off the matrix, and θ from their
+    # ratio. Going through `acos(|u00|)` instead loses half the significant
+    # digits whenever `|u00| ≈ 1` — `acos(1 - ε) ≈ √(2ε)`, so a diagonal matrix
+    # comes out with θ ≈ 1.5e-8 instead of 0, which is both a 1e-8 error in the
+    # reconstruction and enough to miss any test for "θ is zero".
+    c = abs(u00)
+    s = abs(u10)
+    theta = 2 * atan(s, c)
 
-    # Handle corner cases for numerical stability when sin(theta/2) is small
-
-    # Case 1: theta ~ 0 (Identity-like)
-    # U is diagonal-dominant. We extract phases directly from diagonal elements.
-    if isapprox(theta, 0, atol=1e-10)
+    # Diagonal: the off-diagonal entries are exactly zero, so ϕ is free — only
+    # ϕ + λ is fixed, and the conventional choice is ϕ = 0.
+    if iszero(s)
         gamma = angle(u00)
-        # u11 = e^{i(gamma + phi + lambda)}
-        # We can arbitrarily split phi and lambda. Let phi = 0.
         return (0.0, 0.0, angle(u11) - gamma, gamma)
     end
 
-    # Case 2: theta ~ pi (X-like)
-    # U is off-diagonal-dominant. We extract phases from off-diagonal elements.
-    if isapprox(theta, π, atol=1e-10)
-        # u10 = e^{i(gamma + phi)}. Let phi = 0 => gamma = angle(u10)
+    # Anti-diagonal: both diagonal entries vanish, so γ and λ cannot be read
+    # from them. `u01` and `u10` carry independent phases here (any
+    # `[0 b; a 0]` with `|a| = |b| = 1` is unitary), so λ must come from `u01`.
+    if c <= 1e-8 * max(c, s)
         gamma = angle(u10)
-        # u01 = -e^{i(gamma + lambda)}
-        lambda = angle(u01) - gamma - π
-        return (theta, 0.0, lambda, gamma)
+        return (float(π), 0.0, angle(u01) - gamma - π, gamma)
     end
 
-    # General case
-    # Extract gamma from u00 phase (cos term)
+    # Everywhere else, take every phase from an entry of size cos(θ/2) except
+    # ϕ, whose defining entry is `u10`. Reading λ from `u11` rather than from
+    # `u01` is what keeps a near-diagonal matrix exact: the noisy `angle(u10)`
+    # of a vanishing entry then enters ϕ and λ with opposite signs, so it
+    # cancels in `ϕ + λ` — the only combination that multiplies cos(θ/2) — and
+    # what it does reach is scaled by sin(θ/2) ≈ 0.
     gamma = angle(u00)
-
-    # Extract phi and lambda from off-diagonals (sin terms)
     phi = angle(u10) - gamma
-    lambda = angle(-u01) - gamma
+    lambda = angle(u11) - angle(u10)
 
     return (theta, phi, lambda, gamma)
 end

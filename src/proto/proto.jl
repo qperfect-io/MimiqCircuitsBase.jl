@@ -25,7 +25,7 @@ client/executor incompatibility. Must match
 `mimiqcircuits.WIRE_FORMAT_VERSION` on the Python side. See
 `WIRE_FORMAT.md` for the surface and bump rules.
 """
-const WIRE_FORMAT_VERSION = v"1.1.0"
+const WIRE_FORMAT_VERSION = v"1.2.0"
 
 """
     saveproto(fname, c::Circuit)

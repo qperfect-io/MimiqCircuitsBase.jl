@@ -218,6 +218,42 @@ end
     checkcustomgate(3, ComplexF64)
 end
 
+@testset "Custom Diagonal Gates" begin
+    d = cis.(2π .* rand(8))
+    g = GateCustomDiagonal(d)
+
+    @test g isa GateCustomDiagonal{3}
+    @test numqubits(g) == 3
+    @test matrix(g) ≈ Diagonal(d)
+    @test unwrappedmatrix(g) ≈ Diagonal(d)
+    @test diagonal(g) == GateCustomDiagonal(d).d
+    @test unwrappeddiagonal(g) ≈ d
+    @test isunitary(typeof(g))
+
+    # inverse conjugates the phases
+    @test matrix(inverse(g)) ≈ inv(Matrix(matrix(g)))
+
+    # the canonical rewrite expands the phases into parity rotations, and is
+    # exact — global phase included, which the dense QSD route is not
+    dec = decompose(push!(Circuit(), g, 1, 2, 3))
+    U = ComplexF64.(MimiqCircuitsBase.unwrapvalue.(Matrix(matrix(dec._instructions))))
+    @test U ≈ unwrappedmatrix(g)
+    @test all(i -> getoperation(i) isa Union{GateRZ,GateCX,GateU}, dec)
+
+    @test GateCustomDiagonal([1, -1]) == GateCustomDiagonal([1.0, -1.0])
+    @test GateCustomDiagonal([1, -1]) != GateCustomDiagonal([1, 1])
+
+    # only phases are unitary, and only 2^N of them
+    @test_throws ArgumentError GateCustomDiagonal([1, 2])
+    @test_throws ArgumentError GateCustomDiagonal([1, 1, 1])
+
+    # symbolic entries are kept as such and substituted by `evaluate`
+    @variables θ
+    gs = GateCustomDiagonal([1, exp(im * θ)])
+    @test issymbolic(gs)
+    @test evaluate(gs, Dict(θ => 0.0)) == GateCustomDiagonal([1, 1])
+end
+
 @testset "Rotations" begin
     function RX(theta)
         return exp(-im * theta / 2 * matrix(GateX()))

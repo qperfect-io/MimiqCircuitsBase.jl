@@ -79,6 +79,27 @@ end
         U = [1 0; 0 -1] .|> ComplexF64
         t, p, l, g = _zyz_decomposition(U)
         @test isapprox(t, 0, atol=1e-8)
+
+        # A diagonal matrix has theta exactly 0. Deriving it from
+        # `acos(|u00|)` returned ~1.5e-8 whenever `|u00|` rounded just below 1,
+        # which then sent the rewrite down the general branch and read phases
+        # off entries that are zero.
+        U = diagm(ComplexF64[cis(0.3), cis(1.1)])
+        t, p, l, g = _zyz_decomposition(U)
+        @test t == 0
+        @test MimiqCircuitsBase.matrix(GateU(t, p, l, g)) ≈ U atol = 1e-14
+
+        # Anti-diagonal: `u01` and `u10` carry independent phases
+        U = ComplexF64[0 cis(0.7); cis(-1.3) 0]
+        t, p, l, g = _zyz_decomposition(U)
+        @test MimiqCircuitsBase.matrix(GateU(t, p, l, g)) ≈ U atol = 1e-14
+
+        # Phases that keep the matrix near-diagonal must stay exact
+        for k in 0:31
+            U = diagm(ComplexF64[cis(2π * k / 32), cis(2π * k / 32 + 0.7)])
+            t, p, l, g = _zyz_decomposition(U)
+            @test MimiqCircuitsBase.matrix(GateU(t, p, l, g)) ≈ U atol = 1e-14
+        end
     end
 
     @testset "CSD Decomposition Matrix" begin
@@ -133,10 +154,11 @@ end
 
         # Edge Case: Diagonal Matrix (4x4)
         # Checks stability when sin(theta) is near 0
-        U = diagm(exp.(im .* rand(4)))
+        U = diagm(cis.(ComplexF64[0.3, 1.1, -0.4, 2.2]))
         L0, L1, R0, R1, theta = _csd_decomposition(U)
-        # Verify theta approx 0
-        @test all(x -> abs(x) < 1e-6, theta)
+        # The off-diagonal blocks are exactly zero, so the sines are too — they
+        # used to come out at ~1.5e-8, the accuracy floor of `acos` near 1.
+        @test all(iszero, theta)
 
         C = diagm(cos.(theta))
         S = diagm(sin.(theta))
@@ -195,6 +217,42 @@ end
         U_rec = circuit_matrix(c, 2)
         U_target = U * exp(-im * phase)
         @test abs(tr(U_target' * U_rec)) / 4 ≈ 1.0 atol = 1e-8
+    end
+
+    @testset "GateCustom rewrite is exact" begin
+        # The rewrite has to reproduce the matrix itself, not just something
+        # proportional to it: the QSD phase used to be dropped on the way out,
+        # and a degenerate (diagonal) input could come back with an O(1) phase
+        # on a single amplitude.
+        rewrite(U, n) = circuit_matrix(decompose(push!(Circuit(), GateCustom(U), (1:n)...)), n)
+
+        fixed = [
+            ComplexF64[0 1; 1 0],
+            ComplexF64[1 0; 0 -1],
+            ComplexF64[1 1; 1 -1] ./ sqrt(2),
+            diagm(ComplexF64[1, 1, 1, -1]),
+            ComplexF64[1 0 0 0; 0 1 0 0; 0 0 0 1; 0 0 1 0],
+            ComplexF64[1 0 0 0; 0 0 1 0; 0 1 0 0; 0 0 0 1],
+            kron(ComplexF64[0 1; 1 0], ComplexF64[0 1; 1 0]),
+        ]
+        for U in fixed
+            n = Int(log2(size(U, 1)))
+            @test rewrite(U, n) ≈ U atol = 1e-12
+        end
+
+        # Diagonal matrices: every singular value is degenerate, and which
+        # branch of the 1-qubit rewrite runs depends on how `|u00|` rounds, so
+        # sweep the phase rather than trusting one draw.
+        for k in 0:31
+            d = cis.(2π * k / 32 .+ ComplexF64[0.0, 0.3, 1.1, 2.7])
+            @test rewrite(diagm(d), 2) ≈ diagm(d) atol = 1e-12
+        end
+
+        rng = MersenneTwister(20260819)
+        for n in 1:3
+            U = Matrix(qr(randn(rng, ComplexF64, 2^n, 2^n)).Q)
+            @test rewrite(U, n) ≈ U atol = 1e-12
+        end
     end
 end
 

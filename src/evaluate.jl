@@ -73,6 +73,13 @@ function evaluate(g::GateCustom, d::Dict=Dict())
     GateCustom(Unew)
 end
 
+function evaluate(g::GateCustomDiagonal, d::Dict=Dict())
+    dnew = map(g.d) do x
+        Symbolics.substitute(x, d)
+    end
+    GateCustomDiagonal(dnew)
+end
+
 function evaluate(g::Operator, d::Dict=Dict())
     Onew = map(g.O) do x
         Symbolics.substitute(x, d)

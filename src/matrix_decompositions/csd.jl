@@ -51,26 +51,30 @@ function _csd_decomposition(U::AbstractMatrix)
 
     # Re-normalize C to be in [0, 1] range (numerical stability)
     C_diag = min.(max.(C_diag, 0.0), 1.0)
-    theta = acos.(C_diag)
+
+    # Derivation from u10 = L1 * S * R0 and u01 = - L0 * S * R1
+    X = u10 * R0'
+    Y = L0' * u01
+
+    # `X[:, i] = L1[:, i] * sin(θ_i)` with `L1[:, i]` a unit vector, so the
+    # sines are column norms. Taking them as `sin(acos(σ_i))` instead loses half
+    # the significant digits whenever `σ_i ≈ 1` — `acos(1 - ε) ≈ √(2ε)` — and a
+    # block that is already unitary has every `σ_i = 1`, so a diagonal `U` came
+    # out with `sin(θ) ≈ 1.5e-8` where it should be 0.
+    S_diag = [norm(view(X, :, i)) for i in 1:m]
+    theta = atan.(S_diag, C_diag)
 
     L1 = zeros(ComplexF64, m, m)
     R1 = zeros(ComplexF64, m, m)
 
     threshold = 1e-6
 
-    determined_indices = findall(x -> x > threshold, sin.(theta))
-    undetermined_indices = findall(x -> x <= threshold, sin.(theta))
+    determined_indices = findall(x -> x > threshold, S_diag)
+    undetermined_indices = findall(x -> x <= threshold, S_diag)
 
-    # Fill determined parts where sin(theta) != 0
-    S_inv = [1.0 / sin(theta[i]) for i in determined_indices]
-
-    # Derivation from u10 = L1 * S * R0 and u01 = - L0 * S * R1
-    X = u10 * R0'
-    Y = L0' * u01
-
-    for (i, idx) in enumerate(determined_indices)
-        L1[:, idx] = X[:, idx] * S_inv[i]
-        R1[idx, :] = -Y[idx, :] * S_inv[i]
+    for idx in determined_indices
+        L1[:, idx] = X[:, idx] ./ S_diag[idx]
+        R1[idx, :] = -Y[idx, :] ./ S_diag[idx]
     end
 
     # Fill undetermined parts (where sin(theta) ≈ 0)
@@ -79,7 +83,7 @@ function _csd_decomposition(U::AbstractMatrix)
     if !isempty(undetermined_indices)
         L1_det = L1[:, determined_indices]
         R1_det = R1[determined_indices, :]
-        C_det = Diagonal(cos.(theta[determined_indices]))
+        C_det = Diagonal(C_diag[determined_indices])
 
         Rem = u11 - L1_det * C_det * R1_det
 

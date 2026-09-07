@@ -299,6 +299,11 @@ include("operations/gates/delay.jl")
 export GateCustom
 include("operations/gates/custom.jl")
 
+export GateCustomDiagonal
+export diagonal
+export unwrappeddiagonal
+include("operations/gates/customdiagonal.jl")
+
 # generalized gates
 export PhaseGradient
 include("operations/generalized/phasegradient.jl")

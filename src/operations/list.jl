@@ -140,7 +140,7 @@ const GATES = Type[
 
 See [`GATES`](@ref) for a complete list unitary gates.
 
-[`GateCustom`](@ref)
+[`GateCustom`](@ref), [`GateCustomDiagonal`](@ref)
 
 For gate definitions and calls, see [`GateDecl`](@ref) and [`GateCall`](@ref)
 
@@ -191,7 +191,7 @@ the size of each group of qubits they act on
 [`PauliString`](@ref), [`RPauli`](@ref), [`GateRNZ`](@ref)
 
 ## Custom Gates
-[`GateCustom`](@ref)
+[`GateCustom`](@ref), [`GateCustomDiagonal`](@ref)
 """
 const GENERALIZED = [
     PhaseGradient,
@@ -200,6 +200,7 @@ const GENERALIZED = [
     PolynomialOracle,
     PauliString,
     GateCustom,
+    GateCustomDiagonal,
     GateRNZ,
     RPauli,
 ]

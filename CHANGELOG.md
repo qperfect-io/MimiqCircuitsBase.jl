@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.25.0] — 2026-08-19
+
+### Added
+- `GateCustomDiagonal(d)`, an `N`-qubit gate given by the `2^N` entries of its diagonal, as `GateCustom` is given by a full matrix. Storing only the diagonal keeps a wide diagonal block at `2^N` numbers rather than `4^N`; entries must be phases. The canonical rewrite expands its phases in the Walsh basis into parity rotations (`GateRNZ`/`GateRZ`), exactly and without densifying, so backends that do not know the gate still decompose it.
+- `fuse` takes `max_diagonal_support` (default: `max_support`), the width budget for runs where every gate is diagonal in the computational basis. Such runs now fuse into a `GateCustomDiagonal` and are composed by multiplying diagonals elementwise, never building the dense block. A cluster keeps the diagonal budget only while all of its gates are diagonal; the first dense gate joining it brings it back under `max_support`. With the default budget the emitted blocks cover the same gates as before, but an all-diagonal block comes out as `GateCustomDiagonal` rather than `GateCustom`.
+- Wire format 1.2.0: the `circuit.proto` schema gains a `CustomDiagonalGate` message, carried by the `Gate`, `Operator` and `Operation` oneofs. Additive, so an older decoder ignores it and a newer one still reads old payloads; a client emitting `GateCustomDiagonal` needs an executor speaking 1.2.0.
+
+### Fixed
+- The canonical rewrite of `GateCustom` reproduces the gate exactly, where it used to be off by a global phase — and, on a matrix whose singular values are degenerate (any diagonal one), could put an O(1) phase on a single amplitude: the worst 2-qubit case measured a fidelity of 0.53. Two causes: `_qsd_decomposition` returns a circuit for `U e^{-iφ}` and the rewrite discarded `φ`, and both `_zyz_decomposition` and `_csd_decomposition` derived their angles through `acos` of a cosine that is 1 to within rounding, which costs half the mantissa (`acos(1 - ε) ≈ √(2ε)`) and misdirected the branch that decides which matrix entries carry the phases. Angles now come from `atan` of a sine and a cosine read directly off the matrix, a diagonal block gets `θ = 0` exactly, and the phase is put back. Decomposed circuits are unchanged in structure apart from a trailing global-phase `GateU`.
+
 ## [0.24.6] — 2026-08-18
 
 ### Fixed

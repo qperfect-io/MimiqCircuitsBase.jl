@@ -85,6 +85,10 @@ using ProtoBuf: ProtoEncoder, ProtoDecoder, encode, decode
     # Delay
     push!(c, Delay(0.5), 1)
 
+    # custom gates
+    push!(c, GateCustom([0 1; 1 0]), 1)
+    push!(c, GateCustomDiagonal([1, im, -1, -im]), 1, 2)
+
     # gate declaration
     @gatedecl ansatz(θ) begin
         @on GateX() q=1
@@ -155,6 +159,19 @@ function operator_channel_test(operator::T) where {T<:AbstractOperator}
 
     @test loaded isa T
     @test loaded == operator
+end
+
+@testset "GateCustomDiagonal Protobuf Test" begin
+    g = GateCustomDiagonal([1, cis(0.3), cis(-1.2), im])
+    c = push!(Circuit(), g, 3, 1)
+
+    fname, _ = mktemp()
+    saveproto(fname, c)
+    newc = loadproto(fname, Circuit)
+
+    @test newc == c
+    @test getoperation(newc[1]) isa GateCustomDiagonal{2}
+    @test getqubits(newc[1]) == (3, 1)
 end
 
 @testset "Noise Channel Protobuf Tests" begin

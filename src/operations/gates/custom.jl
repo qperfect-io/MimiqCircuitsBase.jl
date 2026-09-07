@@ -220,7 +220,7 @@ function decompose_step!(builder, ::CanonicalRewrite, g::GateCustom{N}, qtargets
     U = unwrappedmatrix(g)
 
     # Use QSD to decompose N-qubit unitary
-    sub_circ, _ = _qsd_decomposition(U)
+    sub_circ, phase = _qsd_decomposition(U)
 
     # Map q1..qN from sub_circ to qtargets[1]..qtargets[N]
     mapping = Dict(i => qtargets[i] for i in 1:N)
@@ -234,6 +234,14 @@ function decompose_step!(builder, ::CanonicalRewrite, g::GateCustom{N}, qtargets
         qt_new = [mapping[q] for q in qt]
 
         push!(builder, op, qt_new..., ct..., zt...)
+    end
+
+    # `_qsd_decomposition` builds a circuit for `U e^{-i phase}`; putting the
+    # phase back keeps the rewrite equal to `U` and not merely proportional to
+    # it, which matters as soon as the gate sits under a `Control` or the
+    # circuit is read through amplitudes.
+    if abs(phase) > 1e-14
+        push!(builder, GateU(0, 0, 0, phase), qtargets[1])
     end
 
     return builder

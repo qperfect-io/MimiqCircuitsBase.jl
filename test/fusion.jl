@@ -118,6 +118,78 @@ end
     end
 end
 
+@testset "fuse — diagonal clusters" begin
+    # an all-diagonal run collapses into a GateCustomDiagonal, not a GateCustom
+    c = Circuit(); push!(c, GateP(0.1), 1); push!(c, GateCZ(), 1, 2); push!(c, GateRZ(0.3), 2)
+    f = fuse(c)
+    @test length(f) == 1
+    @test getoperation(f[1]) isa GateCustomDiagonal{2}
+    @test isapprox(_circuit_unitary(c, 2), _circuit_unitary(f, 2); atol=1e-12)
+
+    # one dense gate in the run is enough to make the block dense
+    c = Circuit(); push!(c, GateP(0.1), 1); push!(c, GateH(), 1); push!(c, GateCZ(), 1, 2)
+    f = fuse(c)
+    @test length(f) == 1
+    @test getoperation(f[1]) isa GateCustom{2}
+    @test isapprox(_circuit_unitary(c, 2), _circuit_unitary(f, 2); atol=1e-12)
+
+    # a diagonal chain wider than max_support fuses only under the diagonal budget
+    c = Circuit()
+    for q in 1:4
+        push!(c, GateP(0.1q), q)
+    end
+    push!(c, GateCZ(), 1, 2); push!(c, GateCZ(), 2, 3); push!(c, GateCZ(), 3, 4)
+    @test length(fuse(c; max_support=2)) > 1
+    f = fuse(c; max_support=2, max_diagonal_support=4)
+    @test length(f) == 1
+    @test getoperation(f[1]) isa GateCustomDiagonal{4}
+    @test getqubits(f[1]) == (1, 2, 3, 4)
+    @test isapprox(_circuit_unitary(c, 4), _circuit_unitary(f, 4); atol=1e-12)
+
+    # a GateCustomDiagonal member is folded without ever being densified, and
+    # unsorted targets pick their entries in target order
+    g = GateCustomDiagonal([1, im, -1, -im])
+    c = Circuit(); push!(c, g, 2, 1); push!(c, GateCustomDiagonal([1, cis(1.1)]), 1)
+    f = fuse(c)
+    @test length(f) == 1
+    @test getoperation(f[1]) isa GateCustomDiagonal{2}
+    @test isapprox(_circuit_unitary(c, 2), _circuit_unitary(f, 2); atol=1e-12)
+
+    # max_diagonal_support below max_support only means diagonal runs get no
+    # extra room; they still fuse densely up to max_support
+    c = Circuit(); push!(c, GateP(0.1), 1); push!(c, GateCZ(), 1, 2)
+    f = fuse(c; max_support=2, max_diagonal_support=1)
+    @test length(f) == 1
+    @test getoperation(f[1]) isa GateCustom{2}
+    @test isapprox(_circuit_unitary(c, 2), _circuit_unitary(f, 2); atol=1e-12)
+
+    # random mixed circuits: a wider diagonal budget never breaks the unitary
+    rng = MersenneTwister(20260818)
+    gatesd = [() -> GateP(rand(rng)), () -> GateZ(), () -> GateT(), () -> GateRZ(rand(rng))]
+    for _ in 1:120
+        nq = rand(rng, 2:5)
+        c = Circuit()
+        for _ in 1:rand(rng, 2:20)
+            r = rand(rng)
+            a = rand(rng, 1:nq); b = rand(rng, setdiff(1:nq, a))
+            if r < 0.4
+                push!(c, rand(rng, gatesd)(), a)
+            elseif r < 0.7
+                push!(c, GateCZ(), a, b)
+            elseif r < 0.85
+                push!(c, GateH(), a)
+            else
+                push!(c, GateCX(), a, b)
+            end
+        end
+        for mds in 1:5
+            f = fuse(c; max_support=2, max_diagonal_support=mds)
+            @test length(f) <= length(c)
+            @test isapprox(_circuit_unitary(c, nq), _circuit_unitary(f, nq); atol=1e-9)
+        end
+    end
+end
+
 @testset "fuse — clusters merge past two qubits" begin
     # Brick-wall entangling layers: after the first layer every wire is owned,
     # so each later gate bridges two clusters. Fusion used to refuse every such

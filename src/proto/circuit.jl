@@ -259,6 +259,15 @@ function fromproto(g::circuit_pb.CustomGate)
     return GateCustom(U)
 end
 
+function toproto(g::GateCustomDiagonal{N}) where {N}
+    d = map(toproto, g.d)
+    return circuit_pb.CustomDiagonalGate(N, d)
+end
+
+function fromproto(g::circuit_pb.CustomDiagonalGate)
+    return GateCustomDiagonal(map(fromproto, g.diagonal))
+end
+
 function toproto(decl::GateDecl, declcache=nothing)
     instructions = map(inst -> toproto(inst, declcache), decl._instructions)
     args = map(toproto, decl._arguments)
@@ -828,6 +837,7 @@ function _build_oneof(gop, declcache=nothing)
 
     op isa circuit_pb.SimpleGate ? OneOf(:simplegate, op) :
     op isa circuit_pb.CustomGate ? OneOf(:customgate, op) :
+    op isa circuit_pb.CustomDiagonalGate ? OneOf(:customdiagonalgate, op) :
     op isa circuit_pb.Generalized ? OneOf(:generalized, op) :
     op isa circuit_pb.Control ? OneOf(:control, op) :
     op isa circuit_pb.Power ? OneOf(:power, op) :

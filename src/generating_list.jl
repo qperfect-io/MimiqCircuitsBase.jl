@@ -184,6 +184,7 @@ julia> show_mimiq_hierarchy()
     │   │   ├── Diffusion
     │   │   ├── GateCall
     │   │   ├── GateCustom
+    │   │   ├── GateCustomDiagonal
     │   │   ├── GateDCX
     │   │   ├── GateECR
     │   │   ├── GateH
