@@ -15,23 +15,51 @@
 # limitations under the License.
 #
 
+"""
+    OperationError(optype, msg)
+
+Thrown when an operation of type `optype` is built with invalid arguments, for
+example a [`PolynomialOracle`](@ref) whose registers do not add up to its number
+of qubits, or a [`QFT`](@ref) on zero qubits. `msg` says what is wrong.
+
+The error prints as `optype: msg`.
+"""
 struct OperationError <: Exception
     optype::Any
     msg::String
 end
 
-function showerror(io::IO, e::OperationError)
+function Base.showerror(io::IO, e::OperationError)
     print(io, e.optype, ": ", e.msg)
 end
 
+"""
+    UndefinedValue(n)
+
+Thrown when a parameter has to be converted to a number but `n` is still
+symbolic, for example when sampling a noise channel whose probability is an
+unbound variable. Bind the variables first with [`evaluate`](@ref).
+
+The error prints as `Undefined value n.`.
+"""
 struct UndefinedValue <: Exception
     n::Num
 end
 
-function showerror(io::IO, e::UndefinedValue)
+function Base.showerror(io::IO, e::UndefinedValue)
     print(io, "Undefined value $(e.n).")
 end
 
+"""
+    DecompositionError(msg)
+
+Thrown when [`decompose`](@ref) or [`decompose_step`](@ref) cannot rewrite an
+operation: the rule does not match it, or no rule of the basis leads to its
+terminal operations, as for noise channels under [`QASMBasis`](@ref). `msg` says
+which operation and why.
+
+The error prints as `Error during decomposition: msg`.
+"""
 struct DecompositionError <: Exception
     msg::String
 end

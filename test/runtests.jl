@@ -75,6 +75,8 @@ filelist = [
     "fusion.jl",
     "simplify.jl",
     "paulibased.jl",
+    "exceptions.jl",
+    "generating_list.jl",
 ]
 
 @testset "MimiqCircuitsBase.jl" begin

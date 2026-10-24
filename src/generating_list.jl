@@ -45,6 +45,8 @@ function extract_classes!(tree::InheritanceTree, mod::Module)
 
     # get alias consts like: const GateCP = typeof(Control(GateP(π)))
     for alias in names(mod; all=true, imported=true)
+        # Julia 1.13 also lists compiler-generated bindings such as `#319#val`.
+        startswith(string(alias), '#') && continue
         isdefined(mod, alias) || continue
         Base.isdeprecated(mod, alias) && continue
         binding = try

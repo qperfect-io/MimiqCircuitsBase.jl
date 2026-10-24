@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.27.1] — 2026-10-24
+
+### Fixed
+- `OperationError` and `UndefinedValue` print their message, such as `QFT: Number of qubits must be ≥ 1.`, instead of the raw exception struct: their `showerror` methods were not methods of `Base.showerror`.
+- `show_mimiq_hierarchy` no longer lists compiler-generated types such as `#319#val` on Julia 1.13.
+
+### Docs
+- `OperationError`, `UndefinedValue` and `DecompositionError` have docstrings saying when each is thrown.
+- The documentation builds on Julia 1.13: doctests that print a `Set` of qubits no longer depend on the order of its elements.
+
 ## [0.27.0] — 2026-10-24
 
 ### Added

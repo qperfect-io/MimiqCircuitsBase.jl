@@ -155,10 +155,10 @@ Apply readout noise to measurements if all qubits are in the specified set.
 - `noise::ReadoutErr`: The readout error to apply
 
 # Examples
-```jldoctest
+```jldoctest; filter = r"Set\\(\\[[0-9, ]*\\]\\)"
 # Matches any measurement where all qubits are in {1, 3, 5}
 julia> rule = SetQubitReadoutNoise([1, 3, 5], ReadoutErr(0.01, 0.02))
-SetQubitReadoutNoise(Set([5, 3, 1]), ReadoutErr(0.01, 0.02))
+SetQubitReadoutNoise(Set([1, 3, 5]), ReadoutErr(0.01, 0.02))
 ```
 """
 struct SetQubitReadoutNoise <: AbstractNoiseRule
@@ -437,16 +437,16 @@ The operation pattern can have symbolic parameters (see [`OperationInstanceNoise
 # Examples
 Match `GateRX` on any qubits in `{1, 2, 3}` with angle-dependent noise:
 
-```jldoctest
+```jldoctest; filter = r"Set\\(\\[[0-9, ]*\\]\\)"
 julia> @variables a
 1-element Vector{Symbolics.Num}:
  a
 
 julia> rule = SetOperationInstanceQubitNoise(GateRX(a), [1, 2, 3], PhaseAmplitudeDamping(1, 1, a / (2π)))
-SetOperationInstanceQubitNoise(GateRX(a), Set([2, 3, 1]), PhaseAmplitudeDamping(1, 1, a / 6.283185307179586), false, false)
+SetOperationInstanceQubitNoise(GateRX(a), Set([1, 2, 3]), PhaseAmplitudeDamping(1, 1, a / 6.283185307179586), false, false)
 
 julia> rule = SetOperationInstanceQubitNoise(GateRX(a) => PhaseAmplitudeDamping(1, 1, a / (2π)), qubits=[1, 2, 3])
-SetOperationInstanceQubitNoise(GateRX(a), Set([2, 3, 1]), PhaseAmplitudeDamping(1, 1, a / 6.283185307179586), false, false)
+SetOperationInstanceQubitNoise(GateRX(a), Set([1, 2, 3]), PhaseAmplitudeDamping(1, 1, a / 6.283185307179586), false, false)
 ```
 """
 struct SetOperationInstanceQubitNoise <: AbstractNoiseRule
@@ -642,19 +642,19 @@ is not a plain symbolic variable.
 # Examples
 
 ## Constant idle noise
-```jldoctest
+```jldoctest; filter = r"Set\\(\\[[0-9, ]*\\]\\)"
 julia> SetIdleQubitNoise(AmplitudeDamping(0.0001), [1,2,3])
-SetIdleQubitNoise(AmplitudeDamping(0.0001), Set([2, 3, 1]))
+SetIdleQubitNoise(AmplitudeDamping(0.0001), Set([1, 2, 3]))
 ```
 
 ## Time-dependent idle noise
-```jldoctest
+```jldoctest; filter = r"Set\\(\\[[0-9, ]*\\]\\)"
 julia> @variables t
 1-element Vector{Symbolics.Num}:
  t
 
 julia> SetIdleQubitNoise(t => AmplitudeDamping(t / 1000), [1,2,3])
-SetIdleQubitNoise(t => AmplitudeDamping(t / 1000), Set([2, 3, 1]))
+SetIdleQubitNoise(t => AmplitudeDamping(t / 1000), Set([1, 2, 3]))
 ```
 """
 struct SetIdleQubitNoise <: AbstractNoiseRule
@@ -1212,11 +1212,11 @@ NoiseModel(AbstractNoiseRule[GlobalReadoutNoise(ReadoutErr(0.01, 0.02))], "")
 
 Add readout noise on a specific set of qubits:
 
-```jldoctest
+```jldoctest; filter = r"Set\\(\\[[0-9, ]*\\]\\)"
 julia> model = NoiseModel();
 
 julia> add_readout_noise!(model, ReadoutErr(0.03, 0.04), qubits=[1, 3])
-NoiseModel(AbstractNoiseRule[SetQubitReadoutNoise(Set([3, 1]), ReadoutErr(0.03, 0.04))], "")
+NoiseModel(AbstractNoiseRule[SetQubitReadoutNoise(Set([1, 3]), ReadoutErr(0.03, 0.04))], "")
 ```
 
 Add readout noise for an exact qubit order:
@@ -1303,13 +1303,13 @@ NoiseModel(AbstractNoiseRule[OperationInstanceNoise(GateU(α, β, 0, 0π), Depol
 
 Match the operation when applied to *any* of the listed qubits:
 
-```jldoctest
+```jldoctest; filter = r"Set\\(\\[[0-9, ]*\\]\\)"
 julia> @variables θ;
 
 julia> model = NoiseModel();
 
 julia> add_operation_noise!(model, GateRX(θ), Depolarizing1(θ / π), qubits=[1, 2, 3], exact=false)
-NoiseModel(AbstractNoiseRule[SetOperationInstanceQubitNoise(GateRX(θ), Set([2, 3, 1]), Depolarizing(1, θ / π), false, false)], "")
+NoiseModel(AbstractNoiseRule[SetOperationInstanceQubitNoise(GateRX(θ), Set([1, 2, 3]), Depolarizing(1, θ / π), false, false)], "")
 ```
 
 Match only on an exact qubit order:
