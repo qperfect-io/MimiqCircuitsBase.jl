@@ -28,6 +28,14 @@ Private = false
 Pages   = ["instruction.jl", "circuit.jl", "circuit_extras.jl", "circuit_macro.jl", "draw.jl", "emplace.j", "emplace.jl"]
 ```
 
+### Circuit transformations
+
+```@autodocs
+Modules = [MimiqCircuitsBase]
+Private = false
+Pages   = ["circuit/paulibased.jl", "circuit/simplify.jl"]
+```
+
 ## Operations
 
 ```@autodocs
@@ -43,9 +51,21 @@ Modules = [MimiqCircuitsBase]
 Private = false
 Pages   = [
     "decompose.jl",
+    "decompose_step.jl",
     "decomposition/basis/rule.jl",
     "decomposition/basis/flattened.jl",
+    "decomposition/basis/canonical.jl",
+    "decomposition/basis/clifford_t.jl",
+    "decomposition/basis/openqasm.jl",
+    "decomposition/basis/stim.jl",
     "decomposition/rules/flatten_containers.jl",
+    "decomposition/rules/canonical.jl",
+    "decomposition/rules/special_angle.jl",
+    "decomposition/rules/zyz.jl",
+    "decomposition/rules/to_z_rotation.jl",
+    "decomposition/rules/toffoli_to_clifford_t.jl",
+    "decomposition/rules/solovay_kitaev.jl",
+    "decomposition/rules/gridsynth/gridsynth.jl",
 ]
 ```
 
@@ -139,7 +159,7 @@ Pages   = ["gatedecl.jl"]
 ```@autodocs
 Modules = [MimiqCircuitsBase]
 Private = false
-Pages   = ["reset.jl", "measure.jl"]
+Pages   = ["reset.jl", "measure.jl", "measurepauli.jl", "magic.jl"]
 ```
 
 ### No-ops

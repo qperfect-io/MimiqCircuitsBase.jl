@@ -22,7 +22,7 @@ Classical operation that sets a classical bit to 0.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> SetBit0()
 Set0
 
@@ -50,7 +50,7 @@ Classical operation that sets a classical bit to 1.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> SetBit1()
 Set1
 

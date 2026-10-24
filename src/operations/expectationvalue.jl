@@ -42,7 +42,7 @@ See also [`AbstractOperator`](@ref), [`AbstractGate`](@ref).
 
 In `push!` the first argument corresponds to the qubit, and the second to the z-register
 
-```jldoctests
+```jldoctest
 julia> ExpectationValue(GateX())
 ⟨X⟩
 

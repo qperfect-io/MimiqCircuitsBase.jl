@@ -267,30 +267,19 @@ end
 # CustomNoiseRule
 #############################
 
-function toproto(g::CustomNoiseRule, declcache=nothing)
-    for (label, fn) in (("matcher", g.matcher), ("generator", g.generator))
-        if Base.isanonymous(fn)
-            throw(ArgumentError(
-                "CustomNoiseRule cannot be serialized with anonymous callables. "  
-            ))
-        end
-    end
-    msg = noisemodel_pb.CustomNoiseRule(
-        string(g.matcher),
-        string(g.generator),
-        Int32(priority(g)),
-        g.before,
-        g.replace
-    )
-    return noisemodel_pb.NoiseRule(OneOf(:custom_noise, msg))
+# The matcher and generator are arbitrary Julia functions, which have no
+# portable representation. Storing their names would decode into a different
+# rule, so both directions refuse instead.
+function toproto(::CustomNoiseRule, declcache=nothing)
+    throw(ArgumentError(
+        "CustomNoiseRule holds Julia functions and cannot be serialized. " *
+        "Remove custom rules from the noise model before saving it."
+    ))
 end
 
-function fromproto(g::noisemodel_pb.CustomNoiseRule, declcache=nothing)
-    return CustomNoiseRule(
-        inst -> true,
-        inst -> inst;
-        priority_val=Int(g.priority),
-        before=g.before,
-        replace=g.replace
-    )
+function fromproto(::noisemodel_pb.CustomNoiseRule, declcache=nothing)
+    throw(ArgumentError(
+        "CustomNoiseRule cannot be deserialized: its matcher and generator " *
+        "functions are not stored in the file."
+    ))
 end

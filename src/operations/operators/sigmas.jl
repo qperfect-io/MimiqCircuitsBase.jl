@@ -35,7 +35,7 @@ See also [`SigmaPlus`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> SigmaMinus()
 SigmaMinus(1)
 
@@ -80,7 +80,7 @@ See also [`SigmaMinus`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> SigmaPlus()
 SigmaPlus(1)
 
@@ -107,10 +107,5 @@ opsquared(op::SigmaPlus) = Projector0(abs2(op.a))
 for sigma in [SigmaMinus, SigmaPlus]
     eval(quote
         rescale(op::$sigma, scale) = $sigma(op.a * scale)
-
-        function rescale!(op::$sigma, scale)
-            op.a *= scale
-            return op
-        end
     end)
 end

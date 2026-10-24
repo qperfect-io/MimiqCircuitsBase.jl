@@ -13,14 +13,15 @@ using ProtoBuf.EnumX: @enumx
 
 export GeneralizedAnnotationType, Rational, KrausChannelType, Symbol, GeneralizedType
 export OperationType, GateType, GeneralizedOperationType, AnnotationType, Note, Amplitude
-export ArgValue, FunctionType, Irrational, OperatorType, GeneralizedAnnotation
-export SimpleAnnotation, Arg, ArgFunction, Block, CachedGateCall, ComplexArg, Control
-export CustomDiagonalGate, CustomGate, CustomKrausChannel, CustomOperator
-export DepolarizingChannel, ExpectationValue, GateDecl, Generalized, GeneralizedOperation
-export IfStatement, Instruction, Inverse, Loss, LossyOperator, MixedUnitaryChannel
-export Parallel, PauliChannel, Power, RPauli, ReadoutErr, Repeat, SimpleGate
-export SimpleKrausChannel, SimpleOperation, SimpleOperator, WhileStatement, Circuit
-export Declaration, GateCall, RescaledGate, KrausChannel, Gate, Operator, Operation
+export MeasurePauli, ArgValue, FunctionType, Irrational, OperatorType
+export GeneralizedAnnotation, SimpleAnnotation, Arg, ArgFunction, Block, CachedGateCall
+export ComplexArg, Control, CustomDiagonalGate, CustomGate, CustomKrausChannel
+export CustomOperator, DepolarizingChannel, ExpectationValue, GateDecl, Generalized
+export GeneralizedOperation, IfStatement, Instruction, Inverse, Loss, LossyOperator
+export MixedUnitaryChannel, Parallel, PauliChannel, Power, RPauli, ReadoutErr, Repeat
+export SimpleGate, SimpleKrausChannel, SimpleOperation, SimpleOperator, WhileStatement
+export Circuit, Declaration, GateCall, RescaledGate, KrausChannel, Gate, Operator
+export Operation
 abstract type var"##Abstract#IfStatement" end
 abstract type var"##Abstract#GeneralizedOperation" end
 abstract type var"##Abstract#ArgFunction" end
@@ -101,7 +102,7 @@ function PB._encoded_size(x::Rational)
     return encoded_size
 end
 
-@enumx KrausChannelType ResetX=0 ResetY=1 ResetZ=2 AmplitudeDamping=3 GeneralizedAmplitudeDamping=4 PhaseAmplitudeDamping=5 ThermalNoise=6 PauliX=7 PauliY=8 PauliZ=9 ProjectiveNoiseX=10 ProjectiveNoiseY=11 ProjectiveNoiseZ=12
+@enumx KrausChannelType ResetX=0 ResetY=1 ResetZ=2 AmplitudeDamping=3 GeneralizedAmplitudeDamping=4 PhaseAmplitudeDamping=5 ThermalNoise=6 PauliX=7 PauliY=8 PauliZ=9 ProjectiveNoiseX=10 ProjectiveNoiseY=11 ProjectiveNoiseZ=12 PrepareStateT=13
 
 struct Symbol
     value::String
@@ -215,6 +216,36 @@ end
 function PB._encoded_size(x::Amplitude)
     encoded_size = 0
     !isnothing(x.bs) && (encoded_size += PB._encoded_size(x.bs, 1))
+    return encoded_size
+end
+
+struct MeasurePauli
+    pauli::Union{Nothing,pauli_pb.PauliString}
+end
+PB.default_values(::Type{MeasurePauli}) = (;pauli = nothing)
+PB.field_numbers(::Type{MeasurePauli}) = (;pauli = 1)
+
+function PB.decode(d::PB.AbstractProtoDecoder, ::Type{<:MeasurePauli})
+    pauli = Ref{Union{Nothing,pauli_pb.PauliString}}(nothing)
+    while !PB.message_done(d)
+        field_number, wire_type = PB.decode_tag(d)
+        if field_number == 1
+            PB.decode!(d, pauli)
+        else
+            Base.skip(d, wire_type)
+        end
+    end
+    return MeasurePauli(pauli[])
+end
+
+function PB.encode(e::PB.AbstractProtoEncoder, x::MeasurePauli)
+    initpos = position(e.io)
+    !isnothing(x.pauli) && PB.encode(e, 1, x.pauli)
+    return position(e.io) - initpos
+end
+function PB._encoded_size(x::MeasurePauli)
+    encoded_size = 0
+    !isnothing(x.pauli) && (encoded_size += PB._encoded_size(x.pauli, 1))
     return encoded_size
 end
 
@@ -565,7 +596,7 @@ struct var"##Stub#Operator"{T1<:var"##Abstract#Operation"} <: var"##Abstract#Ope
 end
 
 struct var"##Stub#Operation" <: var"##Abstract#Operation"
-    operation::Union{Nothing,OneOf{<:Union{var"##Stub#SimpleGate",var"##Stub#CustomGate",var"##Stub#Generalized",var"##Stub#Control"{var"##Stub#Gate"{var"##Stub#Operation"}},var"##Stub#Power"{var"##Stub#Gate"{var"##Stub#Operation"}},var"##Stub#Inverse"{var"##Stub#Gate"{var"##Stub#Operation"}},var"##Stub#Parallel"{var"##Stub#Gate"{var"##Stub#Operation"}},var"##Stub#GateCall"{var"##Stub#Operation"},pauli_pb.PauliString,var"##Stub#SimpleKrausChannel",var"##Stub#CustomKrausChannel"{var"##Stub#Operator"{var"##Stub#Operation"}},var"##Stub#DepolarizingChannel",var"##Stub#MixedUnitaryChannel"{var"##Stub#RescaledGate"{var"##Stub#Gate"{var"##Stub#Operation"}}},var"##Stub#PauliChannel",var"##Stub#SimpleOperator",var"##Stub#CustomOperator",var"##Stub#RescaledGate"{var"##Stub#Gate"{var"##Stub#Operation"}},var"##Stub#SimpleOperation",var"##Stub#IfStatement"{var"##Stub#Operation"},var"##Stub#GeneralizedOperation",Amplitude,var"##Stub#ExpectationValue"{var"##Stub#Operator"{var"##Stub#Operation"}},SimpleAnnotation,GeneralizedAnnotation,var"##Stub#CachedGateCall",var"##Stub#RPauli",var"##Stub#Repeat"{var"##Stub#Operation"},var"##Stub#Block"{var"##Stub#Instruction"{var"##Stub#Operation"}},var"##Stub#ReadoutErr",var"##Stub#Loss",var"##Stub#LossyOperator",var"##Stub#WhileStatement"{var"##Stub#Operation"},var"##Stub#CustomDiagonalGate"}}}
+    operation::Union{Nothing,OneOf{<:Union{var"##Stub#SimpleGate",var"##Stub#CustomGate",var"##Stub#Generalized",var"##Stub#Control"{var"##Stub#Gate"{var"##Stub#Operation"}},var"##Stub#Power"{var"##Stub#Gate"{var"##Stub#Operation"}},var"##Stub#Inverse"{var"##Stub#Gate"{var"##Stub#Operation"}},var"##Stub#Parallel"{var"##Stub#Gate"{var"##Stub#Operation"}},var"##Stub#GateCall"{var"##Stub#Operation"},pauli_pb.PauliString,var"##Stub#SimpleKrausChannel",var"##Stub#CustomKrausChannel"{var"##Stub#Operator"{var"##Stub#Operation"}},var"##Stub#DepolarizingChannel",var"##Stub#MixedUnitaryChannel"{var"##Stub#RescaledGate"{var"##Stub#Gate"{var"##Stub#Operation"}}},var"##Stub#PauliChannel",var"##Stub#SimpleOperator",var"##Stub#CustomOperator",var"##Stub#RescaledGate"{var"##Stub#Gate"{var"##Stub#Operation"}},var"##Stub#SimpleOperation",var"##Stub#IfStatement"{var"##Stub#Operation"},var"##Stub#GeneralizedOperation",Amplitude,var"##Stub#ExpectationValue"{var"##Stub#Operator"{var"##Stub#Operation"}},SimpleAnnotation,GeneralizedAnnotation,var"##Stub#CachedGateCall",var"##Stub#RPauli",var"##Stub#Repeat"{var"##Stub#Operation"},var"##Stub#Block"{var"##Stub#Instruction"{var"##Stub#Operation"}},var"##Stub#ReadoutErr",var"##Stub#Loss",var"##Stub#LossyOperator",var"##Stub#WhileStatement"{var"##Stub#Operation"},var"##Stub#CustomDiagonalGate",MeasurePauli}}}
 end
 
 const Arg = var"##Stub#Arg"{var"##Stub#ArgFunction"}
@@ -2142,10 +2173,10 @@ end
 
 const Operation = var"##Stub#Operation"
 PB.oneof_field_types(::Type{Operation}) = (;
-    operation = (;simplegate=SimpleGate, customgate=CustomGate, generalized=Generalized, control=Control, power=Power, inverse=Inverse, parallel=Parallel, gatecall=GateCall, paulistring=pauli_pb.PauliString, simplekrauschannel=SimpleKrausChannel, customkrauschannel=CustomKrausChannel, depolarizingchannel=DepolarizingChannel, mixedunitarychannel=MixedUnitaryChannel, paulichannel=PauliChannel, simpleoperator=SimpleOperator, customoperator=CustomOperator, rescaledgate=RescaledGate, simpleoperation=SimpleOperation, ifstatement=IfStatement, generalizedoperation=GeneralizedOperation, amplitude=Amplitude, expectationvalue=ExpectationValue, simpleannotation=SimpleAnnotation, generalizedannotation=GeneralizedAnnotation, cachedgatecall=CachedGateCall, rpauli=RPauli, repeat=Repeat, block=Block, readouterr=ReadoutErr, loss=Loss, lossyoperator=LossyOperator, whilestatement=WhileStatement, customdiagonalgate=CustomDiagonalGate),
+    operation = (;simplegate=SimpleGate, customgate=CustomGate, generalized=Generalized, control=Control, power=Power, inverse=Inverse, parallel=Parallel, gatecall=GateCall, paulistring=pauli_pb.PauliString, simplekrauschannel=SimpleKrausChannel, customkrauschannel=CustomKrausChannel, depolarizingchannel=DepolarizingChannel, mixedunitarychannel=MixedUnitaryChannel, paulichannel=PauliChannel, simpleoperator=SimpleOperator, customoperator=CustomOperator, rescaledgate=RescaledGate, simpleoperation=SimpleOperation, ifstatement=IfStatement, generalizedoperation=GeneralizedOperation, amplitude=Amplitude, expectationvalue=ExpectationValue, simpleannotation=SimpleAnnotation, generalizedannotation=GeneralizedAnnotation, cachedgatecall=CachedGateCall, rpauli=RPauli, repeat=Repeat, block=Block, readouterr=ReadoutErr, loss=Loss, lossyoperator=LossyOperator, whilestatement=WhileStatement, customdiagonalgate=CustomDiagonalGate, measurepauli=MeasurePauli),
 )
-PB.default_values(::Type{Operation}) = (;simplegate = nothing, customgate = nothing, generalized = nothing, control = nothing, power = nothing, inverse = nothing, parallel = nothing, gatecall = nothing, paulistring = nothing, simplekrauschannel = nothing, customkrauschannel = nothing, depolarizingchannel = nothing, mixedunitarychannel = nothing, paulichannel = nothing, simpleoperator = nothing, customoperator = nothing, rescaledgate = nothing, simpleoperation = nothing, ifstatement = nothing, generalizedoperation = nothing, amplitude = nothing, expectationvalue = nothing, simpleannotation = nothing, generalizedannotation = nothing, cachedgatecall = nothing, rpauli = nothing, repeat = nothing, block = nothing, readouterr = nothing, loss = nothing, lossyoperator = nothing, whilestatement = nothing, customdiagonalgate = nothing)
-PB.field_numbers(::Type{Operation}) = (;simplegate = 1, customgate = 2, generalized = 3, control = 4, power = 5, inverse = 6, parallel = 7, gatecall = 8, paulistring = 9, simplekrauschannel = 10, customkrauschannel = 11, depolarizingchannel = 12, mixedunitarychannel = 13, paulichannel = 14, simpleoperator = 15, customoperator = 16, rescaledgate = 17, simpleoperation = 18, ifstatement = 19, generalizedoperation = 20, amplitude = 21, expectationvalue = 22, simpleannotation = 23, generalizedannotation = 24, cachedgatecall = 25, rpauli = 26, repeat = 27, block = 28, readouterr = 29, loss = 30, lossyoperator = 31, whilestatement = 32, customdiagonalgate = 33)
+PB.default_values(::Type{Operation}) = (;simplegate = nothing, customgate = nothing, generalized = nothing, control = nothing, power = nothing, inverse = nothing, parallel = nothing, gatecall = nothing, paulistring = nothing, simplekrauschannel = nothing, customkrauschannel = nothing, depolarizingchannel = nothing, mixedunitarychannel = nothing, paulichannel = nothing, simpleoperator = nothing, customoperator = nothing, rescaledgate = nothing, simpleoperation = nothing, ifstatement = nothing, generalizedoperation = nothing, amplitude = nothing, expectationvalue = nothing, simpleannotation = nothing, generalizedannotation = nothing, cachedgatecall = nothing, rpauli = nothing, repeat = nothing, block = nothing, readouterr = nothing, loss = nothing, lossyoperator = nothing, whilestatement = nothing, customdiagonalgate = nothing, measurepauli = nothing)
+PB.field_numbers(::Type{Operation}) = (;simplegate = 1, customgate = 2, generalized = 3, control = 4, power = 5, inverse = 6, parallel = 7, gatecall = 8, paulistring = 9, simplekrauschannel = 10, customkrauschannel = 11, depolarizingchannel = 12, mixedunitarychannel = 13, paulichannel = 14, simpleoperator = 15, customoperator = 16, rescaledgate = 17, simpleoperation = 18, ifstatement = 19, generalizedoperation = 20, amplitude = 21, expectationvalue = 22, simpleannotation = 23, generalizedannotation = 24, cachedgatecall = 25, rpauli = 26, repeat = 27, block = 28, readouterr = 29, loss = 30, lossyoperator = 31, whilestatement = 32, customdiagonalgate = 33, measurepauli = 34)
 
 function PB.decode(d::PB.AbstractProtoDecoder, ::Type{<:Operation})
     operation = nothing
@@ -2217,6 +2248,8 @@ function PB.decode(d::PB.AbstractProtoDecoder, ::Type{<:Operation})
             operation = OneOf(:whilestatement, PB.decode(d, Ref{WhileStatement}))
         elseif field_number == 33
             operation = OneOf(:customdiagonalgate, PB.decode(d, Ref{CustomDiagonalGate}))
+        elseif field_number == 34
+            operation = OneOf(:measurepauli, PB.decode(d, Ref{MeasurePauli}))
         else
             Base.skip(d, wire_type)
         end
@@ -2293,6 +2326,8 @@ function PB.encode(e::PB.AbstractProtoEncoder, x::Operation)
         PB.encode(e, 32, x.operation[]::WhileStatement)
     elseif x.operation.name === :customdiagonalgate
         PB.encode(e, 33, x.operation[]::CustomDiagonalGate)
+    elseif x.operation.name === :measurepauli
+        PB.encode(e, 34, x.operation[]::MeasurePauli)
     end
     return position(e.io) - initpos
 end
@@ -2365,6 +2400,8 @@ function PB._encoded_size(x::Operation)
         encoded_size += PB._encoded_size(x.operation[]::WhileStatement, 32)
     elseif x.operation.name === :customdiagonalgate
         encoded_size += PB._encoded_size(x.operation[]::CustomDiagonalGate, 33)
+    elseif x.operation.name === :measurepauli
+        encoded_size += PB._encoded_size(x.operation[]::MeasurePauli, 34)
     end
     return encoded_size
 end

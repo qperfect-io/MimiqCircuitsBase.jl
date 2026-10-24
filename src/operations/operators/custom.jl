@@ -30,7 +30,7 @@ and [`Kraus`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> Operator([1 2; 3 4])
 1-qubit Operator:
 ├── 1.0 2.0
@@ -46,7 +46,7 @@ julia> Operator([1 0 0 1; 0 0 0 0; 0 0 0 0; 1 0 0 1])
 
 Operators can be used for expectation values:
 
-```jldoctests
+```jldoctest
 julia> push!(Circuit(), ExpectationValue(Operator([0 1; 0 0])), 1, 1)
 1-qubit, 1-vars circuit with 1 instruction:
 └── ⟨Operator([0.0 1.0; 0.0 0.0])⟩ @ q[1], z[1]
@@ -132,14 +132,13 @@ end
 rescale(op::Operator, scale) = Operator(scale * matrix(op))
 
 function rescale!(p::Operator, scale)
-    p.O *= scale
+    p.O .*= scale
     return p
 end
 
 function Base.show(io::IO, op::Operator{N}) where {N}
     print(io, "Operator", "(")
-    io1 = IOContext(io, :compact => get(io, :compact, false), :typeinfo => Array{Symbolics.Num})
-    print(io1, _decomplex(matrix(op)))
+    _print_array(io, _decomplex(matrix(op)))
     print(io, ")")
 end
 
@@ -156,9 +155,9 @@ function Base.show(io::IO, ::MIME"text/plain", op::Operator{N}) where {N}
         if N <= 1
             join(io, map(x -> join(x, " "), eachrow(U)), "; ")
         else
-            join(io, U[1:2], " ")
+            join(io, (_displaynum(io, x) for x in U[1:2]), " ")
             print(io, " … ")
-            join(io, U[end-1:end], " ")
+            join(io, (_displaynum(io, x) for x in U[end-1:end]), " ")
         end
         print(io, "])")
         return nothing

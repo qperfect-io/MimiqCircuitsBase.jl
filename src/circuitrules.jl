@@ -89,7 +89,8 @@ _is_reset(operation::Operation) =
     operation isa Reset ||
     operation isa ResetX ||
     operation isa ResetY ||
-    operation isa ResetZ
+    operation isa ResetZ ||
+    operation isa PrepareStateT
 
 _supports_symbolic_operation_pattern(operation::Operation) =
     operation isa AbstractGate ||
@@ -219,7 +220,7 @@ When used in a [`LossModel`](@ref), drops gates touching lost qubits.
   If omitted, matches any operation (catch-all).
 
 # Examples
-```jldoctests
+```jldoctest
 julia> DropRule(GateCX())
 DropRule(GateCX())
 
@@ -283,7 +284,7 @@ are automatically filtered out.
 - `before`: If `true`, insert decoration before the original (default: `false`).
 
 # Examples
-```jldoctests
+```jldoctest
 julia> DecorateRule(GateCX(), Depolarizing1(0.01))
 DecorateRule(GateCX(), Depolarizing(1, 0.01), after)
 
@@ -357,7 +358,7 @@ loss filtering.
 - `replacement`: What to substitute (Operation or Vector{Instruction}).
 
 # Examples
-```jldoctests
+```jldoctest
 julia> ReplaceRule(GateCX(), Depolarizing1(0.2))
 ReplaceRule(GateCX() => Depolarizing(1, 0.2))
 
@@ -481,7 +482,7 @@ of rules. When **no** qubits are lost, the gate passes through unchanged.
 - `name`: Optional name for the model.
 
 # Examples
-```jldoctests
+```jldoctest
 julia> LossModel()
 LossModel (unnamed, 0 rules)
 
@@ -553,7 +554,7 @@ applied.
 - `operation`: Operation pattern to match (e.g., `GateCX()`). If omitted, matches any operation (catch-all).
 
 # Examples
-```jldoctests
+```jldoctest
 julia> model = LossModel();
 
 julia> add_replace!(model, GateCX() => Depolarizing1(0.2))
@@ -585,7 +586,7 @@ touches lost qubits, it is replaced with `replacement` on the surviving qubits.
 Supports symbolic parameters: `add_replace!(model, GateRXX(θ) => Depolarizing1(θ/π))`.
 
 # Examples
-```jldoctests
+```jldoctest
 julia> model = LossModel();
 
 julia> add_replace!(model, GateCX() => Depolarizing1(0.2))
@@ -617,7 +618,7 @@ touches lost qubits, the original gate is kept and `decoration` is added on the
 surviving qubits (after by default, or before if `before=true`).
 
 # Examples
-```jldoctests
+```jldoctest
 julia> model = LossModel();
 
 julia> add_decorate!(model, GateCX(), Depolarizing1(0.01))

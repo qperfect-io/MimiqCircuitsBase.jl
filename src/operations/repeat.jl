@@ -21,7 +21,7 @@ Wrapper that applies the same operation multiple times, on the same qubits, bits
 
 ## Examples
 
-```jldoctests; setup = :(@variables λ)
+```jldoctest; setup = :(@variables λ)
 julia> Repeat(5, GateX())
 ∏⁵ X
 
@@ -37,7 +37,7 @@ julia> Repeat(2, Repeat(3, GateX()))
 
 A repeated operation is decomposed by repeating the same operation multiple times
 
-```jldoctests
+```jldoctest
 julia> decompose(Repeat(2, GateX()))
 1-qubit circuit with 2 instructions:
 ├── U(π,0,π) @ q[1]
@@ -96,7 +96,7 @@ function _reorder_op_internals(op::Repeat{R}, perm::AbstractVector{<:Integer}) w
     return Repeat(R, new_inner)
 end
 
-parnames(::Type{<:Repeat{N,M,L,T}}) where {N,M,L,T} = parnames(T)
+parnames(::Type{<:Repeat{R,N,M,L,T}}) where {R,N,M,L,T} = parnames(T)
 
 qregsizes(op::Repeat{N}) where {N} = qregsizes(getoperation(op))
 
@@ -126,10 +126,12 @@ numrepeats(::Type{<:Repeat{R}}) where {R} = R
 
 numrepeats(::T) where {T<:Repeat} = numrepeats(T)
 
-@generated function _matrix(::Type{Repeat{R,N,M,L,T}}) where {R,N,M,L,T}
+function _compute_matrix(::Type{Repeat{R,N,M,L,T}}) where {R,N,M,L,T}
     mat = _matrix(T)
     return mat^R
 end
+
+_matrix(::Type{Repeat{R,N,M,L,T}}) where {R,N,M,L,T} = _cached_matrix(Repeat{R,N,M,L,T})
 
 function _matrix(::Type{Repeat{R,N,M,L,T}}, args...) where {R,N,M,L,T}
     mat = _matrix(T, args...)

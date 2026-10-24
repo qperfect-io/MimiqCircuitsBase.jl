@@ -46,7 +46,7 @@ function _qsd_decomposition(U::AbstractMatrix)
     # Encoded in theta. theta has length 2^(N-1).
     # M = MultiplexedRy(2 * theta) on q1 controlled by q2..qN
     # Controls correspond to q2..qN in standard order.
-    _append_multiplexed_ry!(circ, 2 .* theta, 1, sub_targets)
+    _append_multiplexed_rotation!(circ, GateRY, 2 .* theta, 1, sub_targets)
 
     # Left term: diag(L0, L1)
     pL = _append_multiplexed_unitary!(circ, L0, L1, 1, sub_targets)
@@ -78,9 +78,9 @@ function _append_multiplexed_unitary!(circ, U0, U1, control, targets)
 
         # Structure: MRz(lambda) -> MRy(theta) -> MRz(phi) -> GlobalPhase
 
-        _append_multiplexed_rz!(circ, [l0, l1], target, [control])
-        _append_multiplexed_ry!(circ, [t0, t1], target, [control])
-        _append_multiplexed_rz!(circ, [p0, p1], target, [control])
+        _append_multiplexed_rotation!(circ, GateRZ, [l0, l1], target, [control])
+        _append_multiplexed_rotation!(circ, GateRY, [t0, t1], target, [control])
+        _append_multiplexed_rotation!(circ, GateRZ, [p0, p1], target, [control])
 
         # Calculate effective phase with correction for RzRyRz inherent phase (-p-l)/2
         phase0 = g0 + (p0 + l0) / 2
@@ -132,96 +132,33 @@ function _add_control_remapped(inst::Instruction, control_qubit, mapping)
 end
 
 """
-    _append_multiplexed_ry!(circ, angles, target, controls)
+    _append_multiplexed_rotation!(circ, G, angles, target, controls)
 
-Appends a multiplexed Ry rotation on `target` controlled by `controls`.
-`angles` has length 2^k where k = length(controls).
+Append a rotation `G(angle)` on `target`, multiplexed over `controls`: for each
+control state `i` (MSB first), `G(angles[i])` acts on `target`. `angles` has
+length `2^k` with `k = length(controls)`.
 """
-function _append_multiplexed_ry!(circ, angles, target, controls)
+function _append_multiplexed_rotation!(circ, G, angles, target, controls)
     k = length(controls)
-    n = length(angles)
 
     if k == 0
-        push!(circ, GateRY(angles[1]), target)
+        push!(circ, G(angles[1]), target)
         return
     end
 
-    # Iterate over all 2^k control states
-    for i in 1:n
-        angle = angles[i]
+    for (i, angle) in enumerate(angles)
+        abs(angle) < 1e-10 && continue
 
-        if abs(angle) < 1e-10
-            continue
+        # Controls whose bit is 0 in this state get an X on both sides, so the
+        # all-ones control selects it.
+        flips = [controls[b] for b in 1:k if ((i - 1) >> (k - b)) & 1 == 0]
+
+        for q in flips
+            push!(circ, GateX(), q)
         end
-
-        # Map linear index to control state bits
-        state_idx = i - 1
-
-        # Identify qubits that need X (where control bit is 0)
-        active_x_indices = Int[]
-
-        for bit_pos in 1:k
-            # extract bit value from MSB-first state_idx
-            bit_val = (state_idx >> (k - bit_pos)) & 1
-
-            if bit_val == 0
-                push!(active_x_indices, bit_pos)
-            end
-        end
-
-        # Wrap operation with X-basis transform
-        for idx in active_x_indices
-            push!(circ, GateX(), controls[idx])
-        end
-
-        push!(circ, Control(k, GateRY(angle)), controls..., target)
-
-        for idx in active_x_indices
-            push!(circ, GateX(), controls[idx])
-        end
-    end
-end
-
-"""
-    _append_multiplexed_rz!(circ, angles, target, controls)
-
-Multiplexed Rz implementation.
-"""
-function _append_multiplexed_rz!(circ, angles, target, controls)
-    k = length(controls)
-    n = length(angles)
-
-    if k == 0
-        push!(circ, GateRZ(angles[1]), target)
-        return
-    end
-
-    for i in 1:n
-        angle = angles[i]
-
-        if abs(angle) < 1e-10
-            continue
-        end
-
-        state_idx = i - 1
-
-        active_x_indices = Int[]
-        for bit_pos in 1:k
-            # MSB first mapping
-            bit_val = (state_idx >> (k - bit_pos)) & 1
-            if bit_val == 0
-                push!(active_x_indices, bit_pos)
-            end
-        end
-
-        for idx in active_x_indices
-            push!(circ, GateX(), controls[idx])
-        end
-
-        push!(circ, Control(k, GateRZ(angle)), controls..., target)
-
-        for idx in active_x_indices
-            push!(circ, GateX(), controls[idx])
+        push!(circ, Control(k, G(angle)), controls..., target)
+        for q in flips
+            push!(circ, GateX(), q)
         end
     end
 end

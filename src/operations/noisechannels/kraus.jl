@@ -129,10 +129,10 @@ See also [`MixedUnitary`](@ref), [`AbstractKrausChannel`](@ref),
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> push!(Circuit(), Kraus([[1 0; 0 sqrt(0.9)], [0 sqrt(0.1); 0 0]]), 1)
 1-qubit circuit with 1 instruction:
-└── Kraus(Operator([1.0 0.0; 0.0 0.948683]), Operator([0.0 0.316228; 0.0 0.0])) @ q[1]
+└── Kraus(Operator([1.0 0.0; 0.0 0.948683…]), Operator([0.0 0.316228…; 0.0 0.0])) @ q[1]
 
 julia> push!(Circuit(), Kraus([Projector0(), Projector1()]), 1)
 1-qubit circuit with 1 instruction:
@@ -153,10 +153,10 @@ julia> evaluate(g,Dict(x=>1))
 Kraus(Projector0(1), Projector1(1))
 
 julia> g = Kraus([[1 0; 0 sqrt(0.9)], [0 sqrt(0.1); 0 x]])
-Kraus(Operator([1.0 0.0; 0.0 0.948683]), Operator(Real[0 0.316228; 0 x]))
+Kraus(Operator([1.0 0.0; 0.0 0.948683…]), Operator(Real[0 0.316228…; 0 x]))
 
 julia> evaluate(g,Dict(x=>0))
-Kraus(Operator([1.0 0.0; 0.0 0.948683]), Operator([0.0 0.316228; 0.0 0.0]))
+Kraus(Operator([1.0 0.0; 0.0 0.948683…]), Operator([0.0 0.316228…; 0.0 0.0]))
 ```
 """
 struct Kraus{N} <: AbstractKrausChannel{N}
@@ -195,6 +195,20 @@ end
 Return `true` if `kraus` contains any [`LossyOperator`](@ref) branch.
 """
 hasloss(kraus::AbstractKrausChannel) = any(op -> op isa LossyOperator, krausoperators(kraus))
+
+"""
+    haslossybranch(channel)
+
+Whether any branch of the channel loses qubits when drawn, that is whether any
+of its Kraus operators is a [`LossyOperator`](@ref). It is `false` for channels
+without loss branches, such as `PauliX(0.1)`.
+
+For a [`MixedUnitary`](@ref) it reads the `lossy` argument directly, without
+building the Kraus operators.
+
+See also [`hasloss`](@ref).
+"""
+haslossybranch(kraus::AbstractKrausChannel) = hasloss(kraus)
 
 """
     lossoperators(kraus)
@@ -237,7 +251,7 @@ See also [`Kraus`](@ref), [`lossoperators`](@ref), [`survivaloperators`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> g = Kraus([[1 0; 0 sqrt(0.9)], LossyOperator([0 sqrt(0.1); 0 0])]);
 
 julia> losseffect(g)

@@ -27,7 +27,7 @@ the two registers.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> c = push!(Circuit(), PolynomialOracle(5,5,1,2,3,4), 1:10...)
 10-qubit circuit with 1 instruction:
 └── PolynomialOracle(1,2,3,4) @ q[1:5], q[6:10]

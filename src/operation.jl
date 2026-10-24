@@ -124,7 +124,7 @@ Length of the quantum registers the given operation acts on.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> qregsizes(GateRX(0.1))
 (1,)
 
@@ -207,7 +207,7 @@ By default it returns the number of fields of the operations.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> numparams(GateH)
 0
 
@@ -280,7 +280,27 @@ function listvars(op::Operation)
     return unique(vars)
 end
 
+# A float exponent that is exactly a fraction with denominator at most 1000 is
+# stored as that fraction (or as an `Int`), so `0.5` and `1//2` build the same
+# operation and serialize to the same bytes. mimiqcircuits applies the same
+# rule, and the loop finds the same fraction as its `limit_denominator(1000)`.
+_normalize_exponent(x) = x
+
+function _normalize_exponent(x::AbstractFloat)
+    isfinite(x) || return x
+    if isinteger(x)
+        return abs(x) < typemax(Int) ? Int(x) : x
+    end
+    # The smallest denominator whose fraction converts back to exactly `x`.
+    for d in 1:1000
+        n = round(Int, x * d)
+        n / d == x && return n // d
+    end
+    return x
+end
+
 function power(op::Operation, n)
+    n = _normalize_exponent(n)
     if isone(n)
         return op
     end

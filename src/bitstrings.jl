@@ -24,7 +24,7 @@ each qubit (0 or 1).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> BitString(16)
 16-bits BitString with integer value 0:
   00000000 00000000
@@ -55,7 +55,7 @@ Int64
 
 There are many different ways to get bit states:
 
-```jldoctests
+```jldoctest
 julia> bs = BitString(30, 2344574)
 30-bits BitString with integer value 2344574:
   01111110 01100011 11000100 000000
@@ -239,7 +239,7 @@ Optionally endianess can be specified, which can be either `:big` or `:little`.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> to01(bs"10011")
 "10011"
 
@@ -284,7 +284,7 @@ Convert a string into a bit state.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> bs"101011"
 6-bits BitString with integer value 53:
   101011

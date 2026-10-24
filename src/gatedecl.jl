@@ -23,7 +23,7 @@ Define a new gate of given name, arguments and circuit.
 ### Examples
 
 A simple gate declaration, via the `@gatedecl` macro:
-```jldoctests
+```jldoctest
 julia> @gatedecl ansatz(θ) begin
            @on GateX() q=1
            @on GateRX(θ) q=2
@@ -111,7 +111,7 @@ arguments.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> @gatedecl ansatz(θ) begin
            @on GateX() q=1
            @on GateRX(θ) q=2
@@ -202,7 +202,7 @@ function Base.show(io::IO, ::MIME"text/plain", g::GateCall)
     print(io, g._decl.name)
     if numparams(g) != 0
         print(io, '(')
-        join(io, g._args, ",")
+        join(io, (_displaynum(io, x) for x in g._args), ",")
         print(io, ')')
     end
 end

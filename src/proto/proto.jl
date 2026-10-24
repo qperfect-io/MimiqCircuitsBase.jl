@@ -21,11 +21,10 @@
 Version of the MIMIQ wire format (protobuf schemas + JSON
 request/response envelope) spoken by this build. Versioned
 independently of the package release so API-only changes do not force
-client/executor incompatibility. Must match
-`mimiqcircuits.WIRE_FORMAT_VERSION` on the Python side. See
-`WIRE_FORMAT.md` for the surface and bump rules.
+client/executor incompatibility. A client and an executor must speak the
+same version. See `WIRE_FORMAT.md` for the surface and bump rules.
 """
-const WIRE_FORMAT_VERSION = v"1.2.0"
+const WIRE_FORMAT_VERSION = v"1.3.0"
 
 """
     saveproto(fname, c::Circuit)

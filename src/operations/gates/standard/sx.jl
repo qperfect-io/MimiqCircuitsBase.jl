@@ -36,7 +36,7 @@ See also [`GateSXDG`](@ref), [`GateX`](@ref), [`Power`](@ref)
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateSX()
 SX
 
@@ -61,7 +61,7 @@ julia> power(GateSX(), 2), inverse(GateSX())
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateSX())
 1-qubit circuit with 4 instructions:
 ├── U(0,0,-1π/2) @ q[1]
@@ -81,7 +81,7 @@ function decompose_step!(builder, ::CanonicalRewrite, ::GateSX, qtargets, _, _)
     push!(builder, GateSDG(), a)
     push!(builder, GateH(), a)
     push!(builder, GateSDG(), a)
-    push!(builder, GateU(0, 0, 0, π / 4), a)
+    push!(builder, GateU(0, 0, 0, _π_4), a)
     return builder
 end
 
@@ -109,7 +109,7 @@ See also [`GateSX`](@ref), [`GateX`](@ref), [`Power`](@ref), [`Inverse`](@ref)
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateSXDG()
 SX†
 
@@ -141,7 +141,7 @@ function decompose_step!(builder, ::CanonicalRewrite, ::GateSXDG, qtargets, _, _
     push!(builder, GateS(), a)
     push!(builder, GateH(), a)
     push!(builder, GateS(), a)
-    push!(builder, GateU(0, 0, 0, -π / 4), a)
+    push!(builder, GateU(0, 0, 0, _mπ_4), a)
     return builder
 end
 

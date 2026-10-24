@@ -43,7 +43,7 @@ and [`ThermalNoise`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> push!(Circuit(), PhaseAmplitudeDamping(0.1, 0.2, 0.3), 1)
 1-qubit circuit with 1 instruction:
 └── PhaseAmplitudeDamping(0.1,0.2,0.3) @ q[1]
@@ -151,7 +151,7 @@ and [`GeneralizedAmplitudeDamping`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> push!(Circuit(), ThermalNoise(0.5, 0.6, 1.2, 0.3), 1)
 1-qubit circuit with 1 instruction:
 └── ThermalNoise(0.5,0.6,1.2,0.3) @ q[1]

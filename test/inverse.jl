@@ -17,8 +17,6 @@
 using Test
 
 @testset "Inverse Constructor" begin
-    #@test_throws ErrorException Inverse(Measure())
-    #@test_throws ErrorException Inverse(Reset())
 
     for gate in [GateX(), GateRX(0.2), GateSWAP()]
         mygate1 = Inverse(gate)
@@ -50,4 +48,11 @@ end
     @test getoperation(decomp[2]) isa GateH
     @test getqubits(decomp[1]) == (2,)
     @test getqubits(decomp[2]) == (1,)
+end
+
+@testset "Inverse of a canonical primitive" begin
+    # GateU has no canonical rewrite of its own, so its inverse is taken directly.
+    decomp = decompose_step(Inverse(GateU(0.3, 0.7, 1.1)))
+    @test length(decomp) == 1
+    @test getoperation(decomp[1]) == GateU(-0.3, -1.1, -0.7, 0.0)
 end

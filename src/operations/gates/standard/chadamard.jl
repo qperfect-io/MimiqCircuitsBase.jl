@@ -39,7 +39,7 @@ Two qubit controlled-Hadamard gate.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateCH(), numcontrols(GateCH), numtargets(GateCH)
 (GateCH(), 1, 1)
 
@@ -61,7 +61,7 @@ julia> power(GateCH(), 2), inverse(GateCH())
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateCH())
 2-qubit circuit with 7 instructions:
 ├── U(0,0,π/2) @ q[2]

@@ -143,9 +143,8 @@ getparams(g::GateCustomDiagonal) = g.d
 
 function Base.show(io::IO, gate::GateCustomDiagonal)
     print(io, "GateCustomDiagonal", "(")
-    io1 = IOContext(io, :compact => get(io, :compact, false), :typeinfo => Array{Symbolics.Num})
-    print(io1, map(_decomplex, _evaluated_diagonal(gate)))
-    print(io1, ")")
+    _print_array(io, map(_decomplex, _evaluated_diagonal(gate)))
+    print(io, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", gate::GateCustomDiagonal{N}) where {N}
@@ -158,11 +157,11 @@ function Base.show(io::IO, ::MIME"text/plain", gate::GateCustomDiagonal{N}) wher
         end
         print(io, "([")
         if N <= 1
-            join(io, d, ", ")
+            join(io, (_displaynum(io, x) for x in d), ", ")
         else
-            join(io, d[1:2], ", ")
+            join(io, (_displaynum(io, x) for x in d[1:2]), ", ")
             print(io, " … ")
-            join(io, d[end-1:end], ", ")
+            join(io, (_displaynum(io, x) for x in d[end-1:end]), ", ")
         end
         print(io, "])")
         return nothing

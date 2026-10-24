@@ -46,6 +46,7 @@ function extract_classes!(tree::InheritanceTree, mod::Module)
     # get alias consts like: const GateCP = typeof(Control(GateP(π)))
     for alias in names(mod; all=true, imported=true)
         isdefined(mod, alias) || continue
+        Base.isdeprecated(mod, alias) && continue
         binding = try
             getfield(mod, alias)
         catch
@@ -108,7 +109,7 @@ Show an hierarchy of the MIMIQ `type` and its subtypes.
 !!! note
     Restrictted to `type <: Operation` types
 
-```jldoctests
+```jldoctest
 julia> show_mimiq_hierarchy()
 └── Operation
     ├── AbstractAnnotation
@@ -140,6 +141,7 @@ julia> show_mimiq_hierarchy()
     │   ├── PauliY
     │   ├── PauliZ
     │   ├── PhaseAmplitudeDamping
+    │   ├── PrepareStateT
     │   ├── ProjectiveNoiseX
     │   ├── ProjectiveNoiseY
     │   ├── ProjectiveNoiseZ
@@ -150,6 +152,7 @@ julia> show_mimiq_hierarchy()
     │   └── ThermalNoise
     ├── AbstractMeasurement
     │   ├── Measure
+    │   ├── MeasurePauli
     │   ├── MeasureReset
     │   ├── MeasureResetX
     │   ├── MeasureResetY

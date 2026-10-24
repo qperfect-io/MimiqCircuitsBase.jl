@@ -42,7 +42,7 @@ Physically, it corresponds to an energy gain/loss process, such as spontaneous e
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> push!(Circuit(), AmplitudeDamping(0.1), 1)
 1-qubit circuit with 1 instruction:
 └── AmplitudeDamping(0.1) @ q[1]
@@ -131,7 +131,7 @@ and spontaneous absorption with probabilities ``p`` and ``1-p``, respectively.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> push!(Circuit(), GeneralizedAmplitudeDamping(0.1, 0.3), 1)
 1-qubit circuit with 1 instruction:
 └── GeneralizedAmplitudeDamping(0.1,0.3) @ q[1]

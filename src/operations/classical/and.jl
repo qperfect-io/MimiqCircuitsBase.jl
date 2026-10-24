@@ -21,7 +21,7 @@ Computes the bitwise AND of N-1 classical bits and stores the result in the firs
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> And()
 c[?1] = c[?2] & c[?3]
 
@@ -57,16 +57,7 @@ inverse(::And) = error("Inverse not defined for And.")
 allow_bit_aliasing(::Type{<:And}) = true
 
 function Base.show(io::IO, ::MIME"text/plain", g::Instruction{0,N,0,<:And{N}}) where {N}
-    compact = get(io, :compact, false)
-    creg = getbits(g)
-    if compact || N > 6
-        space = compact ? "" : " "
-        print(io, "c[$(creg[1])] = & @ c[", join(creg[2:N], ",$space"), "]")
-    else
-        print(io, "c[$(creg[1])] = ")
-        join(io, map(z -> "c[$z]", creg[2:end]), " & ")
-    end
-    return nothing
+    return _show_logical(io, "&", getbits(g), get(io, :compact, false))
 end
 
 function Base.show(io::IO, ::MIME"text/plain", g::And{N}) where {N}

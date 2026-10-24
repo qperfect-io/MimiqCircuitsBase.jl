@@ -85,7 +85,7 @@ specifying the exact qubits, classical bits, or zvars (if applicable) that the o
 
 # Examples
 
-```jldoctests
+```jldoctest
 julia> c=Circuit()
 empty circuit
 
@@ -137,7 +137,7 @@ Add an operation of a specific type to the circuit with the given targets.
 
 # Examples
 
-```jldoctests
+```jldoctest
 julia> c = Circuit()
 empty circuit
 

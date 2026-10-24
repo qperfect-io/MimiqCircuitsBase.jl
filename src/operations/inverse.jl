@@ -35,7 +35,7 @@ See also [`inverse`](@ref), [`iswrapper`](@ref), [`Control`](@ref),
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> Inverse(GateX())
 X†
 
@@ -58,7 +58,7 @@ QFT†
 Decomposition of the inverse is carring out by inverting the decomposition of
 the wrapped operation.
 
-```jldoctests
+```jldoctest
 julia> decompose(Inverse(GateCSX()))
 2-qubit circuit with 7 instructions:
 ├── U(π/2,0,π) @ q[2]
@@ -109,18 +109,16 @@ parnames(::Type{Inverse{N,T}}) where {N,T} = parnames(T)
 # access directly the parameters of the wrapped gate
 getparam(inv::Inverse, name) = getparam(getoperation(inv), name)
 
-@generated _matrix(::Type{Inverse{N,T}}) where {N,T} = adjoint(_matrix(T))
+_compute_matrix(::Type{Inverse{N,T}}) where {N,T} = adjoint(_matrix(T))
+_matrix(::Type{Inverse{N,T}}) where {N,T} = _cached_matrix(Inverse{N,T})
 
 _matrix(::Type{Inverse{N,T}}, args...) where {N,T} = adjoint(_matrix(T, args...))
 
 matches(::CanonicalRewrite, ::Inverse) = true
 
-function decompose_step!(builder, rule::CanonicalRewrite, inv::Inverse, qtargets, _, _)
-    # Decompose the inner operation into a temporary circuit
-    decomposed = decompose_step!(Circuit(), rule, inv.op, qtargets, (), ())
-
-    for inst in Iterators.reverse(decomposed)
-        push!(builder, inverse(inst))
+function decompose_step!(builder, ::CanonicalRewrite, inv::Inverse, qtargets, _, _)
+    for inst in Iterators.reverse(_canonical_pieces(inv.op))
+        push!(builder, inverse(getoperation(inst)), [qtargets[q] for q in getqubits(inst)]...)
     end
 
     return builder

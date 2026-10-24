@@ -51,20 +51,20 @@ end
 SUITE["noise"]["apply"] = BenchmarkGroup()
 
 simple_nm = NoiseModel([
-    GateInstanceNoise(GateH(), Depolarizing1(0.001)),
-    GateInstanceNoise(GateCX(), Depolarizing2(0.01)),
+    OperationInstanceNoise(GateH(), Depolarizing1(0.001)),
+    OperationInstanceNoise(GateCX(), Depolarizing2(0.01)),
 ])
 
 full_nm = NoiseModel([
-    GateInstanceNoise(GateH(), Depolarizing1(0.001)),
-    GateInstanceNoise(GateX(), Depolarizing1(0.001)),
-    GateInstanceNoise(GateY(), Depolarizing1(0.001)),
-    GateInstanceNoise(GateZ(), Depolarizing1(0.001)),
-    GateInstanceNoise(GateRX(θ), Depolarizing1(0.001)),
-    GateInstanceNoise(GateRY(θ), Depolarizing1(0.001)),
-    GateInstanceNoise(GateRZ(θ), Depolarizing1(0.001)),
-    GateInstanceNoise(GateCX(), Depolarizing2(0.01)),
-    GateInstanceNoise(GateCZ(), Depolarizing2(0.01)),
+    OperationInstanceNoise(GateH(), Depolarizing1(0.001)),
+    OperationInstanceNoise(GateX(), Depolarizing1(0.001)),
+    OperationInstanceNoise(GateY(), Depolarizing1(0.001)),
+    OperationInstanceNoise(GateZ(), Depolarizing1(0.001)),
+    OperationInstanceNoise(GateRX(θ), Depolarizing1(0.001)),
+    OperationInstanceNoise(GateRY(θ), Depolarizing1(0.001)),
+    OperationInstanceNoise(GateRZ(θ), Depolarizing1(0.001)),
+    OperationInstanceNoise(GateCX(), Depolarizing2(0.01)),
+    OperationInstanceNoise(GateCZ(), Depolarizing2(0.01)),
 ])
 
 for n in [20, 50, 100]

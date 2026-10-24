@@ -26,6 +26,7 @@ filelist = [
     "standardgates.jl",
     "proto.jl",
     "proto/zregister.jl",
+    "proto/symbolic.jl",
     "instruction.jl",
     "circuit.jl",
     "control.jl",
@@ -40,6 +41,7 @@ filelist = [
     "classical.jl",
     "complex.jl",
     "rpauli.jl",
+    "display.jl",
     "hamiltonian.jl",
     "block.jl",
     "dsl.jl",
@@ -47,6 +49,7 @@ filelist = [
     "repeat.jl",
     "listvars.jl",
     "optimization.jl",
+    "sweep.jl",
     "noisemodel.jl",
     "noisemodelproto.jl",
     "ifstatement.jl",
@@ -57,17 +60,28 @@ filelist = [
     "circuittester.jl",
     "circuitrules.jl",
     "samplelosses.jl",
+    "samplemixedunitaries.jl",
     "test_barrier.jl",
+    "pairmeasure.jl",
+    "decomposition_parity.jl",
+    "representation_parity.jl",
     "test_reorder_qubits.jl",
     "test_rewrite_rules.jl",
+    "test_gridsynth.jl",
     "test_decompositions.jl",
     "test_decomposition_bases.jl",
     "test_parametric_wrap.jl",
     "remove_swaps.jl",
     "fusion.jl",
+    "simplify.jl",
+    "paulibased.jl",
 ]
 
 @testset "MimiqCircuitsBase.jl" begin
+    @testset "exported names are defined" begin
+        @test filter(n -> !isdefined(MimiqCircuitsBase, n), names(MimiqCircuitsBase)) == Symbol[]
+    end
+
     @testset "$filename" for filename in filelist
         @debug "Running $filename"
         include(filename)

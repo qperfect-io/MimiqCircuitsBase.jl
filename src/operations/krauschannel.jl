@@ -68,7 +68,7 @@ i.e. ``\\mathcal{E}(\\rho) = \\sum_k p_k U_k \\rho U_k^\\dagger`` with some prob
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> ismixedunitary(PauliX(0.1))
 true
 
@@ -103,7 +103,7 @@ See also [`ismixedunitary`](@ref), [`unitarymatrices`](@ref), and [`krausmatrice
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> probabilities(PauliX(0.1))
 2-element Vector{Symbolics.Num}:
  0.9
@@ -131,7 +131,7 @@ without the `Symbolics.Num` wrapper.
 
 See [`probabilities`](@ref) for more information.
 
-```jldoctests
+```jldoctest
 julia> unwrappedprobabilities(PauliX(0.1))
 2-element Vector{Float64}:
  0.9
@@ -159,7 +159,7 @@ See also [`probabilities`](@ref), [`ismixedunitary`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> cumprobabilities(Depolarizing1(0.1))
 4-element Vector{Symbolics.Num}:
                 0.9
@@ -187,7 +187,7 @@ without the `Symbolics.Num` wrapper.
 
 See [`cumprobabilities`](@ref) for more information.
 
-```jldoctests
+```jldoctest
 julia> unwrappedcumprobabilities(Depolarizing1(0.1))
 4-element Vector{Float64}:
  0.9
@@ -213,7 +213,7 @@ where ``U_k`` are the unitary matrices returned by this function.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> krausmatrices(AmplitudeDamping(0.1))
 2-element Vector{Matrix{Float64}}:
  [1.0 0.0; 0.0 0.9486832980505138]
@@ -223,7 +223,7 @@ julia> krausmatrices(AmplitudeDamping(0.1))
 For mixed unitary channels the Kraus matrices are the unitary matrices
 times the square root of the probabilities.
 
-```jldoctests
+```jldoctest
 julia> krausmatrices(PauliX(0.2))
 2-element Vector{Matrix{Symbolics.Num}}:
  [sqrt(0.8) 0; 0 sqrt(0.8)]
@@ -255,7 +255,7 @@ See [`krausmatrices`](@ref) for more information.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> unwrappedkrausmatrices(AmplitudeDamping(0.1))
 2-element Vector{Matrix{ComplexF64}}:
  [1.0 + 0.0im 0.0 + 0.0im; 0.0 + 0.0im 0.9486832980505138 + 0.0im]
@@ -275,7 +275,7 @@ See also [`krausmatrices`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> krausoperators(PauliX(0.2))
 2-element Vector{Operator{1}}:
  Operator(Real[0.8944271909999159 0; 0 0.8944271909999159])
@@ -306,7 +306,7 @@ See also [`krausoperators`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> squaredkrausoperators(AmplitudeDamping(0.1))
 2-element Vector{AbstractOperator{1}}:
  D(abs2(1), abs2(sqrt(0.9)))
@@ -334,7 +334,7 @@ See also [`ismixedunitary`](@ref), [`probabilities`](@ref), and [`krausmatrices`
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> unitarymatrices(PauliX(0.2))
 2-element Vector{Matrix}:
  [1.0 -0.0; 0.0 1.0]
@@ -366,7 +366,7 @@ See [`unitarymatrices`](@ref) for more information.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> unwrappedunitarymatrices(PauliX(0.2))
 2-element Vector{Matrix}:
  [1.0 -0.0; 0.0 1.0]
@@ -391,7 +391,7 @@ See also [`ismixedunitary`](@ref), [`unitarymatrices`](@ref), and [`krausmatrice
     
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> unitarygates(PauliNoise([0.9,0.1],["II","XX"]))
 2-element Vector{PauliString{2}}:
  II
@@ -409,7 +409,7 @@ function Base.show(io::IO, krauschannel::AbstractKrausChannel)
     print(io, opname(krauschannel))
     if numparams(krauschannel) > 0
         print(io, "(")
-        join(io, map(x -> _displaypi(getproperty(krauschannel, x)), parnames(krauschannel)), compact ? "," : ", ")
+        join(io, map(x -> _displaypi(io, getproperty(krauschannel, x)), parnames(krauschannel)), compact ? "," : ", ")
         print(io, ")")
     end
 end

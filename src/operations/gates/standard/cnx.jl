@@ -29,7 +29,7 @@ Three-qubit, doubly-controlled ``X`` gate.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateCCX(), numcontrols(GateCCX()), numtargets(GateCCX())
 (Control(2, GateX()), 2, 1)
 
@@ -55,7 +55,7 @@ julia> power(GateCCX(), 2), inverse(GateCCX())
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateCCX())
 3-qubit circuit with 15 instructions:
 ├── U(π/2,0,π) @ q[3]
@@ -121,7 +121,7 @@ Four qubit, triply-controlled ``X`` gate.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateC3X(), numcontrols(GateC3X()), numtargets(GateC3X())
 (Control(3, GateX()), 3, 1)
 
@@ -155,7 +155,7 @@ julia> power(GateC3X(), 2), inverse(GateC3X())
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateC3X())
 4-qubit circuit with 31 instructions:
 ├── U(π/2,0,π) @ q[4]
@@ -187,31 +187,31 @@ function decompose_step!(builder, ::CanonicalRewrite, ::GateC3X, qtargets, _, _)
     a, b, c, d = qtargets
 
     push!(builder, GateH(), d)
-    push!(builder, GateP(π / 8), qtargets)
+    push!(builder, GateP(_π_8), qtargets)
     push!(builder, GateCX(), a, b)
-    push!(builder, GateP(-π / 8), b)
+    push!(builder, GateP(_mπ_8), b)
     push!(builder, GateCX(), a, b)
     push!(builder, GateCX(), b, c)
-    push!(builder, GateP(-π / 8), c)
+    push!(builder, GateP(_mπ_8), c)
     push!(builder, GateCX(), a, c)
-    push!(builder, GateP(π / 8), c)
+    push!(builder, GateP(_π_8), c)
     push!(builder, GateCX(), b, c)
-    push!(builder, GateP(-π / 8), c)
+    push!(builder, GateP(_mπ_8), c)
     push!(builder, GateCX(), a, c)
     push!(builder, GateCX(), c, d)
-    push!(builder, GateP(-π / 8), d)
+    push!(builder, GateP(_mπ_8), d)
     push!(builder, GateCX(), b, d)
-    push!(builder, GateP(π / 8), d)
+    push!(builder, GateP(_π_8), d)
     push!(builder, GateCX(), c, d)
-    push!(builder, GateP(-π / 8), d)
+    push!(builder, GateP(_mπ_8), d)
     push!(builder, GateCX(), a, d)
-    push!(builder, GateP(π / 8), d)
+    push!(builder, GateP(_π_8), d)
     push!(builder, GateCX(), c, d)
-    push!(builder, GateP(-π / 8), d)
+    push!(builder, GateP(_mπ_8), d)
     push!(builder, GateCX(), b, d)
-    push!(builder, GateP(π / 8), d)
+    push!(builder, GateP(_π_8), d)
     push!(builder, GateCX(), c, d)
-    push!(builder, GateP(-π / 8), d)
+    push!(builder, GateP(_mπ_8), d)
     push!(builder, GateCX(), a, d)
     push!(builder, GateH(), d)
 

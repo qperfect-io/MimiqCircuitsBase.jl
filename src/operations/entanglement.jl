@@ -43,7 +43,7 @@ the bond dimension ``i_{k}`` in the above notation, i.e. the bond dimension
 between qubit ``k-1`` and qubit ``k``. For ``k=1`` the bond dimension
 returned will always be 1.
 
-```jldoctests
+```jldoctest
 julia> k = 5;
 
 julia> c = push!(Circuit(), BondDim(), k, 1)
@@ -92,7 +92,7 @@ When pushing to a circuit, the qubit index ``k`` takes the role of the above bip
 into ``A`` and ``B``. For ``k=1``, ``A`` is empty and the entanglement entropy will
 always return 0.
 
-```jldoctests
+```jldoctest
 julia> k = 5;
 
 julia> c = push!(Circuit(), VonNeumannEntropy(), k, 1)
@@ -139,7 +139,7 @@ When pushing to a circuit, the qubit index ``k`` takes the role of the above bip
 into ``A`` and ``B``. For ``k=1``, ``A`` is empty and the Schmidt rank will
 always return 1.
 
-```jldoctests
+```jldoctest
 julia> k = 5;
 
 julia> c = push!(Circuit(), SchmidtRank(), k, 1)

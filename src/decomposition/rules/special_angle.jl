@@ -86,6 +86,7 @@ function get_pi_factor_or_nothing(val)
 
     # Check for multiples of π/4: val ≈ k * (π/4)
     factor = uval / (π / 4)
+    isfinite(factor) || return nothing
     k = round(Int, factor)
     if isapprox(uval, k * (π / 4); atol=1e-8)
         return mod(k, 8)

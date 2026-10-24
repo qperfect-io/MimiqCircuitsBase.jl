@@ -27,9 +27,10 @@ noise channels, and quantum error correction annotations.
 
 The basis applies rewrite rules to decompose gates into Clifford operations:
 
-1. [`ZYZRewrite`](@ref): GateU → RZ·RY·RZ Euler decomposition
-2. [`SpecialAngleRewrite`](@ref) (Clifford-only): Rotations at k·π/2 → exact Clifford gates
-3. [`CanonicalRewrite`](@ref): Fallback for other gates
+1. A `GateU` whose angles are all zero (a pure global phase) is dropped.
+2. [`ZYZRewrite`](@ref): GateU → RZ·RY·RZ Euler decomposition
+3. [`SpecialAngleRewrite`](@ref) (Clifford-only): Rotations at k·π/2 → exact Clifford gates
+4. [`CanonicalRewrite`](@ref): Fallback for other gates
 
 Non-Clifford rotations (angles not multiples of π/2) are explicitly rejected
 with a clear error message.
@@ -43,7 +44,7 @@ with a clear error message.
 
 **Single-qubit Clifford gates:**
 - Pauli: `GateID`, `GateX`, `GateY`, `GateZ`
-- Hadamard: `GateH`
+- Hadamard: `GateH`, `GateHXY`, `GateHYZ`
 - Phase: `GateS`, `GateSDG`
 - √X: `GateSX`, `GateSXDG`
 - √Y: `GateSY`, `GateSYDG`
@@ -54,10 +55,26 @@ with a clear error message.
 - Double CX: `GateDCX`
 - ECR: `GateECR`
 
+**Pauli rotations by ±π/2:**
+- `GateRXX`, `GateRYY`, `GateRZZ` with angle ±π/2
+- `RPauli` with angle ±π/2 and a non-identity Pauli string
+
+Angles are compared modulo 2π, since a rotation by 3π/2 equals a rotation by
+-π/2 up to a global phase. Other angles are decomposed.
+
+**Feedback:**
+- `IfStatement` of `GateX`, `GateY` or `GateZ` conditioned on a single bit
+  being `1`. The same gate conditioned on the bit being `0` is decomposed into
+  the gate followed by the gate conditioned on `1`. Any other conditional
+  operation has its body decomposed while staying conditional, and raises a
+  `DecompositionError` if that does not lead to a conditional Pauli.
+
 **Measurements:**
 - Z-basis: `Measure`
 - X-basis: `MeasureX`
 - Y-basis: `MeasureY`
+- Two-qubit parities: `MeasureXX`, `MeasureYY`, `MeasureZZ`
+- Pauli products: `MeasurePauli`
 
 **Resets:**
 - Z-basis: `Reset`
@@ -72,6 +89,7 @@ with a clear error message.
 **Noise channels:**
 - Pauli errors: `PauliX`, `PauliY`, `PauliZ`
 - Depolarizing: `Depolarizing1`, `Depolarizing2`
+- Pauli channels: `PauliNoise`
 
 **QEC annotations:**
 - `Detector`, `ObservableInclude`, `QubitCoordinates`
@@ -86,6 +104,8 @@ with a clear error message.
 | `GateY` | `Y` |
 | `GateZ` | `Z` |
 | `GateH` | `H` |
+| `GateHXY` | `H_XY` |
+| `GateHYZ` | `H_YZ` |
 | `GateS` | `S` |
 | `GateSDG` | `S_DAG` |
 | `GateSX` | `SQRT_X` |
@@ -98,9 +118,20 @@ with a clear error message.
 | `GateSWAP` | `SWAP` |
 | `GateISWAP` | `ISWAP` |
 | `GateISWAPDG` | `ISWAP_DAG` |
+| `GateRXX(±π/2)` | `SQRT_XX` / `SQRT_XX_DAG` |
+| `GateRYY(±π/2)` | `SQRT_YY` / `SQRT_YY_DAG` |
+| `GateRZZ(±π/2)` | `SQRT_ZZ` / `SQRT_ZZ_DAG` |
+| `RPauli(P, ±π/2)` | `SPP` / `SPP_DAG` |
+| `IfStatement(GateX(), bs"1")` | `CX rec[-k] q` |
+| `IfStatement(GateY(), bs"1")` | `CY rec[-k] q` |
+| `IfStatement(GateZ(), bs"1")` | `CZ rec[-k] q` |
 | `Measure` | `M` |
 | `MeasureX` | `MX` |
 | `MeasureY` | `MY` |
+| `MeasureXX` | `MXX` |
+| `MeasureYY` | `MYY` |
+| `MeasureZZ` | `MZZ` |
+| `MeasurePauli` | `MPP` |
 | `Reset` | `R` |
 | `ResetX` | `RX` |
 | `ResetY` | `RY` |
@@ -112,6 +143,7 @@ with a clear error message.
 | `PauliZ` | `Z_ERROR` |
 | `Depolarizing1` | `DEPOLARIZE1` |
 | `Depolarizing2` | `DEPOLARIZE2` |
+| `PauliNoise` | `PAULI_CHANNEL_1`, `PAULI_CHANNEL_2` or `E` / `ELSE_CORRELATED_ERROR` |
 | `Detector` | `DETECTOR` |
 | `ObservableInclude` | `OBSERVABLE_INCLUDE` |
 | `QubitCoordinates` | `QUBIT_COORDS` |
@@ -147,8 +179,10 @@ isterminal(::StimBasis, ::GateX) = true
 isterminal(::StimBasis, ::GateY) = true
 isterminal(::StimBasis, ::GateZ) = true
 
-# Hadamard
+# Hadamard and its XY / YZ variants
 isterminal(::StimBasis, ::GateH) = true
+isterminal(::StimBasis, ::GateHXY) = true
+isterminal(::StimBasis, ::GateHYZ) = true
 
 # Phase gates (S = √Z)
 isterminal(::StimBasis, ::GateS) = true
@@ -180,11 +214,24 @@ isterminal(::StimBasis, ::GateDCX) = true
 # Echoed Cross-Resonance
 isterminal(::StimBasis, ::GateECR) = true
 
+# --- Pauli rotations by ±π/2 (Stim's SQRT_XX, SQRT_YY, SQRT_ZZ, SPP) ---
+
+_stim_is_half_pi(θ) = get_pi_factor_or_nothing(θ) in (2, 6)
+
+isterminal(::StimBasis, g::GateRXX) = _stim_is_half_pi(g.θ)
+isterminal(::StimBasis, g::GateRYY) = _stim_is_half_pi(g.θ)
+isterminal(::StimBasis, g::GateRZZ) = _stim_is_half_pi(g.θ)
+isterminal(::StimBasis, g::RPauli) = !isidentity(g.pauli) && _stim_is_half_pi(g.θ)
+
 # --- Measurements (all Pauli bases) ---
 
 isterminal(::StimBasis, ::Measure) = true
 isterminal(::StimBasis, ::MeasureX) = true
 isterminal(::StimBasis, ::MeasureY) = true
+isterminal(::StimBasis, ::MeasureXX) = true
+isterminal(::StimBasis, ::MeasureYY) = true
+isterminal(::StimBasis, ::MeasureZZ) = true
+isterminal(::StimBasis, ::MeasurePauli) = true
 
 # --- Resets (all Pauli bases) ---
 
@@ -213,6 +260,14 @@ isterminal(::StimBasis, ::PauliZ) = true
 isterminal(::StimBasis, ::Depolarizing1) = true
 isterminal(::StimBasis, ::Depolarizing2) = true
 
+# Pauli channels
+isterminal(::StimBasis, ::PauliNoise) = true
+
+# --- Feedback (Stim's CX/CY/CZ with a measurement record as control) ---
+
+isterminal(::StimBasis, op::IfStatement) =
+    getoperation(op) isa Union{GateX,GateY,GateZ} && getbitstring(op) == bs"1"
+
 # --- QEC Annotations ---
 
 isterminal(::StimBasis, ::Detector) = true
@@ -231,7 +286,48 @@ const _STIM_ZYZ = ZYZRewrite()
 const _STIM_SPECIAL_ANGLE_CLIFFORD = SpecialAngleRewrite(only_cliffords=true)
 const _STIM_CANONICAL = CanonicalRewrite()
 
+function decompose!(builder, basis::StimBasis, op::IfStatement, qtargets, ctargets, ztargets)
+    inner = getoperation(op)
+    condition = getbitstring(op)
+
+    if length(condition) != 1
+        throw(DecompositionError(
+            "IfStatement with a $(length(condition))-bit condition cannot be decomposed into the Stim basis. " *
+            "Stim only conditions X, Y and Z gates on a single measurement record."
+        ))
+    end
+
+    # P if c == 0 equals P, then P if c == 1, since P² = I.
+    if inner isa Union{GateX,GateY,GateZ}
+        push!(builder, inner, qtargets...)
+        push!(builder, IfStatement(inner, bs"1"), qtargets..., ctargets...)
+        return builder
+    end
+
+    if isterminal(basis, inner)
+        throw(DecompositionError(
+            "IfStatement of $(opname(inner)) cannot be decomposed into the Stim basis. " *
+            "Stim only conditions X, Y and Z gates on a single measurement record."
+        ))
+    end
+
+    # Rotations by multiples of π go straight to the Pauli they equal; the
+    # general pipeline would pass through gates that cannot be conditioned.
+    if matches(_STIM_SPECIAL_ANGLE_CLIFFORD, inner)
+        return _decompose_ifstatement!(builder, _STIM_SPECIAL_ANGLE_CLIFFORD, op, qtargets, ctargets, ztargets)
+    end
+
+    return _decompose_ifstatement!(builder, basis, op, qtargets, ctargets, ztargets)
+end
+
 function decompose!(builder, ::StimBasis, op::Operation, qtargets, ctargets, ztargets)
+    # A bare GateU with zero angles is only a global phase, so it expands to
+    # nothing; ZYZRewrite refuses it. Under a Control the phase is a relative
+    # phase; that case is a Control, not a GateU, and goes to CanonicalRewrite.
+    if op isa GateU && all(p -> !issymbolic(p) && iszero(p), (op.θ, op.ϕ, op.λ))
+        return builder
+    end
+
     # Priority 1: GateU → ZYZ decomposition (RZ·RY·RZ)
     if matches(_STIM_ZYZ, op)
         return decompose_step!(builder, _STIM_ZYZ, op, qtargets, ctargets, ztargets)

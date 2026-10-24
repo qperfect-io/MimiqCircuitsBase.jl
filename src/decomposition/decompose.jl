@@ -26,8 +26,9 @@ An iterator that yields instructions from recursive decomposition of `source`
 to the given `basis`. Performs depth-first decomposition.
 The `basis` argument can be a [`DecompositionBasis`](@ref) or a [`RewriteRule`](@ref).
 
-If `wrap=true`, non-terminal operations will be wrapped into `GateDecl` (for gates)
-or `Block` (for others) containing the full decomposition, rather than being flattened.
+If `wrap=true`, non-terminal operations are wrapped, rather than flattened, into a
+`GateDecl` (for gates) or a `Block` (for other operations, such as `MeasureReset`)
+holding their full decomposition. Gates inside a `Block` are wrapped as well.
 
 If `cache` is provided (a `Dict{Operation,GateDecl}`), wrapped GateDecls will be
 cached and reused when the same operation is encountered again.
@@ -210,8 +211,7 @@ function _wrap_decomposition(inst::Instruction, basis::DecompositionBasis, cache
         call_args = (sym_op !== nothing) ? original_params : ()
         return Instruction(decl(call_args...), getqubits(inst), getbits(inst), getztargets(inst))
     else
-        b = Block(nq, nb, nz)
-        append!(b, inner_circuit)
+        b = Block(nq, nb, nz, inner_circuit._instructions)
         return Instruction(b, getqubits(inst), getbits(inst), getztargets(inst))
     end
 end
@@ -238,8 +238,9 @@ given `basis`. The `basis` can be a [`DecompositionBasis`](@ref) or [`RewriteRul
 This is memory-efficient for large circuits as it doesn't materialize the full
 decomposed circuit at once.
 
-If `wrap=true`, non-terminal operations will be wrapped into `GateDecl` or `Block`
-containing their decomposition, rather than being flattened.
+If `wrap=true`, non-terminal operations are wrapped, rather than flattened, into a
+`GateDecl` (for gates) or a `Block` (for other operations) holding their
+decomposition.
 
 If `cache` is provided (a `Dict{Operation,GateDecl}`), wrapped GateDecls will be
 cached and reused when the same operation is encountered again.
@@ -270,8 +271,10 @@ Recursively decompose `source` until all operations are terminal in the given `b
 The `basis` argument can be a [`DecompositionBasis`](@ref) or a [`RewriteRule`](@ref).
 If a rewrite rule is provided, it is applied recursively.
 
-If `wrap=true`, non-terminal operations will be wrapped into `GateDecl` or `Block`
-containing their decomposition. Identical operations will share the same GateDecl.
+If `wrap=true`, non-terminal gates are wrapped into a `GateDecl` holding their
+decomposition, and identical gates share the same `GateDecl`. Other non-terminal
+operations, such as `MeasureReset` or `MeasurePauli`, are wrapped into a `Block`
+holding their decomposition, whose gates are wrapped in turn.
 
 # Examples
 ```julia

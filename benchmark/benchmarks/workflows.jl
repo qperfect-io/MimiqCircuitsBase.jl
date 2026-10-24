@@ -54,8 +54,8 @@ SUITE["workflows"]["noisy_ghz_10"] = @benchmarkable begin
     c = ghz_circuit(10)
     push!(c, Measure(), 1:10, 1:10)
     nm = NoiseModel([
-        GateInstanceNoise(GateH(), Depolarizing1(0.001)),
-        GateInstanceNoise(GateCX(), Depolarizing2(0.01)),
+        OperationInstanceNoise(GateH(), Depolarizing1(0.001)),
+        OperationInstanceNoise(GateCX(), Depolarizing2(0.01)),
     ])
     apply_noise_model(c, nm)
 end

@@ -24,8 +24,9 @@ Some simplifications are already carried out at construction, for example
 `Power(pow2, Power(pow1, op))` is simplified as `Power(pow1 * pow2, op)`.
 
 !!! note
-    For allowing simplifications, always prefer rational powers, such as `1//2`
-    over floating point ones, such as `0.5`.
+    A floating point exponent that is exactly a fraction with denominator at
+    most 1000 is stored as that fraction, so `Power(GateX(), 0.5)` is
+    `GateSX()`. Other floats, such as `sqrt(2)`, are kept as they are.
 
 !!! warn
     Users should not use directly `Power` but the `power` method, which
@@ -36,7 +37,7 @@ See also [`power`](@ref), [`Inverse`](@ref) , [`inverse`](@ref).
 
 ## Example
 
-```jldoctests
+```jldoctest
 julia> Power(GateZ(), 1//2)
 S
 
@@ -57,7 +58,7 @@ power, the `Power` operation is not decomposed.
 
 If the exponent is an integer, then the gate is decomposed by repeating it.
 
-```jldoctests
+```jldoctest
 julia> decompose(Power(GateH(), 2))
 1-qubit circuit with 2 instructions:
 ├── U(π/2,0,π) @ q[1]
@@ -89,7 +90,7 @@ struct Power{P,N,T<:AbstractGate{N}} <: AbstractGate{N}
         if !(pwr isa Real) || pwr < 0
             throw(ArgumentError("Exponent should be a positive real number."))
         end
-        new{pwr,N,typeof(op)}(op)
+        new{_normalize_exponent(pwr),N,typeof(op)}(op)
     end
 end
 
@@ -128,7 +129,7 @@ Exponent associated with a power operation
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> MimiqCircuitsBase.exponent(power(GateH(), 2))
 2
 
@@ -138,9 +139,15 @@ julia> MimiqCircuitsBase.exponent(GateSX())
 """
 exponent(::Power{P}) where {P} = P
 
-@generated _matrix(::Type{Power{P,N,T}}) where {P,N,T} = Matrix(complex(_matrix(T))^P)
+# A matrix power is not type stable (it can come back real or complex), so the
+# element type is pinned. With arguments it follows them, as they may be symbolic.
+_compute_matrix(::Type{Power{P,N,T}}) where {P,N,T} = Matrix{ComplexF64}(complex(_matrix(T))^P)
+_matrix(::Type{Power{P,N,T}}) where {P,N,T} = _cached_matrix(Power{P,N,T})
 
-_matrix(::Type{Power{P,N,T}}, args...) where {P,N,T} = Matrix(complex(_matrix(T, args...))^P)
+function _matrix(::Type{Power{P,N,T}}, args...) where {P,N,T}
+    m = complex(_matrix(T, args...))
+    return Matrix{eltype(m)}(m^P)
+end
 
 matches(::CanonicalRewrite, pwr::Power) = true
 
@@ -154,36 +161,32 @@ function decompose_step!(builder, ::CanonicalRewrite, pwr::Power, qtargets, _, _
         return builder
     end
 
-    # Try to decompose.
-    # If the decomposition results in a single gate, we can power it directly if possible.
-
-    # Use decompose() to get 1-level or deep decomposition
-    cop = decompose_step(op)
-
-    if length(cop) == 1
-        # Remap is implicit because cop[1] acts on 1..N and we have qtargets
-        # But wait, Power acts on qtargets. Inner op acts on qtargets.
-        # We need to construct the new op.
-
-        # If decomposed is a single gate, we power it.
-        # But we need its parameters.
-        new_op = power(getoperation(cop[1]), exponent(pwr))
-
-        # We push this new op to qtargets
-        push!(builder, new_op, qtargets...)
+    # (C-U)^p = C-(U^p): the controls pass through the power.
+    if op isa Control
+        push!(builder, Control(numcontrols(op), power(getoperation(op), exponent(pwr))), qtargets...)
         return builder
     end
 
-    error("Cannot decompose $pwr.")
+    # A single-gate decomposition can be raised to the power directly. Anything
+    # longer would need the matrix power of the whole circuit.
+    cop = _canonical_pieces(op)
+
+    if length(cop) == 1
+        inst = cop[1]
+        push!(builder, power(getoperation(inst), exponent(pwr)), [qtargets[q] for q in getqubits(inst)]...)
+        return builder
+    end
+
+    throw(DecompositionError("Cannot decompose $(opname(pwr)): the decomposition of its base has more than one gate."))
 end
 
 function Base.show(io::IO, op::Power)
     exp = exponent(op)
     _print_wrapped_parens(io, getoperation(op))
     if (exp isa Integer || exp isa AbstractFloat) && exp >= 0
-        print(io, '^', exp)
+        print(io, '^', _displaynum(io, exp))
     else
-        print(io, "^(", exp, ')')
+        print(io, "^(", _displaynum(io, exp), ')')
     end
 end
 
@@ -191,9 +194,9 @@ function Base.show(io::IO, m::MIME"text/plain", op::Power)
     exp = exponent(op)
     _show_wrapped_parens(io, m, getoperation(op))
     if (exp isa Integer || exp isa AbstractFloat) && exp >= 0
-        print(io, '^', exp)
+        print(io, '^', _displaynum(io, exp))
     else
-        print(io, "^(", exp, ')')
+        print(io, "^(", _displaynum(io, exp), ')')
     end
 end
 

@@ -22,6 +22,12 @@ Evaluate all the parametric expression in `object` using the values specified
 in the given in the variable, value dictionary, returning a new object
 constructed on the evaluated parameters.
 
+A wrapper (`Control`, `Inverse`, `Power`, `Parallel`, `Repeat`, `IfStatement`,
+`WhileStatement`) or a `Block` without free symbols is returned unchanged. One
+with free symbols is rebuilt with [`control`](@ref), [`inverse`](@ref),
+[`power`](@ref), [`parallel`](@ref) and `repeat`, which simplify where they
+can: `Inverse(GateRX(θ))` evaluates to a `GateRX`, not to an `Inverse`.
+
 ## Examples
 
 Evaluate a single parametric gate
@@ -35,12 +41,15 @@ RX(θ)
 
 julia> evaluate(g, Dict(θ => 3π))
 RX(3π)
+
+julia> evaluate(Inverse(GateRX(θ)), Dict(θ => 0.3))
+RX(-0.3)
 ```
 """
 function evaluate end
 
 function evaluate(g, rules...)
-    d = Dict(pairs...)
+    d = Dict(rules...)
     return evaluate(g, d)
 end
 
@@ -58,13 +67,29 @@ evaluate(g::Multiply{N}, d::Dict=Dict()) where {N} = Multiply(N, evaluate(g.fact
 
 evaluate(g::Pow, d::Dict=Dict()) = Pow(evaluate(g.exponent, d))
 
-function evaluate(control::Control{N,M,L,T}, d::Dict=Dict()) where {N,M,L,T}
-    return Control(N, evaluate(control.op, d))
+# A wrapper without free symbols is returned as is. Otherwise it is rebuilt
+# with the simplifying builders, so `Inverse(GateRX(θ))` evaluates to
+# `GateRX(-value)` rather than to `Inverse(GateRX(value))`.
+function _evaluate_wrapper(rebuild, op::Operation, d::Dict)
+    isempty(listvars(op)) && return op
+    return rebuild(evaluate(getoperation(op), d))
 end
 
-evaluate(g::Inverse{N,T}, d::Dict=Dict()) where {N,T} = Inverse(evaluate(g.op, d))
+evaluate(g::Control{N}, d::Dict=Dict()) where {N} = _evaluate_wrapper(x -> control(N, x), g, d)
 
-evaluate(g::Power{P,T}, d::Dict=Dict()) where {P,T} = Power(evaluate(g.op, d), P)
+evaluate(g::Inverse, d::Dict=Dict()) = _evaluate_wrapper(inverse, g, d)
+
+evaluate(g::Power{P}, d::Dict=Dict()) where {P} = _evaluate_wrapper(x -> power(x, P), g, d)
+
+evaluate(g::Parallel{N}, d::Dict=Dict()) where {N} = _evaluate_wrapper(x -> parallel(N, x), g, d)
+
+evaluate(g::Repeat{R}, d::Dict=Dict()) where {R} = _evaluate_wrapper(x -> repeat(R, x), g, d)
+
+evaluate(g::IfStatement, d::Dict=Dict()) =
+    _evaluate_wrapper(x -> IfStatement(x, getbitstring(g)), g, d)
+
+evaluate(g::WhileStatement, d::Dict=Dict()) =
+    _evaluate_wrapper(x -> WhileStatement(x, getbitstring(g)), g, d)
 
 function evaluate(g::GateCustom, d::Dict=Dict())
     Unew = map(g.U) do x
@@ -104,9 +129,8 @@ function evaluate(ev::ExpectationValue, d::Dict=Dict())
     return ExpectationValue(evaluate(getoperation(ev), d))
 end
 
-# A Block holds a sub-circuit; substitute its inner instructions so parameters
-# inside the block are evaluated too.
 function evaluate(b::Block{N,M,L}, d::Dict=Dict()) where {N,M,L}
+    isempty(listvars(b)) && return b
     return Block{N,M,L}([evaluate(inst, d) for inst in b])
 end
 
@@ -129,6 +153,30 @@ function evaluate(circ::Circuit, d::Dict)
     return c
 end
 
+"""
+    evaluate!(circuit, d::Dict)
+
+Replace the symbols of `circuit` with the values in `d`, in place, and return
+the circuit.
+
+Symbols that are not in `d` stay symbolic. Use [`evaluate`](@ref) to get a new
+circuit instead.
+
+## Examples
+
+```jldoctest
+julia> @variables θ φ;
+
+julia> c = push!(Circuit(), GateRX(θ), 1);
+
+julia> push!(c, GateRY(φ), 1);
+
+julia> evaluate!(c, Dict(θ => 0.5))
+1-qubit circuit with 2 instructions:
+├── RX(0.5) @ q[1]
+└── RY(φ) @ q[1]
+```
+"""
 function evaluate!(circ::Circuit, d::Dict)
     insts = circ._instructions
     for i in eachindex(insts)

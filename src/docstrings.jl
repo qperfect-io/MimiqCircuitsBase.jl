@@ -26,7 +26,7 @@ See also [`numbits`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> numqubits(GateCX())
 2
 
@@ -54,7 +54,7 @@ See also [`numqubits`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> numbits(GateCX())
 0
 
@@ -91,7 +91,7 @@ See also [`matrix`](@ref), [`isunitary`](@ref), [`power`](@ref).
 
 ## Examples
 
-```jldoctests; setup = :(@variables λ)
+```jldoctest; setup = :(@variables λ)
 julia> inverse(GateRX(λ))
 RX(-λ)
 
@@ -107,18 +107,20 @@ function inverse end
 Elevate an operation to a given exponent.
 
 It performs simplifications when possible otherwise wraps the operation in
-a [`Power`](@ref) object.
+a [`Power`](@ref) object. A floating point exponent that is exactly a fraction
+with denominator at most 1000 is treated as that fraction, so `0.5` behaves
+like `1//2`.
 
 See also [`Power`](@ref), [`inverse`](@ref), [`Inverse`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> power(GateX(), 1//2)
 SX
 
 julia> power(GateX(), 0.5)
-X^0.5
+SX
 
 julia> GateX()^2
 ID
@@ -139,7 +141,7 @@ See also [`numqubits`](@ref), [`numbits`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> opname(GateX())
 "X"
 
@@ -165,7 +167,7 @@ See also [`iswrapper`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> getoperation(Instruction(GateX(), 1))
 X
 

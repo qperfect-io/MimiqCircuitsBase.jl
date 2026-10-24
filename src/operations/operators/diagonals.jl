@@ -33,7 +33,7 @@ See also [`Operator`](@ref), [`Projector0`](@ref), [`Projector1`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> DiagonalOp(1,0.5)
 D(1, 0.5)
 
@@ -56,9 +56,3 @@ _matrix(::Type{DiagonalOp}, a, b) = [a 0; 0 b]
 opsquared(op::DiagonalOp) = DiagonalOp(abs2(op.a), abs2(op.b))
 
 rescale(op::DiagonalOp, scale) = DiagonalOp(op.a * scale, op.b * scale)
-
-function rescale!(op::DiagonalOp, scale)
-    op.a *= scale
-    op.b *= scale
-    op
-end

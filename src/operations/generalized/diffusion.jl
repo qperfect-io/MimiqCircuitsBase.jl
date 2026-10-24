@@ -29,7 +29,7 @@ H^{\otimes n} (1-2\ket{0^n}\bra{0^n}) H^{\otimes n}
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> c = push!(Circuit(), Diffusion(10), 1:10...)
 10-qubit circuit with 1 instruction:
 └── Diffusion @ q[1:10]
@@ -40,7 +40,7 @@ julia> push!(c, inverse(Diffusion(10)), 1:10...)
 └── Diffusion† @ q[1:10]
 ```
 
-```jldoctests
+```jldoctest
 julia> decompose(Diffusion(4))
 4-qubit circuit with 71 instructions:
 ├── U(π/2,0,0) @ q[1]
@@ -95,8 +95,8 @@ qregsizes(::Diffusion{N}) where {N} = (N,)
 matches(::CanonicalRewrite, ::Diffusion) = true
 
 function decompose_step!(circ, ::CanonicalRewrite, ::Diffusion{N}, qubits, _, _) where {N}
-    push!(circ, GateRY(π / 2), qubits)
+    push!(circ, GateRY(_π_2), qubits)
     push!(circ, control(N - 1, GateZ()), qubits...)
-    push!(circ, GateRY(-π / 2), qubits)
+    push!(circ, GateRY(_mπ_2), qubits)
     return circ
 end

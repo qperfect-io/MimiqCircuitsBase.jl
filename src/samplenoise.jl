@@ -53,7 +53,7 @@ unitary gates of the channel (or nothing if identity and `ids==false`).
 
 Gates and non-mixed-unitary Kraus channels remain unchanged.
 
-```jldoctests sample
+```jldoctest sample
 julia> using Random
 
 julia> c = push!(Circuit(), GateH(), 1:3);
@@ -89,7 +89,7 @@ julia> sample_mixedunitaries(c; rng=rng, ids=true)
 
 By default identities are not included.
 
-```jldoctests sample
+```jldoctest sample
 julia> rng = MersenneTwister(42);
 
 julia> sample_mixedunitaries(c; rng=rng)
@@ -105,7 +105,7 @@ julia> sample_mixedunitaries(c; rng=rng)
 
 Different calls to the function generate different results.
 
-```jldoctests sample
+```jldoctest sample
 julia> sample_mixedunitaries(c; rng=rng)
 3-qubit circuit with 6 instructions:
 ├── H @ q[1]
@@ -131,7 +131,6 @@ function sample_mixedunitaries(c::Circuit; rng=Random.GLOBAL_RNG, ids=false)
     for inst in c
         op = getoperation(inst)
         if op isa AbstractKrausChannel && ismixedunitary(typeof(op))
-            #cumulative_probs = cumsum(probabilities(op))
             cumulative_probs = unwrappedcumprobabilities(op)    # PERF: good if cached
 
             # Sample
@@ -159,4 +158,8 @@ function sample_mixedunitaries(c::Circuit; rng=Random.GLOBAL_RNG, ids=false)
 
     return scirc
 end
+
+# The old iterator dropped the z-register targets and the losses of lossy branches.
+# `ids=true` keeps one instruction per instruction for lossless channels, as it did.
+@deprecate samplemixedunitaries(c::Circuit, rng::AbstractRNG=Random.GLOBAL_RNG) sample_mixedunitaries(c; rng=rng, ids=true)
 

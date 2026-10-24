@@ -20,3 +20,24 @@
 abstract type AbstractClassical{M} <: Operation{0,M,0} end
 
 isunitary(::Type{<:AbstractClassical}) = false
+
+# Print a commutative bitwise operation as `c[t] = c[a] op c[b] ...`. When the
+# target is also one of the inputs, the bit is updated in place and printed as
+# `c[t] op= ...` with that input removed, which is valid because the operation
+# is commutative. More than five inputs, or a compact context, print as
+# `c[t] = op @ c[a, b, ...]`.
+function _show_logical(io::IO, sym, creg, compact::Bool)
+    target, inputs = creg[1], collect(creg[2:end])
+    if compact || length(inputs) > 5
+        space = compact ? "" : " "
+        print(io, "c[$target] = $sym @ c[", join(inputs, ",$space"), "]")
+    elseif target in inputs
+        deleteat!(inputs, findfirst(==(target), inputs))
+        print(io, "c[$target] $sym= ")
+        join(io, map(z -> "c[$z]", inputs), " $sym ")
+    else
+        print(io, "c[$target] = ")
+        join(io, map(z -> "c[$z]", inputs), " $sym ")
+    end
+    return nothing
+end

@@ -67,9 +67,12 @@ struct GateDCX <: AbstractGate{2} end
 
 opname(::Type{GateDCX}) = "DCX"
 
-@generated _matrix(::Type{GateDCX}) = _matrix(GateSWAP) * _matrix(GateCX) * _matrix(GateSWAP) * _matrix(GateCX)
+# NOTE: literal, not computed from _matrix(GateSWAP)/_matrix(GateCX): a
+# @generated body may only call methods that already exist in its own world
+# age, and those gate matrices are defined later in the module.
+@generated _matrix(::Type{GateDCX}) = Float64[1 0 0 0; 0 0 1 0; 0 0 0 1; 0 1 0 0]
 
-_power(::GateDCX, pwr) = _power_three_idempotent(GateDCX(), inverse(GateDCX()), GateID(), pwr)
+_power(::GateDCX, pwr) = _power_three_idempotent(GateDCX(), inverse(GateDCX()), parallel(2, GateID()), pwr)
 
 matches(::CanonicalRewrite, ::GateDCX) = true
 

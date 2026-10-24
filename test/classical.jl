@@ -16,7 +16,7 @@
 #
 using Test
 
-const CLASSICALOPS = [Not(), SetBit0(), SetBit1(), And(), And(5), And(8), Or(), Or(6), Or(10), Xor(), Xor(4), Xor(7), ParityCheck(), ParityCheck(5)]
+const CLASSICALOPS = [Not(), SetBit0(), SetBit1(), And(), And(5), And(8), Or(), Or(6), Or(10), Xor(), Xor(4), Xor(7)]
 
 @testset "$(string(typeof(op)))" for op in CLASSICALOPS
     @testset "ProtoBuf" begin
@@ -63,3 +63,14 @@ end
     end
 end
 
+
+@testset "ParityCheck is a deprecated alias of Xor" begin
+    using MimiqCircuitsBase: fromproto, circuit_pb
+
+    op = @test_deprecated ParityCheck(5)
+    @test op == Xor(5)
+
+    # Files written before the deprecation still decode.
+    g = circuit_pb.GeneralizedOperation(circuit_pb.GeneralizedOperationType.ParityCheck, 0, 4, 0, [])
+    @test fromproto(g) == Xor(4)
+end

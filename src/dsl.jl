@@ -139,6 +139,19 @@ macro gatedecl(head, body)
 end
 
 
+"""
+    @on operation q=... c=... z=...
+
+Add `operation` on the given qubits (`q`), classical bits (`c`) and z-variables
+(`z`) to the circuit being built. `@on` is syntax read by [`@circuit`](@ref),
+[`@block`](@ref) and [`@gatedecl`](@ref), and only as a top-level statement of
+their block. Anywhere else, including inside a loop or `if` in that block, it
+throws an error.
+"""
+macro on(args...)
+    error("`@on` is only valid as a top-level statement inside `@circuit`, `@block` or `@gatedecl`.")
+end
+
 function _parse_on_call(expr)
     # Expected: @on Gate() q=... c=... z=...
     # structure: macrocall(@on, line, gate_expr, kwargs...)

@@ -41,7 +41,7 @@ Two qubit Controlled-``X`` gate (or CNOT).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateCX(), numcontrols(GateCX()), numtargets(GateCX())
 (GateCX(), 1, 1)
 
@@ -63,7 +63,7 @@ julia> power(GateCX(), 2), inverse(GateCX())
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateCX())
 2-qubit circuit with 1 instruction:
 └── CX @ q[1], q[2]
@@ -105,7 +105,7 @@ Two qubit Controlled-``Y`` gate.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateCY(), numcontrols(GateCY()), numtargets(GateCY())
 (GateCY(), 1, 1)
 
@@ -127,7 +127,7 @@ julia> power(GateCY(), 2), inverse(GateCY())
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateCY())
 2-qubit circuit with 3 instructions:
 ├── U(0,0,-1π/2) @ q[2]
@@ -173,7 +173,7 @@ Two qubit Controlled-``Z`` gate.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateCZ(), numcontrols(GateCZ()), numtargets(GateCZ())
 (GateCZ(), 1, 1)
 
@@ -195,7 +195,7 @@ julia> power(GateCZ(), 2), inverse(GateCZ())
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateCZ())
 2-qubit circuit with 3 instructions:
 ├── U(π/2,0,π) @ q[2]

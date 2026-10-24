@@ -200,6 +200,27 @@ end
     @test matrix(GateRZ(π)) ≈ cis(-π / 2) * matrix(GateZ())
 end
 
+@testset "Matrix element types" begin
+    # A parametric gate's matrix is complex unless it is real for every
+    # parameter value, as for `GateRY`, `GateCRY` and `Delay`.
+    @test eltype(matrix(GateRX(0.3))) == ComplexF64
+    @test eltype(matrix(GateRY(0.3))) == Float64
+    @test eltype(matrix(GateCRY(0.3))) == Float64
+
+    # A matrix fixed by the type keeps its own element type.
+    @test eltype(matrix(GateX())) == Int
+    @test eltype(matrix(GateH())) == Float64
+    @test eltype(matrix(Delay(0.1))) == Float64
+
+    for g in (Power(GateX(), 1 // 3), Control(Power(GateX(), 1 // 3)))
+        @test eltype(matrix(g)) == ComplexF64
+        @test Base.return_types(matrix, (typeof(g),)) == [Matrix{ComplexF64}]
+    end
+
+    @variables x
+    @test eltype(matrix(Power(GateRX(x), 2))) == Complex{Num}
+end
+
 function checkcustomgate(N, T)
     M = 2^N
     mat = T.(randunitary(M))
@@ -328,3 +349,14 @@ end
 end
 
 nothing
+
+@testset "PhaseGradient decomposition" begin
+    # Qubit i (the first is the most significant) takes the phase π / 2^(i-1).
+    decomp = decompose_step(PhaseGradient(3))
+    @test [getqubits(i) for i in decomp] == [(3,), (2,), (1,)]
+    @test [MimiqCircuitsBase.unwrapvalue(getoperation(i).λ) for i in decomp] ≈ [π / 4, π / 2, π]
+
+    # A power scales every phase.
+    decomp = decompose_step(Power(PhaseGradient(2), 1 // 2))
+    @test [MimiqCircuitsBase.unwrapvalue(getoperation(i).λ) for i in decomp] ≈ [π / 4, π / 2]
+end

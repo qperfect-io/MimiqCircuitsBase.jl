@@ -36,7 +36,7 @@ See also [`GateSYDG`](@ref), [`GateY`](@ref), [`Power`](@ref)
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateSY()
 SY
 
@@ -61,7 +61,7 @@ Y
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateSY())
 1-qubit circuit with 4 instructions:
 ├── U(0,0,π/2) @ q[1]
@@ -81,7 +81,7 @@ function decompose_step!(builder, ::CanonicalRewrite, ::GateSY, qtargets, _, _)
     push!(builder, GateS(), a)
     push!(builder, GateS(), a)
     push!(builder, GateH(), a)
-    push!(builder, GateU(0, 0, 0, π / 4), a)
+    push!(builder, GateU(0, 0, 0, _π_4), a)
     return builder
 end
 
@@ -109,7 +109,7 @@ See also [`GateSY`](@ref), [`GateY`](@ref), [`Power`](@ref), [`Inverse`](@ref)
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateSYDG()
 SY†
 
@@ -141,11 +141,9 @@ matches(::CanonicalRewrite, ::GateSYDG) = true
 
 function decompose_step!(circ, ::CanonicalRewrite, ::GateSYDG, qtargets, _, _)
     a = qtargets[1]
-    push!(circ, GateU(0, 0, 0, -π / 4), a)
+    push!(circ, GateU(0, 0, 0, _mπ_4), a)
     push!(circ, GateH(), a)
     push!(circ, GateSDG(), a)
     push!(circ, GateSDG(), a)
     return circ
 end
-
-@generated _gate(::Type{GateSYDG}) = [0.5-0.5im 0.5-0.5im; -0.5+0.5im 0.5-0.5im]

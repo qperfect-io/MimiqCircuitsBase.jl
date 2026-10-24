@@ -34,7 +34,7 @@ Two qubit ECR echo gate.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateECR()
 ECR
 
@@ -56,7 +56,7 @@ julia> power(GateECR(), 2), inverse(GateECR())
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateECR())
 2-qubit circuit with 11 instructions:
 ├── U(π/2,0,π) @ q[2]
@@ -87,9 +87,9 @@ matches(::CanonicalRewrite, ::GateECR) = true
 
 function decompose_step!(builder, ::CanonicalRewrite, ::GateECR, qtargets, _, _)
     a, b = qtargets
-    push!(builder, GateRZX(π / 4), a, b)
+    push!(builder, GateRZX(_π_4), a, b)
     push!(builder, GateX(), a)
-    push!(builder, GateRZX(-π / 4), a, b)
+    push!(builder, GateRZX(_mπ_4), a, b)
     return builder
 end
 

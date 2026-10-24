@@ -31,7 +31,7 @@ use in noisy circuits; remove it if you do not want this effect. See
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> Barrier(1)
 Barrier
 

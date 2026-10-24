@@ -110,7 +110,7 @@ except that the outcome of the measurement is not stored, i.e. there's loss of i
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> push!(Circuit(), ProjectiveNoise("Z"), 1)
 1-qubit circuit with 1 instruction:
 └── ProjectiveNoiseZ @ q[1]
@@ -118,7 +118,7 @@ julia> push!(Circuit(), ProjectiveNoise("Z"), 1)
 
 The Kraus matrices are given by:
 
-```jldoctests
+```jldoctest
 julia> krausmatrices(ProjectiveNoise("X"))
 2-element Vector{Matrix{Float64}}:
  [0.5 0.5; 0.5 0.5]

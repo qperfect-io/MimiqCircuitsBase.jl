@@ -22,7 +22,7 @@ Multi-qubit parity-phase rotation gate along the Z-axis.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> using Symbolics; @variables θ
 1-element Vector{Num}:
  θ

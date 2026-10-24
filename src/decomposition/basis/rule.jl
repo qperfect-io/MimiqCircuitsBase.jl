@@ -38,6 +38,18 @@ end
 # Terminal if rule does not apply
 isterminal(basis::RuleBasis, op::Operation) = !matches(basis.rule, op)
 
+# A rule that does not handle conditionals itself is applied to their body.
+function isterminal(basis::RuleBasis, op::IfStatement)
+    return !matches(basis.rule, op) && isterminal(basis, getoperation(op))
+end
+
 function decompose!(builder, basis::RuleBasis, op::Operation, qtargets, ctargets, ztargets)
     return decompose_step!(builder, basis.rule, op, qtargets, ctargets, ztargets)
+end
+
+function decompose!(builder, basis::RuleBasis, op::IfStatement, qtargets, ctargets, ztargets)
+    if matches(basis.rule, op)
+        return decompose_step!(builder, basis.rule, op, qtargets, ctargets, ztargets)
+    end
+    return _decompose_ifstatement!(builder, basis, op, qtargets, ctargets, ztargets)
 end

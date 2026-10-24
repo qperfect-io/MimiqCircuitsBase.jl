@@ -52,7 +52,7 @@ See also [`PauliString`](@ref) and [`PauliNoise`](@ref).
 
 Depolarizing channels can be defined for any ``N``:
 
-```jldoctests
+```jldoctest
 julia> push!(Circuit(), Depolarizing(1, 0.1), 1)
 1-qubit circuit with 1 instruction:
 └── Depolarizing(1,0.1) @ q[1]
@@ -64,7 +64,7 @@ julia> push!(Circuit(), Depolarizing(5, 0.1), 1, 2, 3, 4, 5)
 
 For one and two qubits you can use the shorthand notation:
 
-```jldoctests
+```jldoctest
 julia> push!(Circuit(), Depolarizing1(0.1), 1)
 1-qubit circuit with 1 instruction:
 └── Depolarizing(1,0.1) @ q[1]
@@ -129,7 +129,7 @@ ismixedunitary(::Type{T}) where {T<:Depolarizing} = true
 
 function Base.show(io::IO, depol::Depolarizing{N}) where {N}
     sep = get(io, :compact, false) ? "," : ", "
-    print(io, opname(depol), "(", N, sep, depol.p, ")")
+    print(io, opname(depol), "(", N, sep, _displaynum(io, depol.p), ")")
     return nothing
 end
 

@@ -33,7 +33,10 @@ using MimiqCircuitsBase: toproto, fromproto
     @test ex.label == "test_experiment"
     @test numparams(ex) == 2
     @test numqubits(ex) == 2
-    @test MimiqCircuitsBase.isvalid(ex)
+    @test isvalid(ex)
+    @test isvalid(ex) === Base.isvalid(ex)
+    # extending Base.isvalid keeps its other methods reachable
+    @test isvalid('a')
 
     θ = [1.0, 2.0]
     newex = changelistofparameters(ex, θ)

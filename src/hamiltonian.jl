@@ -32,7 +32,7 @@ See also: [`Hamiltonian`](@ref), [`PauliString`](@ref)
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> HamiltonianTerm(0.5, PauliString("XZ"), 1, 2)
 0.5 * XZ @ q[1:2]
 ```
@@ -54,6 +54,18 @@ struct HamiltonianTerm{N}
 end
 
 getoperation(h::HamiltonianTerm) = h.pauli
+"""
+    getcoefficient(term::HamiltonianTerm)
+
+Return the coefficient of a Hamiltonian term.
+
+## Examples
+
+```jldoctest
+julia> getcoefficient(HamiltonianTerm(0.5, pauli"XZ", 1, 2))
+0.5
+```
+"""
 getcoefficient(h::HamiltonianTerm) = h.coefficient
 getqubits(h::HamiltonianTerm) = h.qubits
 
@@ -87,7 +99,7 @@ See also: [`Hamiltonian`](@ref), [`PauliString`](@ref)
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> h = Hamiltonian()
 empty hamiltonian
 
@@ -124,6 +136,25 @@ function Base.push!(h::Hamiltonian, coeff::Float64, pauli::PauliString, qubits..
     return h
 end
 
+"""
+    add_terms!(hamiltonian, terms::HamiltonianTerm...)
+
+Append `terms` to `hamiltonian`, in order, and return it.
+
+## Examples
+
+```jldoctest
+julia> h = Hamiltonian();
+
+julia> add_terms!(h, HamiltonianTerm(1.0, pauli"XX", 1, 2), HamiltonianTerm(0.5, pauli"Z", 1))
+2-qubit hamiltonian with 2 terms:
++
+├── 1.0 * XX @ q[1:2]
+└── 0.5 * Z @ q[1]
+```
+
+See also [`push!`](@ref).
+"""
 function add_terms!(h::Hamiltonian, terms::HamiltonianTerm...)
     append!(h.terms, terms)
     return h
@@ -259,7 +290,7 @@ For each term ``c_j P_j``, the circuit performs:
 ```
 ## Examples
 
- ```jldoctests
+ ```jldoctest
 julia> h = Hamiltonian()
 empty hamiltonian
 
@@ -343,7 +374,7 @@ The Lie-Trotter expansion is a method for approximating the time evolution opera
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> h = Hamiltonian()
 empty hamiltonian
 
@@ -357,9 +388,9 @@ empty circuit
 
 julia> push_lietrotter!(c, (1, 2), h, 1.0, 3)
 2-qubit circuit with 3 instructions:
-├── trotter(0.333333) @ q[1:2]
-├── trotter(0.333333) @ q[1:2]
-└── trotter(0.333333) @ q[1:2]
+├── trotter(0.333333…) @ q[1:2]
+├── trotter(0.333333…) @ q[1:2]
+└── trotter(0.333333…) @ q[1:2]
 ```
 """
 function push_lietrotter!(circuit::Circuit, qubits, hamiltonian::Hamiltonian, t::Real, steps::Integer)
@@ -424,7 +455,7 @@ p_k = (4 - 4^{1/(2k-1)})^{-1}
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> h = Hamiltonian()
 empty hamiltonian
 
@@ -535,9 +566,9 @@ This method improves the accuracy of the approximation to the time evolution ope
 
 See also: [`push_suzukitrotter!`](@ref), [`GateDecl`](@ref)
 
-```jldoctests
 ## Examples
 
+```jldoctest
 julia> h = Hamiltonian()
 empty hamiltonian
 
@@ -558,7 +589,6 @@ julia> push_yoshidatrotter!(c, (1, 2), h, 1.0, 5, 4)
 └── yoshidatrotter_4(0.2) @ q[1:2]
 ```
 """
-
 function push_yoshidatrotter!(circuit::Circuit, qubits, hamiltonian::Hamiltonian, t::Real, steps::Integer, order::Integer=4)
     # see e.g. [https://aiichironakano.github.io/phys516/Yoshida-symplectic-PLA00.pdf]
 

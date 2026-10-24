@@ -29,7 +29,7 @@ Three-qubit, doubly-controlled phase gate.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> @variables λ
 1-element Vector{Symbolics.Num}:
  λ
@@ -64,17 +64,17 @@ julia> power(GateCCP(λ), 2), inverse(GateCCP(λ))
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> @variables λ
 1-element Vector{Symbolics.Num}:
  λ
 
 julia> decompose(GateCCP(λ))
 3-qubit circuit with 17 instructions:
-├── U(0,0,λ / 4) @ q[1]
-├── CX @ q[1], q[3]
+├── U(0,0,λ / 4) @ q[2]
+├── CX @ q[2], q[3]
 ├── U(0,0,(-1//4)*λ) @ q[3]
-├── CX @ q[1], q[3]
+├── CX @ q[2], q[3]
 ├── U(0,0,λ / 4) @ q[3]
 ├── CX @ q[1], q[2]
 ├── U(0,0,(-1//4)*λ) @ q[2]
@@ -83,10 +83,10 @@ julia> decompose(GateCCP(λ))
 ├── CX @ q[2], q[3]
 ├── U(0,0,(-1//4)*λ) @ q[3]
 ├── CX @ q[1], q[2]
-├── U(0,0,λ / 4) @ q[2]
-├── CX @ q[2], q[3]
+├── U(0,0,λ / 4) @ q[1]
+├── CX @ q[1], q[3]
 ├── U(0,0,(-1//4)*λ) @ q[3]
-├── CX @ q[2], q[3]
+├── CX @ q[1], q[3]
 └── U(0,0,λ / 4) @ q[3]
 ```
 """
@@ -99,10 +99,10 @@ matches(::CanonicalRewrite, ::GateCCP) = true
 function decompose_step!(builder, ::CanonicalRewrite, g::GateCCP, qtargets, _, _)
     a, b, c = qtargets
     λ = getparam(g, :λ)
-    push!(builder, GateCP(λ / 2), a, c)
+    push!(builder, GateCP(λ / 2), b, c)
     push!(builder, GateCX(), a, b)
     push!(builder, GateCP(-λ / 2), b, c)
     push!(builder, GateCX(), a, b)
-    push!(builder, GateCP(λ / 2), b, c)
+    push!(builder, GateCP(λ / 2), a, c)
     return builder
 end

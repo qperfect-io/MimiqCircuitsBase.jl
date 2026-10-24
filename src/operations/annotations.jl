@@ -20,8 +20,12 @@
 
 An abstract type representing a general annotation operation for use in quantum circuits. 
 This type supports annotations that are not strictly quantum operations but may carry metadata or extra circuit information.
+
+Annotations have no effect on the state, so [`isunitary`](@ref) is `true` for all of them.
 """
 abstract type AbstractAnnotation{N,M,L} <: Operation{N,M,L} end
+
+isunitary(::Type{<:AbstractAnnotation}) = true
 
 """
     Detector{N}(N::Integer, notes::AbstractVector)
@@ -44,7 +48,7 @@ See Also [`QubitCoordinates`](@ref), [`ShiftCoordinates`](@ref), or [`Tick`](@re
 
 # Examples
 
-```jldoctests
+```jldoctest
 julia> detector = Detector(2, [1.0, 0.5])
 Detector(1.0, 0.5)
 
@@ -75,12 +79,36 @@ opname(::Type{<:Detector}) = "Detector"
 
 cregsizes(::Detector{N}) where {N} = (N,)
 
+"""
+    getnotes(annotation)
+
+Return the values attached to an annotation, as a vector.
+
+These are the notes of [`Detector`](@ref) and [`ObservableInclude`](@ref), and
+the coordinates of [`QubitCoordinates`](@ref) and [`ShiftCoordinates`](@ref).
+[`Tick`](@ref) and the loss annotations carry none, so they return an empty
+vector.
+
+## Examples
+
+```jldoctest
+julia> getnotes(Detector(2, [1.0, 0.5]))
+2-element Vector{Float64}:
+ 1.0
+ 0.5
+
+julia> getnotes(QubitCoordinates(1.0, 2.0))
+2-element Vector{Float64}:
+ 1.0
+ 2.0
+```
+"""
 getnotes(a::Detector) = a.notes
 
 function Base.show(io::IO, a::Detector)
     sep = get(io, :compact, false) ? "," : ", "
     print(io, opname(a), "(")
-    join(io, getnotes(a), sep)
+    join(io, (_displaynum(io, x) for x in getnotes(a)), sep)
     print(io, ")")
 end
 
@@ -99,7 +127,7 @@ See Also [`Detector`](@ref), [`ShiftCoordinates`](@ref), or [`Tick`](@ref)
 
 # Examples
 
-```jldoctests
+```jldoctest
 julia> coords = QubitCoordinates(0.0, 1.0)
 QubitCoordinates(0.0, 1.0)
 
@@ -124,7 +152,7 @@ getnotes(a::QubitCoordinates) = a.coordinates
 function Base.show(io::IO, a::QubitCoordinates)
     sep = get(io, :compact, false) ? "," : ", "
     print(io, opname(a), "(")
-    join(io, getnotes(a), sep)
+    join(io, (_displaynum(io, x) for x in getnotes(a)), sep)
     print(io, ")")
 end
 
@@ -145,7 +173,7 @@ See Also [`QubitCoordinates`](@ref), [`ShiftCoordinates`](@ref), or [`Tick`](@re
 
 # Examples
 
-```jldoctests
+```jldoctest
 julia> shift = ShiftCoordinates(1.0, 2.0)
 ShiftCoordinates(1.0, 2.0)
 
@@ -170,7 +198,7 @@ getnotes(a::ShiftCoordinates) = a.coordinates
 function Base.show(io::IO, a::ShiftCoordinates)
     sep = get(io, :compact, false) ? "," : ", "
     print(io, opname(a), "(")
-    join(io, getnotes(a), sep)
+    join(io, (_displaynum(io, x) for x in getnotes(a)), sep)
     print(io, ")")
 end
 
@@ -199,7 +227,7 @@ See Also [`QubitCoordinates`](@ref), [`Detector`](@ref), or [`Tick`](@ref)
 
 # Examples
 
-```jldoctests
+```jldoctest
 julia> obs_include = ObservableInclude(2, [1, 2])
 ObservableInclude(1, 2)
 
@@ -235,7 +263,7 @@ getnotes(a::ObservableInclude) = a.notes
 function Base.show(io::IO, a::ObservableInclude)
     sep = get(io, :compact, false) ? "," : ", "
     print(io, opname(a), "(")
-    join(io, getnotes(a), sep)
+    join(io, (_displaynum(io, x) for x in getnotes(a)), sep)
     print(io, ")")
 end
 
@@ -253,7 +281,7 @@ See Also [`QubitCoordinates`](@ref), [`ShiftCoordinates`](@ref), or [`Detector`]
 
 # Examples
 
-```jldoctests
+```jldoctest
 julia> tick = Tick()
 Tick()
 
@@ -275,7 +303,7 @@ getnotes(::Tick) = []
 function Base.show(io::IO, a::Tick)
     sep = get(io, :compact, false) ? "," : ", "
     print(io, opname(a), "(")
-    join(io, getnotes(a), sep)
+    join(io, (_displaynum(io, x) for x in getnotes(a)), sep)
     print(io, ")")
 end
 
@@ -296,7 +324,7 @@ See also [`Reloaded`](@ref), [`Loss`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> push!(Circuit(), Lost(), 1)
 1-qubit circuit with 1 instruction:
 └── Lost @ q[1]
@@ -324,7 +352,7 @@ See also [`Lost`](@ref), [`Reload`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> push!(Circuit(), Reloaded(), 1)
 1-qubit circuit with 1 instruction:
 └── Reloaded @ q[1]

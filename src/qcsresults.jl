@@ -16,8 +16,8 @@
 #
 
 """
-    QCSRresults()
-    QCSRresults(simulator, version, fidelities, avggateerrors, cstates, zstates, amplitudes, timings)
+    QCSResults()
+    QCSResults(simulator, version, fidelities, avggateerrors, cstates, zstates, amplitudes, timings)
 
 Storage for the results of a quantum circuit simulation.
 
@@ -62,6 +62,25 @@ QCSResults() = QCSResults(nothing, nothing, [], [], [], [], Dict(), Dict())
 
 QCSResults(simulator, version) = QCSResults(simulator, version, [], [], [], [], Dict(), Dict())
 
+"""
+    histsamples(results::QCSResults)
+
+Count how many times each classical state was sampled.
+
+Returns a `Dict{BitString,Int}` from each distinct state in `results.cstates`
+to its number of occurrences.
+
+## Examples
+
+```jldoctest
+julia> r = QCSResults();
+
+julia> append!(r.cstates, [bs"01", bs"01", bs"10"]);
+
+julia> histsamples(r)[bs"01"]
+2
+```
+"""
 function histsamples(r::QCSResults)
     d = Dict{BitString,Int}()
 
@@ -229,7 +248,7 @@ end
 function Base.show(io::IO, ::MIME"text/html", r::QCSResults)
     print(io, "<table><tbody>")
 
-    print(io, "<tr><td colspan=2 align=\"center\"><strong>QCSRresults</strong></td></tr>")
+    print(io, "<tr><td colspan=2 align=\"center\"><strong>QCSResults</strong></td></tr>")
 
     print(io, "<tr><td colspan=2></td></tr>")
 

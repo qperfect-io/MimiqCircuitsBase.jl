@@ -21,11 +21,9 @@ This abstract type is the base of Any Circuit representation in MIMIQ.
 It can be seen as a wrapper for list of Instructions, but it also includes a graph representation of this list.
 The structure of the graph is up to the inheriting struct to decide & implement.
 
-This class alos directly implements the functions needed to add Instructions to the list, the different getter and setter for the children struct properties
+This class also directly implements the functions needed to add Instructions to the list, the different getter and setter for the children struct properties
 as well as the caching system for the properties of the circuit.
 """
-
-
 abstract type AbstractCircuit{T} <: AbstractGraph{Int} end
 
 # Getter and setter expected by the children class
@@ -38,6 +36,38 @@ function is_graph_cache_valid end
 function instructions end
 
 function cache_graph! end
+
+"""
+    graph(circuit)
+
+Return the dependency graph of the circuit, as a `Graphs.SimpleDiGraph`.
+
+Vertex `i` is the `i`-th instruction. There is an edge from `i` to `j` when
+`j` is the next instruction after `i` acting on one of the same qubits, bits
+or z-variables. Observables that read the whole state, such as
+`Amplitude` or `BondDim`, depend on every qubit.
+
+The graph is cached and rebuilt only after the circuit changes. Do not modify
+it.
+
+## Examples
+
+```jldoctest
+julia> c = push!(Circuit(), GateH(), 1);
+
+julia> push!(c, GateCX(), 1, 2);
+
+julia> push!(c, GateX(), 3);
+
+julia> g = graph(c);
+
+julia> collect(MimiqCircuitsBase.Graphs.edges(g))
+1-element Vector{Graphs.SimpleGraphs.SimpleEdge{Int64}}:
+ Edge 1 => 2
+```
+
+See also `traverse_by_dfs` and `traverse_by_bfs`, which iterate over the instructions in a topological order of this graph.
+"""
 function graph end
 
 function numqubits end
@@ -92,7 +122,7 @@ Add an instruction to the circuit.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> c=Circuit()
 empty circuit
 
@@ -123,7 +153,7 @@ Append all instructions from `circuit2` to `circuit1`.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> c=Circuit()
 empty circuit
 
@@ -179,7 +209,7 @@ Insert an instruction into the circuit at the specified index.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> c=Circuit()
 empty circuit
 
@@ -219,7 +249,7 @@ Insert all instructions from `circuit2` into `circuit1` at the specified index.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> c = Circuit()
 empty circuit
 
@@ -274,7 +304,7 @@ Remove the instruction(s) at the given index(es).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> c = Circuit()
 empty circuit
 
@@ -314,6 +344,24 @@ function Base.splice!(c::AbstractCircuit{T}, range::AbstractUnitRange{<:Integer}
     return res
 end
 
+"""
+    specify_operations(circuit)
+
+Print how many instructions of the circuit act on each number of qubits and
+bits. Returns `nothing`.
+
+## Examples
+
+```jldoctest
+julia> c = push!(Circuit(), GateH(), 1);
+
+julia> push!(c, GateH(), 2);
+
+julia> specify_operations(c)
+Total number of operations: 2
+└── 2 x 1_qubit
+```
+"""
 function specify_operations(c::AbstractCircuit{T}) where {T}
     counts = Dict{String,Int}()
     for i in instructions(c)

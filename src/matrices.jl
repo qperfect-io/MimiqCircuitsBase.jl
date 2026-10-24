@@ -15,14 +15,6 @@
 # limitations under the License.
 #
 
-pmatrix(λ) = [1 0; 0 cis(λ)]
-
-pmatrixpi(λ) = [1 0; 0 cispi(λ)]
-
-gphase(λ) = cis(λ)
-
-gphasepi(λ) = cispi(λ)
-
 function umatrix(θ, ϕ, λ, γ=0.0)
     sinθ2, cosθ2 = sincos(θ / 2)
     return [cis(γ)*cosθ2 -cis(λ + γ)*sinθ2; cis(ϕ + γ)*sinθ2 cis(ϕ + λ + γ)*cosθ2]
@@ -34,12 +26,6 @@ function umatrixpi(θ, ϕ, λ, γ=0.0)
         cispi(γ)*cosθ2 -cispi(λ + γ)*sinθ2
         cispi(ϕ + γ)*sinθ2 cispi(ϕ + λ + γ)*cosθ2
     ]
-end
-
-function _swapcrosses!(M::Matrix, n, m)
-    M[:, n], M[:, m] = M[:, m], M[:, n]
-    M[n, :], M[m, :] = M[m, :], M[n, :]
-    return M
 end
 
 # Permutation of the `2^nq` basis indices induced by permuting index *bits* by

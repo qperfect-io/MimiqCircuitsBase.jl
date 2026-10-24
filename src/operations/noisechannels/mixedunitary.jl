@@ -58,7 +58,7 @@ The length of the vectors `p`, `U`, and (when given) `lossy` must be equal.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> push!(Circuit(), MixedUnitary([0.9, 0.1], [[1 0; 0 1], [0 1; 1 0]]), 1)
 1-qubit circuit with 1 instruction:
 └── MixedUnitary((0.9,Custom([1.0 0.0; 0.0 1.0])),(0.1,Custom([0.0 1.0; 1.0 0.0]))) @ q[1]
@@ -221,12 +221,6 @@ function krausoperators(mixedU::MixedUnitary{N}) where {N}
     end
 end
 
-"""
-    haslossybranch(channel::MixedUnitary)
-
-Whether any branch of the channel loses qubits when drawn (see the `lossy`
-argument of [`MixedUnitary`](@ref)).
-"""
 haslossybranch(mixedU::MixedUnitary) = any(!isempty, mixedU.lossy)
 
 function Base.show(io::IO, mixedu::MixedUnitary)
@@ -234,7 +228,7 @@ function Base.show(io::IO, mixedu::MixedUnitary)
     sep = get(io, :compact, false) ? "," : ", "
     ps = probabilities(mixedu)
     Us = unitarygates(mixedu)
-    join(io, Iterators.map(x -> (x[1], repr(x[2]; context=:compact => true)), zip(ps, Us)), sep)
+    join(io, Iterators.map(x -> "($(_displaynum(io, x[1])), $(repr(repr(x[2]; context=:compact => true))))", zip(ps, Us)), sep)
     haslossybranch(mixedu) && print(io, "; lossy=", Tuple(Tuple(l) for l in mixedu.lossy))
     print(io, ")")
 end

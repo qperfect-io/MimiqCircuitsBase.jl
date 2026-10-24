@@ -80,6 +80,20 @@ struct SolovayKitaevRewrite <: RewriteRule
     end
 end
 
+# basis_gates is a Vector, so the default (egal) comparison would tell apart
+# rules built with the same settings.
+function Base.:(==)(a::SolovayKitaevRewrite, b::SolovayKitaevRewrite)
+    return a.depth == b.depth && a.simplify == b.simplify &&
+           a.basis_gates == b.basis_gates && a.net_max_depth == b.net_max_depth &&
+           a.net_max_points == b.net_max_points && a.net_min_dist == b.net_min_dist
+end
+
+function Base.hash(r::SolovayKitaevRewrite, h::UInt)
+    fields = (r.depth, r.simplify, r.basis_gates, r.net_max_depth, r.net_max_points,
+        r.net_min_dist)
+    return hash(fields, hash(SolovayKitaevRewrite, h))
+end
+
 # === matches — single-qubit rotations with concrete angles ===
 
 function matches(::SolovayKitaevRewrite, g::GateRZ)

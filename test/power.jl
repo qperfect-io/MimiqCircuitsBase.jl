@@ -40,3 +40,15 @@
         end
     end
 end
+
+@testset "Power decomposition" begin
+    # (C-U)^p = C-(U^p): the power moves inside the controls.
+    decomp = decompose_step(Power(GateCCX(), 1 // 2))
+    @test length(decomp) == 1
+    @test getoperation(decomp[1]) == Control(2, GateSX())
+    @test getqubits(decomp[1]) == (1, 2, 3)
+
+    # The canonical decomposition of ECR has several gates, so its square root
+    # cannot be taken gate by gate.
+    @test_throws MimiqCircuitsBase.DecompositionError decompose_step(Power(GateECR(), 1 // 2))
+end

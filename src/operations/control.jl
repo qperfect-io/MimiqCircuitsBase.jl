@@ -30,7 +30,7 @@ See also [`Power`](@ref), [`Inverse`](@ref), [`getoperation`](@ref),
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> Control(1, GateX())
 CX
 
@@ -50,29 +50,29 @@ gates, which is done recursively, according to Lemma 7.2 and 7.3 of
 
 Here we give a simple example of a decomposition of a ``C_5T`` gate.
 
-```jldoctests
+```jldoctest
 julia> decompose(Control(3,GateT()))
-4-qubit circuit with 67 instructions:
-├── U(0,0,0π) @ q[3]
-├── U(0,0,(1//16)*π) @ q[3]
-├── U(0,0,(1//16)*π) @ q[4]
+4-qubit circuit with 57 instructions:
+├── U(0,0,π/16) @ q[3]
 ├── CX @ q[3], q[4]
 ├── U(0,0,(-1//16)*π) @ q[4]
 ├── CX @ q[3], q[4]
-├── U(0,0,0) @ q[4]
+├── U(0,0,π/16) @ q[4]
 ├── U(π/2,0,π) @ q[3]
 ├── CX @ q[2], q[3]
+├── U(0,0,-1π/4) @ q[3]
+├── CX @ q[1], q[3]
 ⋮   ⋮
 ├── CX @ q[2], q[4]
-├── U(0,0,0) @ q[4]
+├── U(0,0,π/32) @ q[4]
+├── CX @ q[2], q[4]
+├── U(0,0,(-1//32)*π) @ q[4]
 ├── CX @ q[1], q[2]
-├── U(0,0,0π) @ q[1]
-├── U(0,0,(1//32)*π) @ q[1]
-├── U(0,0,(1//32)*π) @ q[4]
+├── U(0,0,π/32) @ q[1]
 ├── CX @ q[1], q[4]
 ├── U(0,0,(-1//32)*π) @ q[4]
 ├── CX @ q[1], q[4]
-└── U(0,0,0) @ q[4]
+└── U(0,0,π/32) @ q[4]
 ```
 
 !!! detail
@@ -128,7 +128,7 @@ The number of controls can be omitted to be lazily evaluated later.
 
 Standard examples, with all the arguments spefcified.
 
-```jldoctests
+```jldoctest
 julia> control(1, GateX())
 CX
 
@@ -277,7 +277,8 @@ function _ctrl_matrix(::Val{N}, opmat::AbstractMatrix) where {N}
     return mat
 end
 
-@generated _matrix(::Type{Control{N,M,L,T}}) where {N,M,L,T} = _ctrl_matrix(Val(N), _matrix(T))
+_compute_matrix(::Type{Control{N,M,L,T}}) where {N,M,L,T} = _ctrl_matrix(Val(N), _matrix(T))
+_matrix(::Type{Control{N,M,L,T}}) where {N,M,L,T} = _cached_matrix(Control{N,M,L,T})
 
 function _matrix(::Type{Control{N,M,L,T}}, args...) where {N,M,L,T}
     return _ctrl_matrix(Val(N), _matrix(T, args...))
@@ -313,22 +314,8 @@ matches(::CanonicalRewrite, ::Control{1}) = true
 
 function decompose_step!(builder, ::CanonicalRewrite, control::Control{1}, qtargets, _, _)
     op = getoperation(control)
-    for inst in decompose(op)
+    for inst in _canonical_pieces(op)
         push!(builder, Control(getoperation(inst)), qtargets[1], [qtargets[i+1] for i in getqubits(inst)]...)
-    end
-    return builder
-end
-
-function _controlrotation_decompose!(builder, op::Operation{1,0}, qtargets)
-    controls = qtargets[1:end-1]
-    target = qtargets[end]
-
-    if isempty(controls)
-        push!(builder, op, target)
-    elseif length(controls) == 1
-        push!(builder, Control(op), qtargets...)
-    else
-        _control_recursive_decompose!(builder, Control(length(controls), op), qtargets)
     end
     return builder
 end
@@ -348,8 +335,6 @@ function _controlx_decompose!(builder, ctrl, trgt, ancl)
         push!(builder, Control(nctrl, GateX()), ctrl..., trgt)
 
     elseif nqubits >= 2 * nctrl - 1 && nctrl >= 3
-        #push!(circ, Control(nctrl, GateX()), ctrl..., trgt)
-        #return circ
         # Decomposition according to Lemma 7.2 of [1]
         c2x = Control(2, GateX())
 
@@ -409,12 +394,10 @@ function _control_recursive_decompose!(builder, control::Control{N,1}, qtargets)
     push!(builder, Control(1, V), qtargets[end-1:end]...)
 
     _controlx_decompose!(builder, qtargets[1:N-1], qtargets[N], qtargets[end:end])
-    #push!(circ, Control(N - 1, GateX()), qtargets[1:N]...)
 
     push!(builder, Control(1, Vdag), qtargets[end-1:end]...)
 
     _controlx_decompose!(builder, qtargets[1:N-1], qtargets[N], qtargets[end:end])
-    #push!(circ, Control(N - 1, GateX()), qtargets[1:N]...)
 
     newtargets = [qtargets[1:end-2]..., qtargets[end]]
 
@@ -442,9 +425,7 @@ function decompose_step!(builder, ::CanonicalRewrite, control::Control{N}, qtarg
     if ntargets != 1 || ncontrols == 1
         # Decompose the internal gate and then apply the resulting gates with controls
 
-        newcirc = decompose(op)
-
-        for inst in newcirc
+        for inst in _canonical_pieces(op)
             inst_q = [targets[q] for q in getqubits(inst)]
             push!(builder, Control(N, getoperation(inst)), controls..., inst_q...)
         end

@@ -49,7 +49,7 @@ The vectors `p` and `paulistrings` must have the same length.
 PauliNoise channels can be defined for any number of qubits,
 and for any number of Pauli strings.
 
-```jldoctests
+```jldoctest
 julia> push!(Circuit(), PauliNoise([0.8, 0.1, 0.1], ["I","X","Y"]), 1)
 1-qubit circuit with 1 instruction:
 └── PauliNoise(...) @ q[1]
@@ -178,7 +178,7 @@ and is a special case of [`PauliNoise`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> push!(Circuit(), PauliX(0.1), 1)
 1-qubit circuit with 1 instruction:
 └── PauliX(0.1) @ q[1]
@@ -239,7 +239,7 @@ and is a special case of [`PauliNoise`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> push!(Circuit(), PauliY(0.1), 1)
 1-qubit circuit with 1 instruction:
 └── PauliY(0.1) @ q[1]
@@ -299,7 +299,7 @@ and is a special case of [`PauliNoise`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> push!(Circuit(), PauliZ(0.1), 1)
 1-qubit circuit with 1 instruction:
 └── PauliZ(0.1) @ q[1]

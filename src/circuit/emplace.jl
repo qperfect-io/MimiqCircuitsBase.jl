@@ -21,7 +21,7 @@
 Emplace an operation at the end of a circuit and applies it to the given
 registers.
 
-```jldoctests
+```jldoctest
 julia> emplace!(Circuit(), control(3, GateSWAP()), [1,2,3], [4,5])
 5-qubit circuit with 1 instruction:
 └── C₃SWAP @ q[1:3], q[4:5]

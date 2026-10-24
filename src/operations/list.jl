@@ -155,9 +155,9 @@ For gate definitions and calls, see [`GateDecl`](@ref) and [`GateCall`](@ref)
 ## Non-unitary operations
 
 [`Measure`](@ref), [`MeasureX`](@ref), [`MeasureY`](@ref), [`MeasureZ`](@ref),
-[`MeasureXX`](@ref), [`MeasureYY`](@ref), [`MeasureZZ`](@ref)
+[`MeasureXX`](@ref), [`MeasureYY`](@ref), [`MeasureZZ`](@ref), [`MeasurePauli`](@ref),
 [`MeasureReset`](@ref), [`MeasureResetX`](@ref), [`MeasureResetY`](@ref), [`MeasureResetZ`](@ref),
-[`Reset`](@ref),
+[`Reset`](@ref), [`PrepareStateT`](@ref)
 
 ## Classical bits (c-register) and complex variables (z-register) operations
 
@@ -219,6 +219,7 @@ List of noise channels provided by the library.
 [`PhaseAmplitudeDamping`](@ref),
 [`ThermalNoise`](@ref),
 [`Reset`](@ref),
+[`PrepareStateT`](@ref),
 
 ## Mixed-Unitary noise channels
 
@@ -242,6 +243,7 @@ const NOISECHANNELS = Type[
     Reset,
     ResetX,
     ResetY,
+    PrepareStateT,
     ProjectiveNoiseX,
     ProjectiveNoiseY,
     ProjectiveNoiseZ,

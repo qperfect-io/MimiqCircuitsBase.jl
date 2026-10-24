@@ -41,7 +41,7 @@ See also [`GateRYY`](@ref), [`GateRZZ`](@ref), [`GateRZX`](@ref),
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> @variables θ
 1-element Vector{Symbolics.Num}:
  θ
@@ -69,7 +69,7 @@ julia> push!(c, GateRXX(π/2), 1, 2)
 
 ## Decomposition
 
-```jldoctests; setup = :(@variables θ)
+```jldoctest; setup = :(@variables θ)
 julia> decompose(GateRXX(θ))
 2-qubit circuit with 7 instructions:
 ├── U(π/2,0,π) @ q[1]
@@ -140,7 +140,7 @@ See also [`GateRXX`](@ref), [`GateRZZ`](@ref), [`GateRZX`](@ref),
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> @variables θ
 1-element Vector{Symbolics.Num}:
  θ
@@ -168,7 +168,7 @@ julia> push!(c, GateRYY(π/2), 1, 2)
 
 ## Decomposition
 
-```jldoctests; setup = :(@variables θ)
+```jldoctest; setup = :(@variables θ)
 julia> decompose(GateRYY(θ))
 2-qubit circuit with 7 instructions:
 ├── U(π/2,-1π/2,π/2) @ q[1]
@@ -202,13 +202,13 @@ matches(::CanonicalRewrite, ::GateRYY) = true
 
 function decompose_step!(builder, ::CanonicalRewrite, g::GateRYY, qtargets, _, _)
     a, b = qtargets
-    push!(builder, GateRX(π / 2), a)
-    push!(builder, GateRX(π / 2), b)
+    push!(builder, GateRX(_π_2), a)
+    push!(builder, GateRX(_π_2), b)
     push!(builder, GateCX(), a, b)
     push!(builder, GateRZ(g.θ), b)
     push!(builder, GateCX(), a, b)
-    push!(builder, GateRX(-π / 2), a)
-    push!(builder, GateRX(-π / 2), b)
+    push!(builder, GateRX(_mπ_2), a)
+    push!(builder, GateRX(_mπ_2), b)
     return builder
 end
 
@@ -238,7 +238,7 @@ See also [`GateRXX`](@ref), [`GateRYY`](@ref), [`GateRZX`](@ref),
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> @variables θ
 1-element Vector{Symbolics.Num}:
  θ
@@ -266,7 +266,7 @@ julia> push!(c, GateRZZ(π/2), 1, 2)
 
 ## Decomposition
 
-```jldoctests; setup = :(@variables θ)
+```jldoctest; setup = :(@variables θ)
 julia> decompose(GateRZZ(θ))
 2-qubit circuit with 3 instructions:
 ├── CX @ q[1], q[2]
@@ -326,7 +326,7 @@ See also [`GateRXX`](@ref), [`GateRYY`](@ref), [`GateRZZ`](@ref),
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> @variables θ
 1-element Vector{Symbolics.Num}:
  θ
@@ -354,7 +354,7 @@ julia> push!(c, GateRZX(π/2), 1, 2)
 
 ## Decomposition
 
-```jldoctests; setup = :(@variables θ)
+```jldoctest; setup = :(@variables θ)
 julia> decompose(GateRZX(θ))
 2-qubit circuit with 5 instructions:
 ├── U(π/2,0,π) @ q[2]
@@ -422,7 +422,7 @@ See also [`GateRXX`](@ref), [`GateRYY`](@ref), [`GateRZZ`](@ref),
 
 ## Examples
 
-```jldoctests; filter = [r"sin\(θ / 2\)\*sin\(-?β\)|sin\(-?β\)\*sin\(θ / 2\)", r"im\*cos\(-?β\)|cos\(-?β\)\*im"]
+```jldoctest; filter = [r"sin\(θ / 2\)\*sin\(-?β\)|sin\(-?β\)\*sin\(θ / 2\)", r"im\*cos\(-?β\)|cos\(-?β\)\*im"]
 julia> @variables θ β
 2-element Vector{Symbolics.Num}:
  θ
@@ -451,7 +451,7 @@ julia> push!(c, GateXXplusYY(π/2, 0), 1, 2)
 
 ## Decomposition
 
-```jldoctests; stup = :(@variables θ β)
+```jldoctest; setup = :(@variables θ β)
 julia> decompose(GateXXplusYY(θ, β))
 2-qubit circuit with 20 instructions:
 ├── U(0,0,β,(-1//2)*β) @ q[1]
@@ -498,18 +498,18 @@ matches(::CanonicalRewrite, ::GateXXplusYY) = true
 function decompose_step!(builder, ::CanonicalRewrite, g::GateXXplusYY, qtargets, _, _)
     a, b = qtargets
     push!(builder, GateRZ(g.β), a)
-    push!(builder, GateRZ(-π / 2), b)
+    push!(builder, GateRZ(_mπ_2), b)
     push!(builder, GateSX(), b)
-    push!(builder, GateRZ(π / 2), b)
+    push!(builder, GateRZ(_π_2), b)
     push!(builder, GateS(), a)
     push!(builder, GateCX(), b, a)
     push!(builder, GateRY(-g.θ / 2), b)
     push!(builder, GateRY(-g.θ / 2), a)
     push!(builder, GateCX(), b, a)
     push!(builder, GateSDG(), a)
-    push!(builder, GateRZ(-π / 2), b)
+    push!(builder, GateRZ(_mπ_2), b)
     push!(builder, GateSXDG(), b)
-    push!(builder, GateRZ(π / 2), b)
+    push!(builder, GateRZ(_π_2), b)
     push!(builder, GateRZ(-g.β), a)
     return builder
 end
@@ -542,7 +542,7 @@ See also [`GateRXX`](@ref), [`GateRYY`](@ref), [`GateRZZ`](@ref),
 
 ## Examples
 
-```jldoctests; filter = [r"sin\(θ / 2\)\*sin\(-?β\)|sin\(-?β\)\*sin\(θ / 2\)", r"im\*cos\(-?β\)|cos\(-?β\)\*im"]
+```jldoctest; filter = [r"sin\(θ / 2\)\*sin\(-?β\)|sin\(-?β\)\*sin\(θ / 2\)", r"im\*cos\(-?β\)|cos\(-?β\)\*im"]
 julia> @variables θ β
 2-element Vector{Symbolics.Num}:
  θ
@@ -571,7 +571,7 @@ julia> push!(c, GateXXminusYY(π/2, 0.0), 1, 2)
 
 ## Decomposition
 
-```jldoctests; setup = :(@variables θ β)
+```jldoctest; setup = :(@variables θ β)
 julia> decompose(GateXXminusYY(θ, β))
 2-qubit circuit with 20 instructions:
 ├── U(0,0,-β,β / 2) @ q[2]
@@ -618,18 +618,18 @@ matches(::CanonicalRewrite, ::GateXXminusYY) = true
 function decompose_step!(builder, ::CanonicalRewrite, g::GateXXminusYY, qtargets, _, _)
     a, b = qtargets
     push!(builder, GateRZ(-g.β), b)
-    push!(builder, GateRZ(-π / 2), a)
+    push!(builder, GateRZ(_mπ_2), a)
     push!(builder, GateSX(), a)
-    push!(builder, GateRZ(π / 2), a)
+    push!(builder, GateRZ(_π_2), a)
     push!(builder, GateS(), b)
     push!(builder, GateCX(), a, b)
     push!(builder, GateRY(g.θ / 2), a)
     push!(builder, GateRY(-g.θ / 2), b)
     push!(builder, GateCX(), a, b)
     push!(builder, GateSDG(), b)
-    push!(builder, GateRZ(-π / 2), a)
+    push!(builder, GateRZ(_mπ_2), a)
     push!(builder, GateSXDG(), a)
-    push!(builder, GateRZ(π / 2), a)
+    push!(builder, GateRZ(_π_2), a)
     push!(builder, GateRZ(g.β), b)
     return builder
 end

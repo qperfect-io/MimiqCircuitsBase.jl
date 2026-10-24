@@ -41,7 +41,7 @@ See also [`GateID`](@ref), [`GateX`](@ref), [`GateY`](@ref), [`GateZ`](@ref).
 
 PauliStrings of any length are supported.
 
-```jldoctests
+```jldoctest
 julia> c = push!(Circuit(), PauliString("XX"), 1, 2)
 2-qubit circuit with 1 instruction:
 └── XX @ q[1:2]
@@ -56,7 +56,7 @@ julia> push!(c, PauliString("IXYZZYXI"), 1, 2, 3, 4, 5, 6, 7, 8)
 
 Decomposes into one-qubit Pauli gates.
 
-```jldoctests
+```jldoctest
 julia> decompose(PauliString("XIYZZ"))
 5-qubit circuit with 5 instructions:
 ├── U(π,0,π) @ q[1]
@@ -158,7 +158,7 @@ end
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> pauli"XYYXZ"
 XYYXZ
 

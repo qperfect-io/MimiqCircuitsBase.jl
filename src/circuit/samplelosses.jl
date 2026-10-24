@@ -28,7 +28,7 @@ circuit.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> c = push!(Circuit(), Loss(), 2);
 
 julia> sample_losses(c)
@@ -81,7 +81,7 @@ The returned circuit contains no loss operations.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> c = Circuit();
 
 julia> push!(c, Loss(), 1);
@@ -201,7 +201,7 @@ study, see [`sample_loss_scenario`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> c = Circuit();
 
 julia> push!(c, Loss(), 1);
@@ -233,7 +233,7 @@ with [`resolve_losses`](@ref), so the returned circuit shows the effect of
 losing exactly those sites.
 
 # Examples
-```jldoctests
+```jldoctest
 julia> c = Circuit();
 
 julia> push!(c, Loss(0.2), 1);
@@ -314,7 +314,7 @@ end
 # ================= #
 
 @doc raw"""
-    lossmodel_rewrite(inst::Instruction, lost::Dict{Int,Bool}, model::LossModel; rng)
+    lossmodel_rewrite(inst::Instruction, lost::Dict{Int,Bool}, model::LossModel; rng=Random.default_rng())
 
 Decide how a single instruction that touches both lost and present qubits is
 rewritten under a [`LossModel`](@ref), returning the instructions to emit in its
@@ -325,8 +325,12 @@ This is the per-instruction decision core shared by the offline
 `lost` map (qubit → lost?) and apply whatever it returns. Rules are tried in
 order, the first matching rule wins, and any emitted instruction still touching a
 lost qubit is filtered out. When no rule matches, the instruction is dropped.
+
+`rng` is passed to the generator of a [`CustomRule`](@ref); the other rules
+ignore it.
 """
-function lossmodel_rewrite(inst::Instruction, lost::Dict{Int,Bool}, model::LossModel; rng)
+function lossmodel_rewrite(inst::Instruction, lost::Dict{Int,Bool}, model::LossModel;
+    rng=Random.default_rng())
     for rule in model.rules
         # CustomRule needs the loss context, so it gets a special dispatch
         result = if rule isa CustomRule

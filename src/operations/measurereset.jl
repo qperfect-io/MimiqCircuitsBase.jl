@@ -18,23 +18,24 @@
 @doc raw"""
     MeasureReset()
 
-This operation measures a qubit q, stores the value in a classical bit c,
-then applies a X operation to the qubit if the measured value is 1, effectively
-resetting the qubit to the :math:`\\ket{0}` state.
+Measures a qubit in the Z basis, stores the outcome in a classical bit, then
+applies [`GateX`](@ref) to the qubit if the outcome is 1, which leaves it in
+the ``\ket{0}`` state. It decomposes into [`Measure`](@ref) followed by an
+[`IfStatement`](@ref) of `GateX` on that bit.
 
 
 See also [`MeasureResetX`](@ref), [`MeasureResetY`](@ref), [`IfStatement`](@ref), [`GateH`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> MeasureReset()
 MR
 
 julia> decompose(MeasureReset())
 1-qubit, 1-bit circuit with 2 instructions:
 ├── M @ q[1], c[1]
-└── Reset @ q[1]
+└── IF(c==1) U(π,0,π) @ q[1], condition[1]
 
 julia> c = push!(Circuit(), MeasureReset(), 1, 1)
 1-qubit, 1-bit circuit with 1 instruction:
@@ -64,7 +65,7 @@ function decompose_step!(builder, ::CanonicalRewrite, ::MeasureReset, qtargets, 
     q = qtargets[1]
     c = ctargets[1]
     push!(builder, Measure(), q, c)
-    push!(builder, Reset(), q)
+    push!(builder, IfStatement(GateX(), bs"1"), q, c)
     return builder
 end
 
@@ -81,7 +82,7 @@ See also [`MeasureReset`](@ref), [`MeasureResetY`](@ref), [`IfStatement`](@ref),
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> MeasureResetX()
 MRX
 
@@ -89,7 +90,7 @@ julia> decompose(MeasureResetX())
 1-qubit, 1-bit circuit with 4 instructions:
 ├── U(π/2,0,π) @ q[1]
 ├── M @ q[1], c[1]
-├── Reset @ q[1]
+├── IF(c==1) U(π,0,π) @ q[1], condition[1]
 └── U(π/2,0,π) @ q[1]
 
 julia> c = push!(Circuit(), MeasureResetX(), 1, 1)
@@ -139,7 +140,7 @@ See aclso [`MeasureResetX`](@ref), [`MeasureReset`](@ref), [`IfStatement`](@ref)
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> MeasureResetY()
 MRY
 
@@ -151,7 +152,7 @@ julia> decompose(MeasureResetY())
 ├── U(0,0,π) @ q[1]
 ├── U(0,0,0,-1π/4) @ q[1]
 ├── M @ q[1], c[1]
-├── Reset @ q[1]
+├── IF(c==1) U(π,0,π) @ q[1], condition[1]
 ├── U(π/2,0,π) @ q[1]
 ├── U(0,0,π/2) @ q[1]
 ├── U(π/2,0,π) @ q[1]

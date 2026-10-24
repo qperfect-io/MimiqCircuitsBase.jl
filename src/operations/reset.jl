@@ -25,7 +25,7 @@ See also [`Operation`](@ref), [`Measure`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> Reset()
 Reset
 
@@ -67,7 +67,7 @@ See also [`Reset`](@ref), [`Operation`](@ref), [`Measure`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> ResetX()
 ResetX
 
@@ -124,7 +124,7 @@ See also [`Reset`](@ref), [`Operation`](@ref), [`Measure`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> ResetY()
 ResetY
 

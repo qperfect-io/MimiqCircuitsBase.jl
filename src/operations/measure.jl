@@ -15,6 +15,16 @@
 # limitations under the License.
 #
 
+"""
+    AbstractMeasurement{N} <: Operation{N,1,0}
+
+Supertype of the measurements: operations on `N` qubits that write their
+outcome to one classical bit, such as [`Measure`](@ref), [`MeasureX`](@ref)
+or [`MeasureZZ`](@ref).
+
+Readout noise rules, such as `GlobalReadoutNoise`, apply to every
+subtype.
+"""
 abstract type AbstractMeasurement{N} <: Operation{N,1,0} end
 
 @doc raw"""
@@ -32,7 +42,7 @@ See also [`Operation`](@ref), [`Reset`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> Measure()
 M
 
@@ -69,7 +79,7 @@ See also [`Measure`](@ref), [`Operation`](@ref), [`Reset`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> Measure()
 M
 
@@ -128,7 +138,7 @@ See also [`Measure`](@ref), [`Operation`](@ref), [`Reset`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> MeasureY()
 MeasureY
 

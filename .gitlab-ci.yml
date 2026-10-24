@@ -4,10 +4,19 @@ stages:
   - deploy
 
 variables:
+  # Precompiling SymbolicUtils needs more memory than the K8S runner's
+  # default pod limit, and the kernel kills the job.
+  KUBERNETES_MEMORY_REQUEST: "4Gi"
+  KUBERNETES_MEMORY_LIMIT: "8Gi"
   JULIA_PKG_USE_CLI_GIT: "true"
 
 default:
-  image: julia:1
+  # The alpine runners have too little memory for Julia and cannot be given
+  # more per job, so jobs go to the K8S runner, which reads the
+  # KUBERNETES_MEMORY_* variables above.
+  tags: [kubernetes, linux]
+  # Julia 1.13 is tested by `test-julia-1.13`; the other jobs stay on 1.12.
+  image: julia:1.12
 
 .setup_julia: &setup_julia
   before_script:
@@ -28,6 +37,10 @@ test:
   script:
     - julia --project=. -e 'import Pkg; Pkg.instantiate(); Pkg.build()'
     - julia --project=. -e 'import Pkg; Pkg.test()'
+
+test-julia-1.13:
+  extends: test
+  image: julia:1.13
 
 register:
   stage: register

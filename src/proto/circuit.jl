@@ -45,6 +45,21 @@ function toproto_number(v::Number)
         return circuit_pb.Arg(OneOf(:irrational_value, toproto(v)))
     end
 
+    # `Arg` has no rational variant: a rational `p//q` travels as `DIV(p, q)`
+    # of two integers, which the decoders read back as an exact rational.
+    if v isa Rational
+        isone(denominator(v)) && return toproto_number(numerator(v))
+        return circuit_pb.Arg(
+            OneOf(
+                :argfunction_value,
+                circuit_pb.ArgFunction(
+                    circuit_pb.FunctionType.DIV,
+                    [toproto_number(numerator(v)), toproto_number(denominator(v))],
+                ),
+            ),
+        )
+    end
+
     if v isa Integer
         vv = OneOf(:integer_value, Int64(v))
     elseif v isa AbstractFloat
@@ -56,35 +71,25 @@ function toproto_number(v::Number)
     return circuit_pb.Arg(OneOf(:argvalue_value, circuit_pb.ArgValue(vv)))
 end
 
-function toproto(g::Num)
-    v = Symbolics.value(g)
+toproto(g::Num) = _toproto_arg(Symbolics.value(g))
 
-    # check for constant number
-    if !(v isa Num)
-        vv = simplify(v)
-        vvc = unwrap_const(vv)
-        vvc isa Number && return toproto_number(vvc)
-    end
+_toproto_arg(v::Number) = toproto_number(v)
 
-    # check for something that can be evaluated to a number
-    if iscall(v)
-        vv = Symbolics.value(Symbolics.symbolic_to_float(v))
-        vv isa Number && return toproto_number(vv)
-    end
-
-    # everything else is symbolic (functions or symbols)
+# Expressions are written as their expression tree, never evaluated, so that
+# `π/4` or `2π/3` decode to the same expression and not to a rounded double.
+function _toproto_arg(v)
+    SymbolicUtils.isconst(v) && return toproto_number(SymbolicUtils.unwrap_const(v))
+    Symbolics.issym(v) && return circuit_pb.Arg(OneOf(:symbol_value, toproto(v)))
     pt = toproto(v)
-    if pt isa circuit_pb.ArgFunction
-        return circuit_pb.Arg(OneOf(:argfunction_value, pt))
-    end
-    return circuit_pb.Arg(OneOf(:symbol_value, pt))
+    pt isa circuit_pb.Arg && return pt
+    return circuit_pb.Arg(OneOf(:argfunction_value, pt))
 end
 
 function fromproto(g::circuit_pb.Arg)
     return Num(fromproto(g.arg[]))
 end
 
-function func_to_proto(f)
+function _func_to_proto(f)
     f == Base.:+ ? circuit_pb.FunctionType.ADD :
     f == Base.:* ? circuit_pb.FunctionType.MUL :
     f == Base.:/ ? circuit_pb.FunctionType.DIV :
@@ -95,7 +100,13 @@ function func_to_proto(f)
     f == Base.exp ? circuit_pb.FunctionType.EXP :
     f == Base.log ? circuit_pb.FunctionType.LOG :
     f == Base.identity ? circuit_pb.FunctionType.IDENTITY :
-    error("Not supported function: $(f)")
+    nothing
+end
+
+function func_to_proto(f)
+    t = _func_to_proto(f)
+    isnothing(t) && error("Not supported function: $(f)")
+    return t
 end
 
 function proto_to_func(f)
@@ -118,16 +129,41 @@ function toproto(g::Symbolics.BasicSymbolic)
     end
 
     op = Symbolics.operation(g)
+    args = Symbolics.arguments(g)
 
-    type = func_to_proto(op)
-
-    if isnothing(type)
-        error("Not supported function: $(op)")
+    # Symbolics keeps an irrational constant as `identity(π)`; it is written
+    # as the bare irrational, so a constant always encodes the same way.
+    if op === identity && length(args) == 1 && SymbolicUtils.isconst(args[1])
+        c = SymbolicUtils.unwrap_const(args[1])
+        c isa Irrational && return toproto_number(c)
     end
 
-    args = map(toproto, Num.(Symbolics.arguments(g)))
+    type = _func_to_proto(op)
 
-    return circuit_pb.ArgFunction(type, args)
+    # A constant built with a function the schema lacks (`sqrt`, `atan`, ...)
+    # can only be sent as its value.
+    if isnothing(type)
+        isempty(Symbolics.get_variables(g)) || error("Not supported function: $(op)")
+        return toproto_number(Symbolics.value(Symbolics.symbolic_to_float(Num(g))))
+    end
+
+    pargs = map(_toproto_arg, args)
+
+    # Symbolics and SymEngine order the terms of a sum or product differently.
+    # Sorting them by their encoding gives both languages the same bytes; the
+    # decoders rebuild through `+` and `*`, so the order does not change the
+    # value.
+    if type == circuit_pb.FunctionType.ADD || type == circuit_pb.FunctionType.MUL
+        pargs = sort(pargs; by=_argbytes)
+    end
+
+    return circuit_pb.ArgFunction(type, pargs)
+end
+
+function _argbytes(a::circuit_pb.Arg)
+    io = IOBuffer()
+    ProtoBuf.encode(ProtoBuf.ProtoEncoder(io), a)
+    return take!(io)
 end
 
 function fromproto(g::circuit_pb.ArgFunction)
@@ -137,8 +173,20 @@ function fromproto(g::circuit_pb.ArgFunction)
         error("Not supported function: $(g.mtype)")
     end
 
+    # `DIV` of two integers is how a rational constant is written.
+    if g.mtype == circuit_pb.FunctionType.DIV && length(g.args) == 2 &&
+       all(_isintegerarg, g.args) && !iszero(g.args[2].arg[].arg_value[])
+        return g.args[1].arg[].arg_value[] // g.args[2].arg[].arg_value[]
+    end
+
     args = map(fromproto, g.args)
     return op(args...)
+end
+
+function _isintegerarg(a::circuit_pb.Arg)
+    a.arg isa OneOf && a.arg.name == :argvalue_value || return false
+    v = a.arg[].arg_value
+    return v isa OneOf && v.name == :integer_value
 end
 
 function fromproto(g::circuit_pb.ArgValue)
@@ -153,8 +201,10 @@ function fromproto(g::circuit_pb.ComplexArg)
     return fromproto(g.real) + im * fromproto(g.imag)
 end
 
+# Built as `@variables` builds it, so a decoded symbol is the same object as
+# the user's variable and parameters compare `==` after a round trip.
 function fromproto(g::circuit_pb.Symbol)
-    return Symbolics.Sym{SymbolicUtils.SymReal}(Symbol(g.value); type=Real)
+    return Symbolics.value(Symbolics.variable(Symbol(g.value)))
 end
 
 const GATEMAP = Bijection(Dict(
@@ -460,6 +510,7 @@ const KRAUSCHANNELMAP = Bijection(Dict(
     ProjectiveNoiseX => circuit_pb.KrausChannelType.ProjectiveNoiseX,
     ProjectiveNoiseY => circuit_pb.KrausChannelType.ProjectiveNoiseY,
     ProjectiveNoiseZ => circuit_pb.KrausChannelType.ProjectiveNoiseZ,
+    PrepareStateT => circuit_pb.KrausChannelType.PrepareStateT,
 ))
 
 function fromproto(op::circuit_pb.KrausChannel, declcache=nothing)
@@ -559,7 +610,6 @@ const GENERALIZEDOPERATIONMAP = Bijection(Dict(
     And => circuit_pb.GeneralizedOperationType.And,
     Or => circuit_pb.GeneralizedOperationType.Or,
     Xor => circuit_pb.GeneralizedOperationType.Xor,
-    ParityCheck => circuit_pb.GeneralizedOperationType.ParityCheck,
 ))
 
 function fromproto(op::circuit_pb.Operation, declcache)
@@ -616,7 +666,8 @@ function fromproto(g::circuit_pb.GeneralizedOperation)
     elseif g.mtype == circuit_pb.GeneralizedOperationType.Xor
         return Xor(nb)
     elseif g.mtype == circuit_pb.GeneralizedOperationType.ParityCheck
-        return ParityCheck(nb)
+        # Files written before `ParityCheck` was deprecated still carry it.
+        return Xor(nb)
     else
         error(lazy"Unsupported ProtoBuf GeneralizedOperation type $(g.mtype).")
     end
@@ -775,6 +826,14 @@ function fromproto(g::circuit_pb.Loss)
     return Loss(fromproto(g.p))
 end
 
+function toproto(m::MeasurePauli)
+    return circuit_pb.MeasurePauli(toproto(m.pauli))
+end
+
+function fromproto(m::circuit_pb.MeasurePauli)
+    return MeasurePauli(fromproto(m.pauli))
+end
+
 function toproto(inst::Instruction, declcache=nothing)
     op = circuit_pb.Operation(_build_oneof(getoperation(inst), declcache))
     return circuit_pb.Instruction(op, Int64[getqubits(inst)...], Int64[getbits(inst)...,], Int64[getztargets(inst)...])
@@ -869,5 +928,6 @@ function _build_oneof(gop, declcache=nothing)
     op isa circuit_pb.GateDecl ? OneOf(:gatedecl, op) :
     op isa circuit_pb.ReadoutErr ? OneOf(:readouterr, op) :
     op isa circuit_pb.Loss ? OneOf(:loss, op) :
+    op isa circuit_pb.MeasurePauli ? OneOf(:measurepauli, op) :
     throw(ArgumentError(lazy"Cannot wrap a `$(typeof(op))` into a ProtoBuf `OneOf`."))
 end

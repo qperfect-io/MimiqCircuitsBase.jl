@@ -69,4 +69,13 @@ using Symbolics
         @test g._decl == MyGate
         @test g._args == (0.5,)
     end
+    @testset "@on outside a DSL block" begin
+        msg = "only valid as a top-level statement"
+        @test_throws msg macroexpand(@__MODULE__, :(@on GateX() q=1))
+        @test_throws msg macroexpand(@__MODULE__, :(@circuit begin
+            for i in 1:2
+                @on GateX() q=i
+            end
+        end))
+    end
 end

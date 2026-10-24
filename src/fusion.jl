@@ -182,12 +182,63 @@ true
 ```
 """
 function fuse(c::Circuit; max_support::Int=2, max_diagonal_support::Int=max_support)::Circuit
-    n = length(c)
+    cl = _fuseclusters(c, max_support, max_diagonal_support)
+
+    out = Circuit()
+    for cid in cl.order
+        members = cl.members[cid]
+        isempty(members) && continue
+        if cl.kinds[cid] == :pass || length(members) == 1  # no singleton demotion
+            for i in members
+                push!(out, c[i])  # verbatim: keeps qubits, bits and zvars intact
+            end
+        elseif cl.isdiagonal[cid]
+            S = sort!(collect(cl.support[cid]))
+            d = _synthesize_diagonal(c, sort(members), S, cl.diagonals)
+            push!(out, GateCustomDiagonal(d), S...)
+        else
+            S = sort!(collect(cl.support[cid]))
+            push!(out, GateCustom(_synthesize(c, sort(members), S)), S...)
+        end
+    end
+    return out
+end
+
+function _fuseclusters(c::Circuit, max_support::Int, max_diagonal_support::Int)
     nq = numqubits(c)
+    # Building a gate's matrix is slow next to a lookup, and circuits repeat
+    # the same few operations.
+    datacache = Dict{Operation,Any}()
+    data(i) = get!(() -> _fusiondata(c[i], max_support, max_diagonal_support), datacache,
+        getoperation(c[i]))
+    return _fuseclusters(length(c), nq, i -> getqubits(c[i]), i -> _dag_qubits(c[i], nq),
+        i -> getbits(c[i]), i -> getztargets(c[i]), data, max_support, max_diagonal_support)
+end
+
+# The clustering behind `fuse`, shared with the simplification passes. Returns
+# the clusters in an order that is a valid circuit order; `members[cid]` are
+# the instruction indices of cluster `cid`, empty if it was folded into another.
+#
+# It works on any sequence of `n` instructions on `nq` qubits, given through
+# functions of the instruction index: its `qubits`, the qubits it depends on
+# for ordering (`dagqubits`, see `_dag_qubits`), its `bits` and `zvars`, and
+# `data`, which decides what can join a cluster: `nothing` for a boundary, a
+# vector for a diagonal gate, anything else for a dense one.
+# `v`, sorted, with the elements of `qs` added.
+function _addsorted!(v::Vector{Int}, qs)
+    for q in qs
+        i = searchsortedfirst(v, q)
+        (i <= length(v) && v[i] == q) || insert!(v, i, q)
+    end
+    return v
+end
+
+function _fuseclusters(n::Int, nq::Int, qubits, dagqubits, bits, zvars, data,
+    max_support::Int, max_diagonal_support::Int)
 
     owner = Dict{Int,Int}()             # qubit -> id of the cluster owning it
     members = Vector{Vector{Int}}()     # cluster id -> instruction indices (ascending)
-    support = Vector{Set{Int}}()        # cluster id -> qubits it spans
+    support = Vector{Vector{Int}}()     # cluster id -> qubits it spans, sorted
     kinds = Vector{Symbol}()            # cluster id -> :fuse | :pass
     isopen = Vector{Bool}()             # cluster id -> still owns all of its support
     isdiagonal = Vector{Bool}()         # cluster id -> every member is diagonal
@@ -196,7 +247,7 @@ function fuse(c::Circuit; max_support::Int=2, max_diagonal_support::Int=max_supp
 
     function newcluster!(i, qs, k, dg)
         push!(members, [i])
-        push!(support, Set{Int}(qs))
+        push!(support, _addsorted!(Int[], qs))
         push!(kinds, k)
         push!(isopen, k === :fuse)
         push!(isdiagonal, dg)
@@ -215,17 +266,19 @@ function fuse(c::Circuit; max_support::Int=2, max_diagonal_support::Int=max_supp
         end
     end
 
+    # Scratch space, reused from one gate to the next.
+    cand, chosen, S = Int[], Int[], Int[]
+
     for i in 1:n
-        inst = c[i]
-        data = _fusiondata(inst, max_support, max_diagonal_support)
-        if isnothing(data)
+        d = data(i)
+        if isnothing(d)
             # The boundary *owns* every wire it depends on, so a later gate on
             # one of those wires can't fuse back into a cluster that sits before
             # the boundary. A few global observables synchronise the whole
             # register in the DAG, so mirror `_dag_qubits` here.
-            dq = _dag_qubits(inst, nq)
+            dq = dagqubits(i)
             seal!(dq)
-            cid = newcluster!(i, collect(getqubits(inst)), :pass, false)
+            cid = newcluster!(i, collect(qubits(i)), :pass, false)
             for q in dq
                 owner[q] = cid
             end
@@ -233,9 +286,9 @@ function fuse(c::Circuit; max_support::Int=2, max_diagonal_support::Int=max_supp
             continue
         end
 
-        qs = getqubits(inst)
-        gdiag = _isdiagonaldata(data)
-        gdiag && (diagonals[i] = data)
+        qs = qubits(i)
+        gdiag = _isdiagonaldata(d)
+        gdiag && (diagonals[i] = d)
 
         # Candidates are the open fusible clusters owning this gate's wires.
         # Merging several of them at once is what lets a cluster grow past two
@@ -243,22 +296,22 @@ function fuse(c::Circuit; max_support::Int=2, max_diagonal_support::Int=max_supp
         # take them cheapest-first to fit as many as the budget allows. A
         # diagonal gate takes diagonal clusters first: absorbing a dense one
         # forfeits `max_diagonal_support` for the whole run.
-        cand = Int[]
+        empty!(cand)
         for q in qs
             g = get(owner, q, 0)
             g == 0 && continue
             kinds[g] === :fuse && isopen[g] && !(g in cand) && push!(cand, g)
         end
-        sort!(cand; by=g -> (gdiag && !isdiagonal[g], length(setdiff(support[g], qs))))
+        length(cand) > 1 && sort!(cand; by=g -> (gdiag && !isdiagonal[g], count(q -> !(q in qs), support[g])))
 
-        S = Set{Int}(qs)
+        _addsorted!(empty!(S), qs)
         alldiag = gdiag
-        chosen = Int[]
+        empty!(chosen)
         for g in cand
-            u = union(S, support[g])
+            nu = length(S) + count(q -> !(q in S), support[g])
             dg = alldiag && isdiagonal[g]
-            if length(u) <= (dg ? max_diagonal_support : max_support)
-                S = u
+            if nu <= (dg ? max_diagonal_support : max_support)
+                _addsorted!(S, support[g])
                 alldiag = dg
                 push!(chosen, g)
             end
@@ -287,12 +340,12 @@ function fuse(c::Circuit; max_support::Int=2, max_diagonal_support::Int=max_supp
             for j in members[g]
                 clusterof[j] = s
             end
-            union!(support[s], support[g])
+            _addsorted!(support[s], support[g])
             empty!(members[g])          # folded away, emits nothing
             empty!(support[g])
         end
         push!(members[s], i)
-        union!(support[s], qs)
+        _addsorted!(support[s], qs)
         isdiagonal[s] = alldiag
         clusterof[i] = s
         for q in S
@@ -303,29 +356,30 @@ function fuse(c::Circuit; max_support::Int=2, max_diagonal_support::Int=max_supp
     # Contract the instruction DAG by cluster id and topologically sort it: any
     # topological order is a valid, equivalent circuit (independent clusters
     # commute). Merging only sinks keeps every cluster convex, so this is a DAG.
+    # The order is Kahn's, taking ready clusters first-in first-out and
+    # successors by id.
     nc = length(members)
     cg = SimpleDiGraph(nc)
-    for e in edges(c)
-        cu, cv = clusterof[src(e)], clusterof[dst(e)]
-        cu != cv && add_edge!(cg, cu, cv)
+    lastq, lastb, lastz = Dict{Int,Int}(), Dict{Int,Int}(), Dict{Int,Int}()
+    function link!(last, w, i)
+        p = get(last, w, 0)
+        p == 0 || clusterof[p] == clusterof[i] || add_edge!(cg, clusterof[p], clusterof[i])
+        last[w] = i
     end
-    order = topological_sort_by_dfs(cg)
-
-    out = Circuit()
-    for cid in order
-        isempty(members[cid]) && continue
-        if kinds[cid] == :pass || length(members[cid]) == 1  # no singleton demotion
-            for i in members[cid]
-                push!(out, c[i])  # verbatim: keeps qubits, bits and zvars intact
-            end
-        elseif isdiagonal[cid]
-            S = sort!(collect(support[cid]))
-            d = _synthesize_diagonal(c, sort!(members[cid]), S, diagonals)
-            push!(out, GateCustomDiagonal(d), S...)
-        else
-            S = sort!(collect(support[cid]))
-            push!(out, GateCustom(_synthesize(c, sort!(members[cid]), S)), S...)
+    for i in 1:n
+        foreach(q -> link!(lastq, q, i), dagqubits(i))
+        foreach(b -> link!(lastb, b, i), bits(i))
+        foreach(z -> link!(lastz, z, i), zvars(i))
+    end
+    indeg = indegree(cg)
+    order = findall(iszero, indeg)
+    k = 1
+    while k <= length(order)
+        for d in sort(outneighbors(cg, order[k]))
+            indeg[d] -= 1
+            indeg[d] == 0 && push!(order, d)
         end
+        k += 1
     end
-    return out
+    return (; order, members, kinds, isdiagonal, support, diagonals)
 end

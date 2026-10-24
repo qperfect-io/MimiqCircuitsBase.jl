@@ -32,7 +32,7 @@ Insert an operation into the circuit at a specific position, with the given targ
 
 # Examples
 
-```jldoctests
+```jldoctest
 julia> c = Circuit()
 empty circuit
 
@@ -52,7 +52,6 @@ julia> insert!(c, 1, GateCX(), 1, 3)
 └── X @ q[4]
 ```
 """
-
 function Base.insert!(c::AbstractCircuit{Instruction}, i::Integer, g::Operation{N,M,L}, targets::Vararg{Integer,K}) where {N,M,L,K}
     if g isa AbstractOperator && !(g isa AbstractGate)
         throw(ArgumentError("Cannot insert an AbstractOperator $(g) that is not an AbstractGate to the circuit."))
@@ -81,7 +80,7 @@ Insert a non-parametric operation of a specific type into the circuit at a given
 
 # Examples
 
-```jldoctests
+```jldoctest
 julia> c = Circuit()
 empty circuit
 

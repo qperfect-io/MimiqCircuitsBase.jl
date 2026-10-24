@@ -15,6 +15,15 @@
 # limitations under the License.
 #
 
+"""
+    MimiqCircuitsBase
+
+Building blocks of quantum circuits for MIMIQ: operations, instructions,
+circuits, noise channels and noise models, decompositions, and their protobuf
+serialization.
+
+Remote execution lives in `MimiqCircuits`, which re-exports this package.
+"""
 module MimiqCircuitsBase
 
 using LinearAlgebra
@@ -118,8 +127,8 @@ include("circuit/push.jl")
 include("circuit/insert.jl")
 include("circuit/emplace.jl")
 
-export DepthFirstDAGIterator
-export BreadthFirstDAGIterator
+export DepthFirstIterator
+export BreadthFirstIterator
 export topological_sort_by_bfs
 export traverse_by_dfs
 export traverse_by_bfs
@@ -139,6 +148,8 @@ include("decomposition/rules/canonical.jl")
 include("matrix_decompositions/zyz.jl")
 include("matrix_decompositions/csd.jl")
 include("matrix_decompositions/qsd.jl")
+include("matrix_decompositions/kak.jl")
+include("matrix_decompositions/linear.jl")
 
 export isunitary
 export isopalias
@@ -335,6 +346,9 @@ export ResetY
 export ResetZ
 include("operations/reset.jl")
 
+export PrepareStateT
+include("operations/magic.jl")
+
 export AbstractMeasurement
 export Measure
 export MeasureX
@@ -346,6 +360,9 @@ export MeasureXX
 export MeasureYY
 export MeasureZZ
 include("operations/pairmeasure.jl")
+
+export MeasurePauli
+include("operations/measurepauli.jl")
 
 export MeasureReset
 export MeasureResetX
@@ -483,7 +500,6 @@ export Reload
 export Check
 export MeasureCheck
 include("operations/losschannels/loss.jl")
-include("operations/losschannels/deprecated.jl")
 
 export sample_losses
 export lower_losses
@@ -505,6 +521,7 @@ export ToZRotationRewrite
 export ZYZRewrite
 export ToffoliToCliffordTRewrite
 export SolovayKitaevRewrite
+export GridSynthRewrite
 export FlattenContainers
 
 export DecompositionBasis
@@ -517,7 +534,7 @@ export FlattenedBasis
 
 export decompose_step, decompose_step!
 export decompose, decompose!
-export DecompositionIterator
+export DecomposeIterator
 export eachdecomposed
 include("decomposition.jl")
 
@@ -534,7 +551,6 @@ include("hamiltonian.jl")
 
 # macros
 export @circuit, @block, @on, @gatedecl
-# include("circuit_macro.jl") # consolidated in dsl.jl
 
 
 export evaluate, evaluate!
@@ -548,6 +564,16 @@ include("instruction_extra.jl")
 
 export fuse
 include("fusion.jl")
+
+export remove_identities
+export cancel_inverses
+export merge_rotations
+export resynthesize_1q
+export resynthesize_2q
+export resynthesize_linear
+export simplify
+export DEFAULT_SIMPLIFY_PASSES
+include("circuit/simplify.jl")
 
 export GATES
 export OPERATIONS
@@ -566,7 +592,6 @@ export interpret_results
 include("circuittester.jl")
 
 # Optimization
-export isvalid
 export costhistory
 export changeparameters
 export changelistofparameters
@@ -578,6 +603,11 @@ export OptimizationResults
 export OptimizationRun
 export OptimizationExperiment
 include("optimization.jl")
+
+export ParameterTable
+export gridtable
+export SweepExperiment
+include("sweep.jl")
 
 export AbstractCircuitRule
 export DropRule
@@ -593,6 +623,9 @@ export add_decorate!
 include("circuitrules.jl")
 
 include("circuit/samplelosses.jl")
+
+export pauli_based_computation
+include("circuit/paulibased.jl")
 
 export AbstractNoiseRule
 export priority
@@ -713,11 +746,6 @@ export WIRE_FORMAT_VERSION
 export saveproto
 export loadproto
 include("proto/proto.jl")
-
-# Iterators
-export samplemixedunitaries
-include("iterators.jl")
-import .CircuitIterators: samplemixedunitaries
 
 include("recipes.jl")
 

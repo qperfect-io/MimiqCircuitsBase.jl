@@ -32,7 +32,7 @@ Single qubit identity gate
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateID()
 ID
 
@@ -52,7 +52,7 @@ julia> power(GateID(), 2), inverse(GateID())
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateID())
 1-qubit circuit with 1 instruction:
 └── U(0,0,0) @ q[1]

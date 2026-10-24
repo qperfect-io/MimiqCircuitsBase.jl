@@ -41,7 +41,7 @@ See also [`GateID`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> c = push!(Circuit(), Delay(0.1), 1)
 1-qubit circuit with 1 instruction:
 └── Delay(0.1) @ q[1]
@@ -50,7 +50,7 @@ julia> c = push!(Circuit(), Delay(0.1), 1)
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(Delay(0.2))
 1-qubit circuit with 1 instruction:
 └── Delay(0.2) @ q[1]
@@ -63,7 +63,7 @@ end
 
 opname(::Type{Delay}) = "Delay"
 
-@generated _matrix(::Type{Delay}, _) = _matrix(GateID)
+_matrix(::Type{Delay}, _) = _matrix(GateID)
 
 @generated inverse(::Delay) = error("Cannot invert a Delay gate.")
 

@@ -40,7 +40,14 @@ isterminal(::FlattenedBasis, ::Block) = false
 isterminal(::FlattenedBasis, ::Inverse{N,<:GateCall}) where {N} = false
 isterminal(::FlattenedBasis, ::Inverse{N,<:Block}) where {N} = false
 
+# A conditional container is flattened into conditional instructions
+isterminal(basis::FlattenedBasis, op::IfStatement) = isterminal(basis, getoperation(op))
+
 isterminal(::FlattenedBasis, ::Operation) = true
+
+function decompose!(builder, basis::FlattenedBasis, op::IfStatement, qtargets, ctargets, ztargets)
+    return _decompose_ifstatement!(builder, basis, op, qtargets, ctargets, ztargets)
+end
 
 function decompose!(builder, ::FlattenedBasis, op::Operation, qtargets, ctargets, ztargets)
     if matches(FlattenContainers(), op)

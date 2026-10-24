@@ -15,41 +15,27 @@
 #
 
 @doc raw"""
-    struct ParityCheck{N} <: AbstractClassical{N}
+    ParityCheck(N=3)
 
-Performs a parity check on N-1 classical bits and stores the result in the first bit.
+Deprecated alias of [`Xor`](@ref).
 
-It performs sum modulo 2 of the inputs.
+`ParityCheck(N)` returns `Xor(N)`, which computes the same parity of `N-1`
+classical bits into the first bit, and emits a deprecation warning. No
+operation is ever of type `ParityCheck`.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> ParityCheck(5)
-⨊
-
-julia> push!(Circuit(), ParityCheck(5), 1, 3, 5, 8, 13)
-13-bit circuit with 1 instruction:
-└── c[1] = ⨊ c[3, 5, 8, 13]
+c[?1] = c[?2] ⊻ c[?3] ⊻ c[?4] ⊻ c[?5]
 
 ```
 """
 struct ParityCheck{N} <: AbstractClassical{N}
     function ParityCheck(N::Integer)
-        if N < 3
-            throw(ArgumentError("ParityCheck must act on at least 3 classical bits"))
-        end
-        new{N}()
+        Base.depwarn("`ParityCheck` is deprecated, use `Xor` instead.", :ParityCheck)
+        return Xor(N)
     end
 end
 
 ParityCheck() = ParityCheck(3)
-
-opname(::Type{<:ParityCheck}) = "⨊"
-
-inverse(::ParityCheck) = error("Inverse not defined for ParityCheck.")
-
-function Base.show(io::IO, ::MIME"text/plain", inst::Instruction{0,N,0,<:ParityCheck{N}}) where {N}
-    bits = getbits(inst)
-    space = get(io, :compact, false) ? "" : " "
-    print(io, "c[", bits[1], "] = ⨊ c[", join(bits[2:end], ",$space"), "]")
-end

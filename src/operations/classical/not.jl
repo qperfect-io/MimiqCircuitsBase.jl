@@ -25,7 +25,7 @@ Acts only on classical registers and performs a deterministic logical inversion.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> Not()
 ~
 

@@ -28,7 +28,7 @@ e.g. `push!(c, Add(3), 1, 1, 2)` evaluates `z[1] = z[1] + z[2]`.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> Add(3)
 z[?1] = z[?2] + z[?3]
 
@@ -123,7 +123,7 @@ destination as one of the inputs (z-variable aliasing is allowed for
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> Multiply(3)
 z[?1] = z[?2] * z[?3]
 
@@ -205,7 +205,7 @@ Exponentiate a Z-register variable.
 
 # Examples
 
-```jldoctests
+```jldoctest
 julia> Pow(2.0)
 z[?] = z[?]^2.0
 

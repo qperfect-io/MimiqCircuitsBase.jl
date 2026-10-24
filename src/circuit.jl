@@ -34,7 +34,7 @@ of operations to add to circuits.
 Operation can be added one by one to a circuit with the
 `push!(circuit, operation, targets...)` function
 
-```jldoctests
+```jldoctest
 julia> c = Circuit()
 empty circuit
 
@@ -73,7 +73,7 @@ julia> push!(c, Measure(), 1, 1)
 Targets are not restricted to be single values, but also vectors.
 In this case a single `push!` will add multiple operations.
 
-```jldoctests
+```jldoctest
 julia> push!(Circuit(), GateCCX(), 1, 2:4, 4:10)
 6-qubit circuit with 3 instructions:
 ├── C₂X @ q[1:2], q[4]
@@ -138,7 +138,7 @@ Compute the highest index of qubit targets, bit targets and zvar targets in the 
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> c = Circuit()
 empty circuit
 
@@ -186,7 +186,7 @@ Compute the highest index of q-targets in the given vector of instructions or ci
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> c = Circuit()
 empty circuit
 
@@ -218,7 +218,7 @@ Compute the highest index of c-targets in the given circuit.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> c = Circuit()
 empty circuit
 
@@ -249,7 +249,7 @@ Compute the highest index of z-targets in the given circuit.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> c = Circuit()
 empty circuit
 

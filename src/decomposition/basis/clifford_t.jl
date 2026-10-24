@@ -15,108 +15,122 @@
 #
 
 """
-    CliffordTBasis <: DecompositionBasis
+    CliffordTBasis(; rotations=GridSynthRewrite())
+    CliffordTBasis(; sk_depth)
 
-Decomposition basis targeting the Clifford+T universal gate set.
+Decomposition basis targeting the Clifford+T gate set.
 
-The Clifford+T gate set is fault-tolerant and widely used in error-corrected
-quantum computing. It consists of:
+Clifford+T is the standard universal gate set of error-corrected quantum
+computing. The terminal operations of this basis are those of
+[`StimBasis`](@ref) plus `GateT` and `GateTDG`, so the two bases always keep
+the same Clifford and stabilizer operations:
 
-- **Single-qubit Clifford**: H, S, S†, X, Y, Z, SX, SX†, SY, SY†
-- **T gates**: T, T† (the non-Clifford gates enabling universality)
-- **Two-qubit Clifford**: CX (CNOT), CY, CZ, SWAP, iSWAP
+- single-qubit Cliffords: `GateID`, `GateX`, `GateY`, `GateZ`, `GateH`,
+  `GateHXY`, `GateHYZ`, `GateS`, `GateSDG`, `GateSX`, `GateSXDG`, `GateSY`,
+  `GateSYDG`;
+- two-qubit Cliffords: `GateCX`, `GateCY`, `GateCZ`, `GateSWAP`, `GateISWAP`,
+  `GateISWAPDG`, `GateDCX`, `GateECR`;
+- Pauli rotations by `±π/2`: `GateRXX`, `GateRYY`, `GateRZZ`, and `RPauli`
+  with a non-identity Pauli string;
+- the non-Clifford `GateT` and `GateTDG`;
+- measurements, resets and measure-and-resets in the X, Y and Z bases,
+  `MeasureXX`, `MeasureYY`, `MeasureZZ` and `MeasurePauli`;
+- Pauli noise: `PauliX`, `PauliY`, `PauliZ`, `Depolarizing1`,
+  `Depolarizing2` and `PauliNoise`;
+- barriers and annotations;
+- classical operations, which [`StimBasis`](@ref) does not keep;
+- an `IfStatement` whose body is terminal in this basis, with any condition.
+  [`StimBasis`](@ref) only keeps a conditional `GateX`, `GateY` or `GateZ`
+  on a single bit.
 
 # Decomposition Pipeline
 
-The basis applies rewrite rules in the following priority order:
+Non-terminal operations are rewritten by the first rule that matches, in this
+order:
 
-1. [`SpecialAngleRewrite`](@ref): Rotations with angles k·π/4 → exact Clifford+T
-2. [`ToffoliToCliffordTRewrite`](@ref): CCX → 7 T gates + Cliffords
-3. [`ControlledPhaseToCliffordTRewrite`](@ref): CP, CRZ → Clifford+T
-4. [`SwapToCliffotdRewrite`](@ref): SWAP → 3 CNOTs
-5. [`ZYZRewrite`](@ref): GateU → RZ·RY·RZ
-6. [`ToZRotationRewrite`](@ref): RX, RY → RZ + Cliffords
-7. [`SolovayKitaevRewrite`](@ref): Arbitrary RZ → approximate Clifford+T
-8. [`CanonicalRewrite`](@ref): Fallback for other gates
+1. [`SpecialAngleRewrite`](@ref): rotations by multiples of `π/4` to exact Clifford+T.
+2. [`ToffoliToCliffordTRewrite`](@ref): `GateCCX` to Clifford+T with 7 T gates.
+3. A `GateU` whose angles are all zero (a pure global phase) is dropped.
+4. [`ZYZRewrite`](@ref): `GateU` to `RZ·RY·RZ`.
+5. [`ToZRotationRewrite`](@ref): `GateRX`, `GateRY` to `GateRZ` and Cliffords.
+6. The `rotations` rule (default [`GridSynthRewrite`](@ref)): remaining
+   `GateRZ` to an approximate Clifford+T sequence.
+7. [`CanonicalRewrite`](@ref): any other operation, toward `GateU` and `GateCX`.
+
+The `rotations` rule only sees angles that step 1 could not decompose exactly.
+The body of an `IfStatement` goes through the same pipeline and stays
+conditional. No T-count optimization is performed on the result.
+
+# Keyword Arguments
+
+- `rotations::RewriteRule`: rule that synthesizes the remaining Z-rotations.
+  The default [`GridSynthRewrite()`](@ref) approximates each rotation to
+  operator-norm error `1e-10`. The rule must match `GateRZ` with a numeric
+  angle and emit only gates of this basis.
+- `sk_depth::Int`: use [`SolovayKitaevRewrite`](@ref) with this recursion
+  depth as the `rotations` rule.
+
+Throws an `ArgumentError` if both keywords are given, or if `rotations` does
+not match `GateRZ`. Decomposing an operation that no rule handles, such as a
+noise channel other than the Pauli ones above, throws a `DecompositionError`.
 
 # Examples
+
 ```julia
-# Decompose to Clifford+T
+# Decompose to Clifford+T; each arbitrary rotation is approximated to 1e-10
 decompose(circuit; basis=CliffordTBasis())
 
-# Check T-count after decomposition
+# A looser error bound per rotation gives fewer T gates
+decompose(circuit; basis=CliffordTBasis(rotations=GridSynthRewrite(epsilon=1e-6)))
+
+# Solovay-Kitaev at depth 3 instead of gridsynth
+decompose(circuit; basis=CliffordTBasis(sk_depth=3))
+
+# Count the T gates of the result
 decomposed = decompose(circuit; basis=CliffordTBasis())
 t_count = count(inst -> getoperation(inst) isa Union{GateT, GateTDG}, decomposed)
 ```
 
-# Performance Notes
-
-- Exact decompositions (SpecialAngleRewrite) are preferred when applicable
-- Solovay-Kitaev is only used as a last resort for arbitrary angles
-- T-count optimization is not performed; use a dedicated pass for that
-
-See also [`DecompositionBasis`](@ref), [`CanonicalBasis`](@ref).
+See also [`DecompositionBasis`](@ref), [`StimBasis`](@ref), [`CanonicalBasis`](@ref).
 """
-struct CliffordTBasis <: DecompositionBasis
-    sk_depth::Int
+struct CliffordTBasis{R<:RewriteRule} <: DecompositionBasis
+    rotations::R
 
-    function CliffordTBasis(; sk_depth::Int = 3)
-        new(sk_depth)
+    function CliffordTBasis(;
+        sk_depth::Union{Nothing,Int} = nothing,
+        rotations::Union{Nothing,RewriteRule} = nothing,
+    )
+        if !isnothing(sk_depth) && !isnothing(rotations)
+            throw(ArgumentError("give either sk_depth or rotations, not both"))
+        end
+        if isnothing(rotations)
+            rotations = isnothing(sk_depth) ? GridSynthRewrite() : SolovayKitaevRewrite(sk_depth)
+        end
+        matches(rotations, GateRZ(0.1)) || throw(
+            ArgumentError("rotations rule $(typeof(rotations)) does not match GateRZ"),
+        )
+        new{typeof(rotations)}(rotations)
     end
 end
 
-# --- terminal operations — the Clifford+T gate set ---
+Base.:(==)(a::CliffordTBasis, b::CliffordTBasis) = a.rotations == b.rotations
+Base.hash(b::CliffordTBasis, h::UInt) = hash(b.rotations, hash(CliffordTBasis, h))
 
-# Identity
-isterminal(::CliffordTBasis, ::GateID) = true
+# --- terminal operations: those of StimBasis, plus T and T† ---
 
-# Pauli gates (single-qubit Clifford)
-isterminal(::CliffordTBasis, ::GateX) = true
-isterminal(::CliffordTBasis, ::GateY) = true
-isterminal(::CliffordTBasis, ::GateZ) = true
+# Delegating to StimBasis keeps the two terminal sets from drifting apart.
+isterminal(::CliffordTBasis, op::Operation) = isterminal(StimBasis(), op)
 
-# Hadamard (single-qubit Clifford)
-isterminal(::CliffordTBasis, ::GateH) = true
-
-# Phase gates (single-qubit Clifford)
-isterminal(::CliffordTBasis, ::GateS) = true
-isterminal(::CliffordTBasis, ::GateSDG) = true
-
-# √X gates (single-qubit Clifford)
-isterminal(::CliffordTBasis, ::GateSX) = true
-isterminal(::CliffordTBasis, ::GateSXDG) = true
-
-# √Y gates (single-qubit Clifford)
-isterminal(::CliffordTBasis, ::GateSY) = true
-isterminal(::CliffordTBasis, ::GateSYDG) = true
-
-# T gates (non-Clifford, enables universality)
 isterminal(::CliffordTBasis, ::GateT) = true
 isterminal(::CliffordTBasis, ::GateTDG) = true
 
-# Two-qubit Clifford gates
-isterminal(::CliffordTBasis, ::GateCX) = true
-isterminal(::CliffordTBasis, ::GateCY) = true
-isterminal(::CliffordTBasis, ::GateCZ) = true
-isterminal(::CliffordTBasis, ::GateSWAP) = true
-isterminal(::CliffordTBasis, ::GateISWAP) = true
-isterminal(::CliffordTBasis, ::GateISWAPDG) = true
-isterminal(::CliffordTBasis, ::GateDCX) = true
-isterminal(::CliffordTBasis, ::GateECR) = true
-
-# Measurement, reset, barriers
-isterminal(::CliffordTBasis, ::Measure) = true
-isterminal(::CliffordTBasis, ::Reset) = true
-isterminal(::CliffordTBasis, ::Barrier) = true
-
-# Classical operations pass through
+# Classical operations touch no qubit, so they need no decomposition here
+# even though Stim cannot run them.
 isterminal(::CliffordTBasis, ::AbstractClassical) = true
 
-# Annotations pass through
-isterminal(::CliffordTBasis, ::AbstractAnnotation) = true
-
-# Fallback
-isterminal(::CliffordTBasis, ::Operation) = false
+# Clifford+T is a gate set, so any conditional gate of it is terminal, not
+# only the single-bit conditional Paulis that Stim accepts.
+isterminal(basis::CliffordTBasis, op::IfStatement) = isterminal(basis, getoperation(op))
 
 # --- decomposition pipeline ---
 
@@ -126,6 +140,12 @@ const _CLIFFORDT_TOFFOLI = ToffoliToCliffordTRewrite()
 const _CLIFFORDT_ZYZ = ZYZRewrite()
 const _CLIFFORDT_TO_Z = ToZRotationRewrite()
 const _CLIFFORDT_CANONICAL = CanonicalRewrite()
+
+# The body of a conditional goes through this pipeline too, so that, for
+# example, a conditional rotation by a multiple of π/4 stays exact.
+function decompose!(builder, basis::CliffordTBasis, op::IfStatement, qtargets, ctargets, ztargets)
+    return _decompose_ifstatement!(builder, basis, op, qtargets, ctargets, ztargets)
+end
 
 function decompose!(
     builder,
@@ -159,6 +179,14 @@ function decompose!(
         )
     end
 
+    # A bare GateU with zero angles is only a global phase, so it expands to
+    # nothing. ZYZRewrite refuses it, and a rotations rule that matches only
+    # GateRZ cannot absorb it. Under a Control the phase is a relative phase;
+    # that case is a Control, not a GateU, and goes to CanonicalRewrite.
+    if op isa GateU && all(p -> !issymbolic(p) && iszero(p), (op.θ, op.ϕ, op.λ))
+        return builder
+    end
+
     # Priority 3: GateU → ZYZ decomposition
     if matches(_CLIFFORDT_ZYZ, op)
         return decompose_step!(builder, _CLIFFORDT_ZYZ, op, qtargets, ctargets, ztargets)
@@ -169,10 +197,9 @@ function decompose!(
         return decompose_step!(builder, _CLIFFORDT_TO_Z, op, qtargets, ctargets, ztargets)
     end
 
-    # Priority 5: Arbitrary RZ → Solovay-Kitaev approximation
-    sk_rule = SolovayKitaevRewrite(basis.sk_depth)
-    if matches(sk_rule, op)
-        return decompose_step!(builder, sk_rule, op, qtargets, ctargets, ztargets)
+    # Priority 5: Arbitrary RZ → approximate Clifford+T synthesis
+    if matches(basis.rotations, op)
+        return decompose_step!(builder, basis.rotations, op, qtargets, ctargets, ztargets)
     end
 
     # Priority 6: Fallback to canonical decomposition

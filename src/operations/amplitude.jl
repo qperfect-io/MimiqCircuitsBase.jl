@@ -30,7 +30,7 @@ See [`BitString`](@ref).
 
 When defining a circuit, only the z-register to store the result needs to be specified.
 
-```jldoctests
+```jldoctest
 julia> Amplitude(BitString("001"))
 Amplitude(bs"001")
 
@@ -56,6 +56,21 @@ inverse(g::Amplitude) = g
 
 isunitary(::Type{<:Amplitude}) = true
 
+"""
+    getbitstring(op)
+
+Return the [`BitString`](@ref) stored in `op`: the state whose amplitude an
+`Amplitude` reads, or the value the condition of an
+[`IfStatement`](@ref) or [`WhileStatement`](@ref) compares the bits with.
+
+## Examples
+
+```jldoctest
+julia> getbitstring(Amplitude(bs"01"))
+2-bits BitString with integer value 2:
+  01
+```
+"""
 getbitstring(c::Amplitude) = c.bs
 
 function Base.show(io::IO, op::Amplitude)

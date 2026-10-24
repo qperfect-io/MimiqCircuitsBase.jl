@@ -31,7 +31,7 @@ See also [`Control`](@ref), [`GateU`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateCSWAP(), numcontrols(GateCSWAP()), numtargets(GateCSWAP())
 (GateCSWAP(), 1, 2)
 
@@ -57,7 +57,7 @@ julia> power(GateCSWAP(), 2), inverse(GateCSWAP())
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateCSWAP())
 3-qubit circuit with 17 instructions:
 ├── CX @ q[3], q[2]

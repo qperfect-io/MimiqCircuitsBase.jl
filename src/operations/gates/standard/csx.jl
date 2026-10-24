@@ -38,7 +38,7 @@ See also [`GateSX`](@ref), [`GateCSXDG`](@ref), [`Control`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateCSX(), numcontrols(GateCSX()), numtargets(GateCSX())
 (GateCSX(), 1, 1)
 
@@ -60,7 +60,7 @@ julia> power(GateCSX(), 2), inverse(GateCSX())
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateCSX())
 2-qubit circuit with 7 instructions:
 ├── U(π/2,0,π) @ q[2]
@@ -110,7 +110,7 @@ See also [`GateSX`](@ref), [`GateCSXDG`](@ref), [`Control`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateCSXDG(), numcontrols(GateCSXDG()), numtargets(GateCSXDG())
 (Control(Inverse(GateSX())), 1, 1)
 
@@ -132,7 +132,7 @@ julia> power(GateCSXDG(), 2), inverse(GateCSXDG())
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateCSXDG())
 2-qubit circuit with 7 instructions:
 ├── U(π/2,0,π) @ q[2]

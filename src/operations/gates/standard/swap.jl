@@ -36,7 +36,7 @@ See also [`GateISWAP`](@ref), [`GateCSWAP`](@ref)
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateSWAP()
 SWAP
 
@@ -63,7 +63,7 @@ julia> power(GateSWAP(), 2), inverse(GateSWAP())
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateSWAP())
 2-qubit circuit with 3 instructions:
 ├── CX @ q[1], q[2]

@@ -88,3 +88,11 @@ end
     @test opnorm(control_matrix(2, twop) - decomposed_unitary(op)) < 1e-10
 end
 
+
+@testset "Control decomposes one level of the target operation" begin
+    # The controlled pieces keep the gates of one canonical step of the target,
+    # here two Hadamards, rather than their GateU form.
+    decomp = decompose_step(Control(1, Parallel(2, GateH())))
+    @test [getoperation(i) for i in decomp] == [GateCH(), GateCH()]
+    @test [getqubits(i) for i in decomp] == [(1, 2), (1, 3)]
+end

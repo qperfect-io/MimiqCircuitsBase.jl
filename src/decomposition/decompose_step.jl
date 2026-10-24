@@ -88,12 +88,12 @@ See also [`decompose_step`](@ref).
 """
 function decompose_step! end
 
-function decompose_step!(c, inst::Instruction; rule::DecompositionBasis=CanonicalRewrite())
+function decompose_step!(c, inst::Instruction; rule::RewriteRule=CanonicalRewrite())
     decompose_step!(c, rule, getoperation(inst), getqubits(inst), getbits(inst), getztargets(inst))
     return c
 end
 
-function decompose_step!(c, map::Circuit; rule::DecompositionBasis=CanonicalRewrite())
+function decompose_step!(c, map::Circuit; rule::RewriteRule=CanonicalRewrite())
     for inst in map
         if matches(rule, getoperation(inst))
             decompose_step!(c, inst; rule=rule)
@@ -104,7 +104,7 @@ function decompose_step!(c, map::Circuit; rule::DecompositionBasis=CanonicalRewr
     return c
 end
 
-function decompose_step!(c, op::Operation{N,M,L}; rule::DecompositionBasis=CanonicalRewrite()) where {N,M,L}
+function decompose_step!(c, op::Operation{N,M,L}; rule::RewriteRule=CanonicalRewrite()) where {N,M,L}
     decompose_step!(c, rule, op, 1:N, 1:M, 1:L)
     return c
 end

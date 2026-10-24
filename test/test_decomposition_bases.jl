@@ -16,6 +16,7 @@
 
 using Test
 using LinearAlgebra
+using Random
 using MimiqCircuitsBase
 import MimiqCircuitsBase: isterminal, unwrapvalue, DecompositionError
 
@@ -148,6 +149,74 @@ using .DecompositionTestUtils
             end
         end
 
+        @testset "rotations keyword" begin
+            @test CliffordTBasis().rotations isa GridSynthRewrite
+
+            # Phase-only GateU (e.g. from the canonical GateHYZ) must not reach
+            # the rotations rule, which only accepts GateRZ.
+            for op in (GateU(0, 0, 0, 0.3), GateHYZ(), MeasureY())
+                d = decompose(op; basis=CliffordTBasis())
+                @test all(i -> isterminal(CliffordTBasis(), getoperation(i)), d)
+                @test !any(i -> getoperation(i) isa GateID, d)
+            end
+            @test isempty(decompose(GateU(0, 0, 0, 0.3); basis=CliffordTBasis()))
+            test_basis_decomposition(CliffordTBasis(), GateHYZ())
+
+            # Under a Control the phase is relative and must be kept.
+            for γ in (0.3, π / 3)
+                test_basis_decomposition(CliffordTBasis(), Control(GateU(0, 0, 0, γ)); atol=1e-8)
+                test_basis_decomposition(CliffordTBasis(), Control(2, GateU(0, 0, 0, γ)); atol=1e-8)
+            end
+
+            @test CliffordTBasis(sk_depth=3) == CliffordTBasis(sk_depth=3)
+            @test hash(CliffordTBasis(sk_depth=3)) == hash(CliffordTBasis(sk_depth=3))
+            @test CliffordTBasis(sk_depth=3) != CliffordTBasis(sk_depth=2)
+            @test CliffordTBasis() == CliffordTBasis()
+            @test CliffordTBasis() != CliffordTBasis(rotations=GridSynthRewrite(epsilon=1e-6))
+            @test CliffordTBasis(sk_depth=2).rotations isa SolovayKitaevRewrite
+            @test_throws ArgumentError CliffordTBasis(sk_depth=2, rotations=GridSynthRewrite())
+            @test CliffordTBasis(sk_depth=2).rotations.depth == 2
+            @test_throws ArgumentError CliffordTBasis(rotations=ZYZRewrite())
+
+            ε = 1e-8
+            basis_gs = CliffordTBasis(rotations=GridSynthRewrite(epsilon=ε))
+            @test basis_gs.rotations.epsilon == ε
+
+            gate = GateRZ(0.123)
+            decomposed = decompose(gate; basis=basis_gs)
+            @test all(inst -> isterminal(basis_gs, getoperation(inst)), decomposed)
+            @test matrices_equivalent(unwrapvalue.(matrix(gate)),
+                matrix_from_circuit(decomposed, 1); atol=1e-7)
+        end
+
+        @testset "decomposition — approximate (gridsynth), random circuit" begin
+            ε = 1e-8
+            basis_gs = CliffordTBasis(rotations=GridSynthRewrite(epsilon=ε))
+            rng = MersenneTwister(42)
+            rand_angle() = 2π * rand(rng)
+
+            c = Circuit()
+            for _ in 1:4
+                push!(c, GateRX(rand_angle()), 1)
+                push!(c, GateRY(rand_angle()), 2)
+                push!(c, GateRZ(rand_angle()), 3)
+                push!(c, GateCX(), 1, 2)
+                push!(c, GateU(rand_angle(), rand_angle(), rand_angle()), 3)
+                push!(c, GateCX(), 2, 3)
+            end
+            # Upper bound on the rotations left for synthesis: GateU becomes
+            # three Z-rotations, RX/RY/RZ one each.
+            nrot = 4 * (3 + 3)
+
+            decomposed = decompose(c; basis=basis_gs)
+            @test all(inst -> isterminal(basis_gs, getoperation(inst)), decomposed)
+
+            U = matrix_from_circuit(c, 3)
+            V = matrix_from_circuit(decomposed, 3)
+            φ = angle(tr(V' * U))
+            @test opnorm(U - cis(φ) * V) <= nrot * ε
+        end
+
         @testset "output is Clifford+T only" begin
             clifford_t_types = (GateID, GateX, GateY, GateZ, GateH,
                 GateS, GateSDG, GateT, GateTDG,
@@ -156,6 +225,91 @@ using .DecompositionTestUtils
 
             decomp = decompose(GateCCX(); basis=basis)
             @test circuit_contains_only(decomp, clifford_t_types...)
+        end
+
+        @testset "terminal set follows StimBasis" begin
+            # One instance of every kind of operation. CliffordTBasis keeps what
+            # StimBasis keeps, plus T, T†, classical operations and conditionals
+            # of any of its terminal operations.
+            ops = [
+                GateID(), GateX(), GateY(), GateZ(), GateH(), GateHXY(), GateHYZ(), GateHXZ(),
+                GateS(), GateSDG(), GateSX(), GateSXDG(), GateSY(), GateSYDG(),
+                GateP(0.3), GateRX(0.3), GateRY(π / 2), GateRZ(π / 4), GateR(0.3, 0.2),
+                GateU(0.1, 0.2, 0.3), GateU(0, 0, 0, 0.3), GateU1(0.3), GateU2(0.1, 0.2),
+                GateU3(0.1, 0.2, 0.3), GateRNZ(2, 0.3),
+                GateCX(), GateCY(), GateCZ(), GateCH(), GateCS(), GateCSDG(), GateCSX(), GateCSXDG(),
+                GateCP(0.3), GateCRX(0.3), GateCRY(0.3), GateCRZ(0.3), GateCU(0.1, 0.2, 0.3, 0.4),
+                GateSWAP(), GateISWAP(), GateISWAPDG(), GateDCX(), GateECR(),
+                GateRXX(π / 2), GateRXX(0.3), GateRYY(-π / 2), GateRYY(0.3), GateRZZ(3π / 2), GateRZZ(π),
+                GateRZX(0.3), GateXXplusYY(0.1, 0.2), GateXXminusYY(0.1, 0.2),
+                GateCCX(), GateC3X(), GateCCP(0.3), GateCSWAP(),
+                RPauli("XYZ", π / 2), RPauli("II", π / 2), RPauli("XZ", 0.3), PauliString("XYZ"),
+                Control(GateH()), Control(2, GateU(0, 0, 0, 0.3)), Power(GateX(), 1 / 2),
+                Parallel(2, GateH()), Repeat(2, GateX()), QFT(2), PhaseGradient(2), Diffusion(2),
+                GateCustom([1 0; 0 1im]), RescaledGate(GateX(), 0.5),
+                Measure(), MeasureX(), MeasureY(), MeasureZ(), MeasureXX(), MeasureYY(), MeasureZZ(),
+                MeasurePauli("XZ"), Reset(), ResetX(), ResetY(), ResetZ(),
+                MeasureReset(), MeasureResetX(), MeasureResetY(), MeasureResetZ(), Barrier(1),
+                PauliX(0.1), PauliY(0.1), PauliZ(0.1), Depolarizing1(0.1), Depolarizing2(0.1),
+                Depolarizing(3, 0.1), PauliNoise([0.9, 0.1], ["I", "X"]), AmplitudeDamping(0.1),
+                GeneralizedAmplitudeDamping(0.1, 0.2), PhaseAmplitudeDamping(0.1, 0.2, 0.3),
+                ThermalNoise(0.1, 0.2, 0.3, 0.4), ProjectiveNoise("X"), ReadoutErr(0.1, 0.2),
+                Detector(1), ObservableInclude(1), QubitCoordinates(0, 0), Tick(),
+                Amplitude(bs"0"), ExpectationValue(GateZ()), BondDim(), SchmidtRank(), VonNeumannEntropy(),
+                Add(2), Multiply(2), Pow(2), Delay(0.1), Loss(0.1), Reload(), Check(), MeasureCheck(),
+                Lost(), Reloaded(), PrepareStateT(),
+            ]
+            for op in ops
+                @test isterminal(basis, op) == isterminal(StimBasis(), op)
+            end
+
+            for op in (GateT(), GateTDG(), Inverse(GateT()))
+                @test isterminal(basis, op)
+                @test !isterminal(StimBasis(), op)
+            end
+
+            for op in (Not(), SetBit0(), SetBit1(), And(), Or(), Xor())
+                @test isterminal(basis, op)
+            end
+
+            # A conditional is terminal when its body is, whatever the condition.
+            for body in (GateX(), GateZ(), GateH(), GateT(), GateCX(), Measure(), ResetX())
+                for cond in (bs"1", bs"0", bs"10")
+                    @test isterminal(basis, IfStatement(body, cond))
+                end
+            end
+            for body in (GateRX(0.3), GateCCX(), GateU(0.1, 0.2, 0.3))
+                @test !isterminal(basis, IfStatement(body, bs"1"))
+            end
+        end
+
+        @testset "decomposition — representative circuits" begin
+            # Stim operations stay as they are.
+            c = push!(Circuit(), GateHXY(), 1)
+            push!(c, GateRZZ(π / 2), 1, 2)
+            push!(c, RPauli("XYZ", -π / 2), 1, 2, 3)
+            push!(c, MeasurePauli("XZ"), 1, 3, 1)
+            push!(c, MeasureResetY(), 2, 2)
+            push!(c, ResetX(), 3)
+            push!(c, ResetY(), 1)
+            push!(c, Depolarizing2(0.1), 1, 2)
+            push!(c, Detector(1), 1)
+            @test collect(decompose(c; basis=basis)) == collect(c)
+
+            # Non-Clifford+T gates decompose into terminal operations.
+            c = push!(Circuit(), GateCCX(), 1, 2, 3)
+            push!(c, GateRXX(π / 4), 1, 2)
+            push!(c, RPauli("XZ", π), 2, 3)
+            push!(c, GateCP(π / 2), 1, 3)
+            push!(c, IfStatement(GateCRZ(π / 2), bs"0"), 1, 2, 1)
+            d = decompose(c; basis=basis)
+            @test all(inst -> isterminal(basis, getoperation(inst)), d)
+            for g in (GateCCX(), GateRXX(π / 4), RPauli("XZ", π), GateCP(π / 2))
+                test_basis_decomposition(basis, g)
+            end
+
+            # Noise that Stim does not support cannot be decomposed.
+            @test_throws DecompositionError decompose(push!(Circuit(), AmplitudeDamping(0.1), 1); basis=basis)
         end
     end
 
@@ -183,6 +337,30 @@ using .DecompositionTestUtils
             for op in qasm_gates
                 @test isterminal(basis, op)
             end
+        end
+
+        @testset "conditionals and MeasureReset" begin
+            @test isterminal(basis, IfStatement(GateX(), bs"1"))
+            @test !isterminal(basis, IfStatement(GateCP(0.3), bs"1"))
+            @test !isterminal(basis, WhileStatement(GateX(), bs"1"))
+
+            c = push!(Circuit(), WhileStatement(GateX(), bs"1"), 1, 1)
+            @test_throws MimiqCircuitsBase.DecompositionError decompose(c; basis=basis)
+
+            # Measure + Reset leaves the same state and bit as the conditional X,
+            # and needs no condition on the whole register.
+            c = Circuit()
+            push!(c, MeasureReset(), 1, 2)
+            push!(c, MeasureResetX(), 2, 1)
+            d = decompose(c; basis=basis)
+            @test collect(d) == [
+                Instruction(Measure(), 1, 2), Instruction(Reset(), 1),
+                Instruction(GateH(), 2), Instruction(Measure(), 2, 1),
+                Instruction(Reset(), 2), Instruction(GateH(), 2),
+            ]
+            w = decompose(c; basis=basis, wrap=true)
+            @test all(inst -> getoperation(inst) isa Block, w)
+            @test collect(decompose(w; basis=basis)) == collect(d)
         end
 
         @testset "decomposition preserves QASM gates" begin
@@ -248,12 +426,88 @@ using .DecompositionTestUtils
             @test isterminal(basis, Barrier(1))
         end
 
+        @testset "isterminal — Stim gates added in 1.16 support" begin
+            @test isterminal(basis, GateHXY())
+            @test isterminal(basis, GateHYZ())
+            @test isterminal(basis, MeasureXX())
+            @test isterminal(basis, MeasureYY())
+            @test isterminal(basis, MeasureZZ())
+            @test isterminal(basis, MeasurePauli("XYZ"))
+            @test isterminal(basis, PauliNoise([0.9, 0.1], ["IXZ", "YYY"]))
+
+            # Pauli rotations are terminal only at ±π/2 (modulo 2π)
+            for g in (GateRXX(π / 2), GateRXX(-π / 2), GateRYY(π / 2), GateRZZ(3π / 2), RPauli("XIZ", π / 2), RPauli("Y", -π / 2))
+                @test isterminal(basis, g)
+            end
+            for g in (GateRXX(π), GateRYY(0.3), GateRZZ(0), RPauli("XZ", π), RPauli("II", π / 2))
+                @test !isterminal(basis, g)
+            end
+
+            # feedback: a Pauli conditioned on one bit being 1
+            for P in (GateX(), GateY(), GateZ())
+                @test isterminal(basis, IfStatement(P, bs"1"))
+                @test !isterminal(basis, IfStatement(P, bs"0"))
+                @test !isterminal(basis, IfStatement(P, bs"11"))
+            end
+            @test !isterminal(basis, IfStatement(GateH(), bs"1"))
+        end
+
+        @testset "decomposition — conditional Paulis" begin
+            # P if c == 0 becomes P, then P if c == 1
+            d = decompose(push!(Circuit(), IfStatement(GateY(), bs"0"), 2, 1); basis=basis)
+            @test getoperation.(collect(d)) == [GateY(), IfStatement(GateY(), bs"1")]
+            @test getqubits.(collect(d)) == [(2,), (2,)]
+            @test getbits.(collect(d)) == [(), (1,)]
+
+            # rotations by multiples of π become the conditional Pauli they equal
+            d = decompose(push!(Circuit(), IfStatement(GateRX(π), bs"1"), 1, 3); basis=basis)
+            @test getoperation.(collect(d)) == [IfStatement(GateX(), bs"1")]
+            @test getbits.(collect(d)) == [(3,)]
+            d = decompose(push!(Circuit(), IfStatement(GateRZ(-π), bs"0"), 1, 1); basis=basis)
+            @test getoperation.(collect(d)) == [GateZ(), IfStatement(GateZ(), bs"1")]
+
+            # anything else cannot be written in Stim
+            @test_throws DecompositionError decompose(push!(Circuit(), IfStatement(GateX(), bs"10"), 1, 1, 2); basis=basis)
+            @test_throws DecompositionError decompose(push!(Circuit(), IfStatement(GateH(), bs"1"), 1, 1); basis=basis)
+            @test_throws DecompositionError decompose(push!(Circuit(), IfStatement(GateRZ(π / 2), bs"1"), 1, 1); basis=basis)
+            @test_throws DecompositionError decompose(push!(Circuit(), IfStatement(GateCX(), bs"1"), 1, 2, 1); basis=basis)
+        end
+
+        @testset "decomposition — Pauli rotations away from ±π/2" begin
+            for g in (GateRXX(π), RPauli("XZ", π), GateRZZ(0))
+                d = decompose(push!(Circuit(), g, 1, 2); basis=basis)
+                @test all(inst -> isterminal(basis, getoperation(inst)), d)
+                @test !any(inst -> getoperation(inst) isa Union{GateRXX,GateRZZ,RPauli}, d)
+            end
+        end
+
         @testset "NOT terminal — non-Clifford gates" begin
             @test !isterminal(basis, GateT())
             @test !isterminal(basis, GateTDG())
             @test !isterminal(basis, GateRZ(0.5))
             @test !isterminal(basis, GateU(0.1, 0.2, 0.3))
             @test !isterminal(basis, GateCCX())
+        end
+
+        @testset "decomposition — phase-only GateU" begin
+            # A global phase is dropped, in this basis and in CliffordTBasis.
+            for b in (basis, CliffordTBasis())
+                @test isempty(decompose(GateU(0, 0, 0, 0.3); basis=b))
+                @test isempty(decompose(GateU(0, 0, 0, 0); basis=b))
+                @test isempty(decompose(RPauli("II", 0.3); basis=b))
+                @test isempty(decompose(push!(Circuit(), RPauli("II", π / 3), 1, 2); basis=b))
+            end
+
+            # Under a Control the phase is relative and must be kept.
+            for g in (Control(GateU(0, 0, 0, π / 2)), Control(GateU(0, 0, 0, π)), Control(2, GateU(0, 0, 0, π)))
+                test_basis_decomposition(basis, g)
+            end
+            @test_throws DecompositionError decompose(Control(GateU(0, 0, 0, 0.3)); basis=basis)
+            for nc in (1, 2)
+                test_basis_decomposition(CliffordTBasis(), Control(nc, GateU(0, 0, 0, π / 2)))
+                # Gridsynth approximates the phase to 1e-10; dropping it would be off by about 0.3.
+                test_basis_decomposition(CliffordTBasis(), Control(nc, GateU(0, 0, 0, 0.3)); atol=1e-8)
+            end
         end
 
         @testset "decomposition — Clifford rotations (k·π/2)" begin
@@ -624,3 +878,67 @@ using .DecompositionTestUtils
     end  # @testset "wrap=true"
 
 end  # @testset "DecompositionBases"
+
+@testset "IfStatement in decomposition bases" begin
+    feedback = push!(Circuit(), Measure(), 1, 1)
+    push!(feedback, IfStatement(GateX(), bs"1"), 2, 1)
+    reset = push!(Circuit(), MeasureReset(), 1, 1)
+
+    # MeasureReset expands to Measure and a conditional X on the same bit.
+    stepped = decompose_step(reset)
+    @test getoperation.(collect(stepped)) == [Measure(), IfStatement(GateX(), bs"1")]
+    @test getbits.(collect(stepped)) == [(1,), (1,)]
+
+    @testset "$(typeof(basis))" for basis in (CanonicalBasis(), CliffordTBasis(), QASMBasis(), StimBasis(), FlattenedBasis())
+        for c in (feedback, reset)
+            @test all(inst -> isterminal(basis, getoperation(inst)), decompose(c; basis=basis))
+        end
+    end
+
+    @test_throws DecompositionError decompose(push!(Circuit(), IfStatement(GateH(), bs"1"), 1, 1); basis=StimBasis())
+
+    # A conditional gate decomposes into conditional Clifford+T gates with the
+    # same condition, and their product is the original gate.
+    @testset "CliffordTBasis $(opname(gate))" for gate in (GateCCX(), GateRX(π / 4), GateCSWAP(), GateU(π / 2, π / 4, -π / 4))
+        basis = CliffordTBasis()
+        n = numqubits(gate)
+        c = push!(Circuit(), IfStatement(gate, bs"1"), 2:(n+1)..., 1)
+        d = decompose(c; basis=basis)
+        @test all(inst -> getoperation(inst) isa IfStatement, d)
+        @test all(inst -> getbitstring(getoperation(inst)) == bs"1", d)
+        @test all(inst -> getbits(inst) == (1,), d)
+        @test all(inst -> isterminal(basis, getoperation(getoperation(inst))), d)
+        body = Circuit()
+        for inst in d
+            push!(body, getoperation(getoperation(inst)), (getqubits(inst) .- 1)...)
+        end
+        @test matrices_equivalent(matrix_from_circuit(body, n), matrix_from_circuit(push!(Circuit(), gate, 1:n...), n))
+    end
+
+    # A conditional arbitrary rotation becomes conditional Clifford+T gates.
+    basis = CliffordTBasis(sk_depth=0)
+    d = decompose(push!(Circuit(), IfStatement(GateRX(0.3), bs"0"), 1, 3); basis=basis)
+    @test !isempty(d)
+    @test all(inst -> getoperation(inst) isa IfStatement, d)
+    @test all(inst -> getbitstring(getoperation(inst)) == bs"0" && getbits(inst) == (3,), d)
+    @test all(inst -> isterminal(basis, getoperation(getoperation(inst))), d)
+
+    # Nested conditions are merged into one IfStatement per instruction.
+    d = decompose_step(push!(Circuit(), IfStatement(MeasureReset(), bs"0"), 1, 1, 2))
+    @test getoperation.(collect(d)) == [IfStatement(Measure(), bs"0"), IfStatement(GateX(), bs"10")]
+    @test getbits.(collect(d)) == [(1, 2), (1, 2)]
+
+    # FlattenedBasis expands a conditional GateCall into conditional gates.
+    inner = push!(Circuit(), GateH(), 1)
+    push!(inner, GateCX(), 1, 2)
+    call = GateDecl(:Inner, (), inner)()
+    d = decompose(push!(Circuit(), IfStatement(call, bs"1"), 1, 2, 1); basis=FlattenedBasis())
+    @test getoperation.(collect(d)) == [IfStatement(GateH(), bs"1"), IfStatement(GateCX(), bs"1")]
+
+    # RuleBasis applies its rule to the body of a conditional.
+    basis = RuleBasis(ZYZRewrite())
+    op = IfStatement(GateU(π / 2, π / 4, π / 3), bs"1")
+    @test !isterminal(basis, op)
+    d = decompose(push!(Circuit(), op, 1, 1); basis=basis)
+    @test all(inst -> getoperation(inst) isa IfStatement && isterminal(basis, getoperation(inst)), d)
+end

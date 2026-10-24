@@ -24,3 +24,14 @@ gates ([`GateU`](@ref) and [`GateCX`](@ref)),
 """
 struct CanonicalRewrite <: RewriteRule end
 
+
+# One canonical rewrite step of `op` on targets `1:N`, or `op` itself when the
+# rule leaves it unchanged (as for `GateU` and `GateCX`). Wrappers such as
+# `Control`, `Inverse` and `Power` transform these pieces one at a time, so
+# they only ever see one level of the wrapped operation's decomposition.
+function _canonical_pieces(op::Operation{N,M,L}) where {N,M,L}
+    if matches(CanonicalRewrite(), op)
+        return decompose_step(op)
+    end
+    return push!(Circuit(), op, 1:N..., 1:M..., 1:L...)
+end

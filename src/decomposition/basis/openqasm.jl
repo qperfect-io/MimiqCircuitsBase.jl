@@ -54,8 +54,14 @@ The following gate categories are terminal (not decomposed further):
 - `Measure`, `Reset`, `Barrier`
 - `IfStatement` (if inner operation is terminal)
 
-**Oher operations:**
+**Other operations:**
 - `GateCall` (custom gate invocations)
+
+`MeasureReset` decomposes into `Measure` followed by `Reset`. This leaves the same
+state and bit as its canonical decomposition, a measurement and a `GateX` conditioned
+on its outcome, and unlike that conditional it can be written for a circuit of any
+number of bits. OpenQASM 2.0 has no loops, so `WhileStatement` throws a
+[`DecompositionError`](@ref).
 
 # Examples
 ```julia
@@ -150,14 +156,23 @@ end
 # IfStatement is terminal if its inner operation is terminal
 isterminal(basis::QASMBasis, op::IfStatement) = isterminal(basis, getoperation(op))
 
-# WhileStatement is terminal if its inner operation is terminal
-isterminal(basis::QASMBasis, op::WhileStatement) = isterminal(basis, getoperation(op))
-
 # --- Fallback ---
 
 isterminal(::QASMBasis, ::Operation) = false
 
 # === Decomposition — delegate to CanonicalRewrite ===
+
+function decompose!(builder, ::QASMBasis, ::MeasureReset, qtargets, ctargets, _)
+    push!(builder, Measure(), qtargets[1], ctargets[1])
+    push!(builder, Reset(), qtargets[1])
+    return builder
+end
+
+function decompose!(builder, ::QASMBasis, ::WhileStatement, _, _, _)
+    throw(DecompositionError(
+        "WhileStatement cannot be decomposed into the OpenQASM 2.0 basis, which has no loops."
+    ))
+end
 
 function decompose!(builder, ::QASMBasis, op::Operation, qtargets, ctargets, ztargets)
     if matches(CanonicalRewrite(), op)

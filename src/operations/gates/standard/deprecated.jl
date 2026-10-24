@@ -34,7 +34,7 @@ Equivalent to [`GateP`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> @variables λ
 1-element Vector{Symbolics.Num}:
  λ
@@ -63,7 +63,7 @@ julia> power(GateU1(λ), 2), inverse(GateU1(λ))
 
 ## Decomposition
 
-```jldoctests; setup = :(@variables λ)
+```jldoctest; setup = :(@variables λ)
 julia> decompose(GateU1(λ))
 1-qubit circuit with 1 instruction:
 └── U(0,0,λ) @ q[1]
@@ -104,7 +104,7 @@ e^{i\phi} & e^{i(\phi+\lambda)}
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> @variables ϕ λ
 2-element Vector{Symbolics.Num}:
  ϕ
@@ -134,7 +134,7 @@ julia> power(GateU2(ϕ, λ), 2), inverse(GateU2(ϕ, λ))
 
 ## Decomposition
 
-```jldoctests; setup = :(@variables ϕ λ)
+```jldoctest; setup = :(@variables ϕ λ)
 julia> decompose(GateU2(ϕ, λ))
 1-qubit circuit with 1 instruction:
 └── U(π/2,ϕ,λ) @ q[1]
@@ -156,7 +156,7 @@ matches(::CanonicalRewrite, ::GateU2) = true
 
 function decompose_step!(builder, ::CanonicalRewrite, g::GateU2, qtargets, _, _)
     q = qtargets[1]
-    push!(builder, GateU3(π / 2, g.ϕ, g.λ), q)
+    push!(builder, GateU(_π_2, g.ϕ, g.λ), q)
     return builder
 end
 
@@ -180,7 +180,7 @@ from it only by a global phase of ``\frac{\phi + \lambda + \theta}{2}``.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> @variables θ ϕ λ
 3-element Vector{Symbolics.Num}:
  θ
@@ -211,7 +211,7 @@ julia> power(GateU3(θ, ϕ, λ), 2), inverse(GateU3(θ, ϕ, λ))
 
 ## Decomposition
 
-```jldoctests; setup = :(@variables θ ϕ λ)
+```jldoctest; setup = :(@variables θ ϕ λ)
 julia> decompose(GateU3(θ, ϕ, λ))
 1-qubit circuit with 1 instruction:
 └── U(θ,ϕ,λ) @ q[1]

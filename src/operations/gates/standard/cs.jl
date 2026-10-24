@@ -38,7 +38,7 @@ See also [`GateS`](@ref), [`Control`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateCS(), numcontrols(GateCS()), numtargets(GateCS())
 (GateCS(), 1, 1)
 
@@ -60,7 +60,7 @@ julia> power(GateCS(), 2), inverse(GateCS())
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateCS())
 2-qubit circuit with 5 instructions:
 ├── U(0,0,π/4) @ q[1]
@@ -110,7 +110,7 @@ See also [`GateS`](@ref), [`Control`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateCSDG(), numcontrols(GateCSDG()), numtargets(GateCSDG())
 (Control(Inverse(GateS())), 1, 1)
 
@@ -132,7 +132,7 @@ julia> power(GateCSDG(), 2), inverse(GateCSDG())
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateCSDG())
 2-qubit circuit with 5 instructions:
 ├── U(0,0,-1π/4) @ q[1]

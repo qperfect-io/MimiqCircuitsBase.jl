@@ -160,7 +160,14 @@ numqubits(ex::OptimizationExperiment) = numqubits(ex.circuit)
 numbits(ex::OptimizationExperiment) = numbits(ex.circuit)
 numzvars(ex::OptimizationExperiment) = numzvars(ex.circuit)
 
-function isvalid(ex::OptimizationExperiment)
+"""
+    isvalid(ex::OptimizationExperiment)
+
+Whether `ex` can be submitted: its circuit is non-empty and symbolic, `initparams`
+gives a value for exactly the symbols of the circuit, and `zregister` is at least 1.
+Returns `false` instead of throwing when a check fails.
+"""
+function Base.isvalid(ex::OptimizationExperiment)
     try
         check_optimization_args(ex.circuit, ex.initparams, ex.zregister)
     catch _
@@ -169,6 +176,15 @@ function isvalid(ex::OptimizationExperiment)
     return true
 end
 
+"""
+    changeparameters(experiment::OptimizationExperiment, d::Dict)
+
+Return a copy of the experiment whose initial parameters take the values in
+`d`. Parameters not in `d` keep their value, and keys of `d` that are not
+parameters of the experiment are ignored.
+
+See also [`changelistofparameters`](@ref).
+"""
 changeparameters(ope::OptimizationExperiment, d::Dict) =
     OptimizationExperiment(
         ope.circuit,
@@ -179,6 +195,16 @@ changeparameters(ope::OptimizationExperiment, d::Dict) =
         zregister=ope.zregister
     )
 
+"""
+    changelistofparameters(experiment::OptimizationExperiment, θ::AbstractVector)
+
+Return a copy of the experiment with new initial parameter values given as a
+vector. The values are assigned to the symbols of the circuit sorted by name.
+
+Throws an error if `θ` does not have one value per symbol of the circuit.
+
+See also [`changeparameters`](@ref).
+"""
 function changelistofparameters(ex::OptimizationExperiment, θ::AbstractVector)
     vars = sort(listvars(ex.circuit); by=string)
 
@@ -245,10 +271,22 @@ function Base.show(io::IO, m::MIME"text/plain", run::OptimizationRun; prefix="")
     println(io, prefix, "└── results: ", "QCSResults(...)")
 end
 
+"""
+    getcost(run::OptimizationRun)
+
+Return the value of the cost function for the parameters of the run.
+"""
 getcost(opr::OptimizationRun) = opr.cost
 getparams(opr::OptimizationRun) = opr.parameters
 getparam(opr::OptimizationRun, pn) = opr.parameters[pn]
 getparam(opr::OptimizationRun, pn::Symbol) = opr.parameters[Symbolics.variable(pn)]
+"""
+    getresultofbest(run::OptimizationRun)
+    getresultofbest(results::OptimizationResults)
+
+Return the [`QCSResults`](@ref) of a run, or of the best run of an
+optimization.
+"""
 getresultofbest(opr::OptimizationRun) = opr.results
 
 
@@ -285,9 +323,29 @@ end
 
 OptimizationResults() = OptimizationResults(OptimizationRun(), OptimizationRun[])
 
+"""
+    getbest(results::OptimizationResults)
+
+Return the [`OptimizationRun`](@ref) with the best cost.
+"""
 getbest(ops::OptimizationResults) = ops.best
+
+"""
+    getresultsofhistory(results::OptimizationResults)
+
+Return the [`QCSResults`](@ref) of every run of the optimization, in the
+order they were evaluated.
+"""
 getresultsofhistory(ops::OptimizationResults) = getfield.(ops.history, :results)
+
 getresultofbest(ops::OptimizationResults) = ops.best.results
+
+"""
+    costhistory(results::OptimizationResults)
+
+Return the cost of every run of the optimization, in the order they were
+evaluated.
+"""
 costhistory(res::OptimizationResults) = getcost.(res.history)
 
 function Base.show(io::IO, m::MIME"text/plain", res::OptimizationResults)

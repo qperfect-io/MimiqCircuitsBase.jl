@@ -382,4 +382,26 @@ using .DecompositionTestUtils
         end
     end
 
+    @testset "decompose_step! into a container" begin
+        # GateRX has both a canonical and a ZYZ rewrite.
+        for rule in (CanonicalRewrite(), ZYZRewrite())
+            expected = decompose_step(GateRX(0.3); rule=rule)
+            @test decompose_step!(Circuit(), GateRX(0.3); rule=rule) == expected
+            @test decompose_step!(Circuit(), Instruction(GateRX(0.3), 1); rule=rule) == expected
+            @test decompose_step!(Circuit(), push!(Circuit(), GateRX(0.3), 1); rule=rule) == expected
+        end
+
+        expected = decompose_step(GateRX(0.3))
+        @test decompose_step!(Circuit(), GateRX(0.3)) == expected
+        @test decompose_step!(Circuit(), Instruction(GateRX(0.3), 1)) == expected
+        @test decompose_step!(Circuit(), push!(Circuit(), GateRX(0.3), 1)) == expected
+
+        # Instructions the rule does not match are copied as they are.
+        c = push!(Circuit(), GateRX(0.3), 1)
+        push!(c, Measure(), 1, 1)
+        out = decompose_step!(Circuit(), c; rule=ZYZRewrite())
+        @test out[end] == c[end]
+        @test length(out) == length(decompose_step(GateRX(0.3); rule=ZYZRewrite())) + 1
+    end
+
 end  # @testset "RewriteRules"

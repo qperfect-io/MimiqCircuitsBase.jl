@@ -170,9 +170,8 @@ getparams(g::GateCustom) = g.U
 
 function Base.show(io::IO, gate::GateCustom)
     print(io, "GateCustom", "(")
-    io1 = IOContext(io, :compact => get(io, :compact, false), :typeinfo => Array{Symbolics.Num})
-    print(io1, _decomplex(matrix(gate)))
-    print(io1, ")")
+    _print_array(io, _decomplex(matrix(gate)))
+    print(io, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", gate::GateCustom{N}) where {N}
@@ -188,9 +187,9 @@ function Base.show(io::IO, ::MIME"text/plain", gate::GateCustom{N}) where {N}
         if N <= 1
             join(io, map(x -> join(x, " "), eachrow(U)), "; ")
         else
-            join(io, U[1:2], " ")
+            join(io, (_displaynum(io, x) for x in U[1:2]), " ")
             print(io, " … ")
-            join(io, U[end-1:end], " ")
+            join(io, (_displaynum(io, x) for x in U[end-1:end]), " ")
         end
         print(io, "])")
         return nothing

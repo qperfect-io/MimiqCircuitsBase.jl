@@ -35,7 +35,7 @@ Single qubit Phase gate.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> @variables λ
 1-element Vector{Symbolics.Num}:
  λ
@@ -61,7 +61,7 @@ julia> push!(c, GateP(π/2), 2)
 
 ## Decomposition
 
-```jldoctests; setup = :(@variables λ)
+```jldoctest; setup = :(@variables λ)
 julia> decompose(GateP(λ))
 1-qubit circuit with 1 instruction:
 └── U(0,0,λ) @ q[1]

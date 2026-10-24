@@ -30,17 +30,6 @@ end
     end
 
     # ----------------------------------------------------------------- #
-    # deprecated aliases: old names map onto the redesigned ops         #
-    # ----------------------------------------------------------------- #
-    @testset "deprecated loss aliases" begin
-        @test (@test_deprecated LossErr(0.2)) == Loss(0.2)
-        @test (@test_deprecated QubitLoss()) == Loss(1.0)
-        @test (@test_deprecated QubitReload()) == Reload()
-        @test (@test_deprecated CheckLoss()) == Check()
-        @test (@test_deprecated MeasureCheckLoss()) == MeasureCheck()
-    end
-
-    # ----------------------------------------------------------------- #
     # sample_losses: resolve randomness only                            #
     # ----------------------------------------------------------------- #
     @testset "sample_losses" begin
@@ -215,6 +204,15 @@ end
             @test getoperation(out[2]) isa Depolarizing1
             @test getqubits(out[2]) == (1,)
             @test !_has_loss_ops(out)
+        end
+
+        @testset "lossmodel_rewrite works without an rng" begin
+            inst = Instruction(GateCX(), 1, 2)
+            lost = Dict(2 => true)
+            model = LossModel([ReplaceRule(GateCX() => Depolarizing1(0.2))])
+            out = lossmodel_rewrite(inst, lost, model)
+            @test out == [Instruction(Depolarizing1(0.2), 1)]
+            @test isempty(lossmodel_rewrite(inst, lost, LossModel()))
         end
 
         @testset "DecorateRule keeps decoration on survivors" begin

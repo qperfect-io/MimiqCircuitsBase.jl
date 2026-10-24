@@ -21,7 +21,7 @@ Computes the bitwise XOR of N-1 classical bits and stores the result in the firs
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> Xor()
 c[?1] = c[?2] ⊻ c[?3]
 
@@ -57,16 +57,7 @@ inverse(::Xor) = error("Inverse not defined for Xor.")
 allow_bit_aliasing(::Type{<:Xor}) = true
 
 function Base.show(io::IO, ::MIME"text/plain", g::Instruction{0,N,0,<:Xor{N}}) where {N}
-    compact = get(io, :compact, false)
-    creg = getbits(g)
-    if compact || N > 6
-        space = compact ? "" : " "
-        print(io, "c[$(creg[1])] = ⊻ @ c[", join(creg[2:N], ",$space"), "]")
-    else
-        print(io, "c[$(creg[1])] = ")
-        join(io, map(z -> "c[$z]", creg[2:end]), " ⊻ ")
-    end
-    return nothing
+    return _show_logical(io, "⊻", getbits(g), get(io, :compact, false))
 end
 
 function Base.show(io::IO, ::MIME"text/plain", g::Xor{N}) where {N}

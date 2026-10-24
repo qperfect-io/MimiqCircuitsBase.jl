@@ -35,7 +35,7 @@ sphere of the target qubit.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> @variables θ
 1-element Vector{Symbolics.Num}:
  θ
@@ -61,7 +61,7 @@ julia> push!(c, GateRX(π/2), 2)
 
 ## Decomposition
 
-```jldoctests; setup = :(@variables θ)
+```jldoctest; setup = :(@variables θ)
 julia> decompose(GateRX(θ))
 1-qubit circuit with 1 instruction:
 └── U(θ,-1π/2,π/2) @ q[1]
@@ -94,7 +94,7 @@ matches(::CanonicalRewrite, ::GateRX) = true
 
 function decompose_step!(builder, ::CanonicalRewrite, g::GateRX, qtargets, _, _)
     q = qtargets[1]
-    push!(builder, GateU(g.θ, -π / 2, π / 2), q)
+    push!(builder, GateU(g.θ, _mπ_2, _π_2), q)
     return builder
 end
 
@@ -120,7 +120,7 @@ sphere of the target qubit.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> @variables θ
 1-element Vector{Symbolics.Num}:
  θ
@@ -146,7 +146,7 @@ julia> push!(c, GateRY(π/2), 2)
 
 ## Decomposition
 
-```jldoctests; setup=:(@variables θ)
+```jldoctest; setup=:(@variables θ)
 julia> decompose(GateRY(θ))
 1-qubit circuit with 1 instruction:
 └── U(θ,0,0) @ q[1]
@@ -205,7 +205,7 @@ sphere for the target qubit.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> @variables θ
 1-element Vector{Symbolics.Num}:
  θ
@@ -231,7 +231,7 @@ julia> push!(c, GateRZ(π/2), 2)
 
 ## Decomposition
 
-```jldoctests; setup = :(@variables θ)
+```jldoctest; setup = :(@variables θ)
 julia> decompose(GateRZ(θ))
 1-qubit circuit with 1 instruction:
 └── U(0,0,θ,(-1//2)*θ) @ q[1]
@@ -291,7 +291,7 @@ XY-plane axis of the Bloch sphere determined by
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> @variables θ ϕ
 2-element Vector{Symbolics.Num}:
  θ
@@ -318,10 +318,10 @@ julia> push!(c, GateR(π/2, π/4), 2)
 
 ## Decomposition
 
-```jldoctests; setup = :(@variables θ ϕ)
+```jldoctest; setup = :(@variables θ ϕ)
 julia> decompose(GateR(θ, ϕ))
 1-qubit circuit with 1 instruction:
-└── U(θ,-1.5707963267948966 + ϕ,1.5707963267948966 - ϕ) @ q[1]
+└── U(θ,-(1//2)*π + ϕ,π / 2 - ϕ) @ q[1]
 
 ```
 """
@@ -340,6 +340,6 @@ matches(::CanonicalRewrite, ::GateR) = true
 
 function decompose_step!(circ, ::CanonicalRewrite, g::GateR, qtargets, _, _)
     a = qtargets[1]
-    push!(circ, GateU3(g.θ, g.ϕ - π / 2, -g.ϕ + π / 2), a)
+    push!(circ, GateU3(g.θ, g.ϕ - _π_2, -g.ϕ + _π_2), a)
     return circ
 end

@@ -54,16 +54,16 @@ qregsizes(::PhaseGradient{N}) where {N} = (N,)
 function _phasegradientpow_decompose!(circ, P, N, qtargets)
     for i in N:-1:1
         # exp(2π / 2^i) on qubit i
-        phase = P * π / 2.0^(i - 1)
+        phase = P * Num(π) / 2^(i - 1)
         push!(circ, GateP(phase), qtargets[i])
     end
     return circ
 end
 
 # standard decomposition
-can_deompose(::CanonicalRewrite, ::PhaseGradient) = true
+matches(::CanonicalRewrite, ::PhaseGradient) = true
 decompose_step!(circ, ::CanonicalRewrite, ::PhaseGradient{N}, qtargets, _, _) where {N} = _phasegradientpow_decompose!(circ, 1, N, qtargets)
 
 # specialization for power
-can_deompose(::CanonicalRewrite, ::Power{P,N,PhaseGradient{N}}) where {P,N} = true
+matches(::CanonicalRewrite, ::Power{P,N,PhaseGradient{N}}) where {P,N} = true
 decompose_step!(circ, ::CanonicalRewrite, ::Power{P,N,PhaseGradient{N}}, qtargets, _, _) where {P,N} = _phasegradientpow_decompose!(circ, P, N, qtargets)

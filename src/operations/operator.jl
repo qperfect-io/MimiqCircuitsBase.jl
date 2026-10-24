@@ -50,9 +50,14 @@ Matrix associated to the given operator.
     `Symbolics.Num` object. To manipulate expressions use the `Symbolics`
     package.
 
+!!! warning
+    For an operator without parameters the returned matrix may be shared by
+    every call, so mutating it changes the operator's matrix for the whole
+    session. Call `copy` on it before modifying it.
+
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> matrix(GateH())
 2×2 Matrix{Float64}:
  0.707107   0.707107
@@ -66,7 +71,48 @@ julia> matrix(GateRX(π/2))
 """
 function matrix end
 
-@generated matrix(g::T, ::Val{false}) where {T} = _matrix(T)
+matrix(g::T, ::Val{false}) where {T} = _matrix(T)
+
+# Per-type cache for the matrices of the wrapper operations (Control, Power,
+# Inverse, Parallel, Repeat), so `matrix()` stays allocation-free on the hot
+# path. These cannot be @generated: a generator only sees methods that existed
+# when it was defined, and the wrapped gate may be defined later in this module
+# or in a downstream package.
+#
+# Copy on write: readers take an atomic snapshot of a table nobody mutates any
+# more, so `matrix()` needs no lock and scales across threads. Writers are rare
+# (once per type) and pay a full copy. Reading `IdDict` while another task
+# inserts is not safe -- `jl_eqtable_put` fills a free slot of the live table in
+# place, so a reader can see the key of a half-written entry.
+mutable struct _MatrixCache
+    @atomic ht::IdDict{Type,Any}
+end
+
+const _MATRIX_CACHE = _MatrixCache(IdDict{Type,Any}())
+const _MATRIX_CACHE_LOCK = ReentrantLock()
+
+function _compute_matrix end
+
+function _cached_matrix(::Type{T}) where {T}
+    # concrete for a concrete T, so the assertion below is free and keeps
+    # `_matrix` type stable despite the untyped cache
+    R = Base.promote_op(_compute_matrix, Type{T})
+    m = get((@atomic :acquire _MATRIX_CACHE.ht), T, nothing)
+    m === nothing || return m::R
+    return @lock(_MATRIX_CACHE_LOCK, _store_matrix!(T))::R
+end
+
+function _store_matrix!(::Type{T}) where {T}
+    m = get((@atomic :acquire _MATRIX_CACHE.ht), T, nothing)
+    m === nothing || return m
+    # built before the snapshot is taken: a wrapper over another wrapper stores
+    # the inner matrix during this call, and that entry must not be copied away
+    m = _compute_matrix(T)
+    ht = copy(@atomic :acquire _MATRIX_CACHE.ht)
+    ht[T] = m
+    @atomic :release _MATRIX_CACHE.ht = ht
+    return m
+end
 
 function matrix(g::T, ::Val{true}) where {T}
     params = map(getparams(g)) do p
@@ -116,11 +162,16 @@ the `Symbolics.Num` wrapper.
 !!! note
     If any of the gate's parameters is symbolic, an error is thrown.
 
+!!! warning
+    For an operator without parameters the returned matrix may be shared by
+    every call, so mutating it changes the operator's matrix for the whole
+    session. Call `copy` on it before modifying it.
+
 See also [`matrix`](@ref).
 
 ## Examples
 
-```jldoctests; setup=:(import MimiqCircuitsBase.unwrappedmatrix)
+```jldoctest; setup=:(import MimiqCircuitsBase.unwrappedmatrix)
 julia> unwrappedmatrix(GateRX(π/2))
 2×2 Matrix{ComplexF64}:
  0.707107+0.0im            0.0-0.707107im
@@ -171,39 +222,63 @@ function opsquared(op::AbstractOperator)
 end
 
 """
-    oprescale(op, a)
+    rescale(op, a)
 
-Compute ``a * A`` for an operator ``A`` and rescaling factor ``a``.
+Return the operator ``a A`` for an operator ``A`` and a scalar ``a``.
+
+`op` is not modified. A gate becomes a [`RescaledGate`](@ref).
 """
 function rescale(op::AbstractOperator, _)
     error("oprescale not implemented for $(typeof(op)).")
 end
 
+# `v` written in units of π ("π/2", "-1π/4", "2π"), or `nothing` if it is not
+# close to a simple rational multiple of π.
+function _pifraction(v::Float64)
+    div = v / π
+    divint = round(Int, div)
+    divrational = rationalize(div)
+
+    if div == divint
+        return string(divint) * "π"
+    elseif isapprox(divrational, div; rtol=eps(div)) && (divrational.den < 10 || divrational.num == 1)
+        numstring = divrational.num == 1 ? "" : string(divrational.num)
+        return numstring * "π/" * string(divrational.den)
+    end
+
+    return nothing
+end
+
 """
-Rewrite number in units of π, if number is rational multiple of π.
+    _displaypi(io, x)
+
+Text for the parameter `x` in an operation listing: a numeric `Num` that is a
+simple rational multiple of π is written in units of π (`π/4`, `3π/2`), any
+other `Num` in full. Plain numbers go through `_displaynum`, so values
+shortened by a `:compact` `io` are marked with `…`.
 """
-function _displaypi(num::Num)
+function _displaypi(::IO, num::Num)
     v = Symbolics.value(num)
 
     if v isa Float64
-        div = v / π
-        divint = round(Int, div)
-        divrational = rationalize(div)
+        s = _pifraction(v)
+        return isnothing(s) ? string(v) : s
+    end
 
-        if div == divint
-            return string(divint) * "π"
-        elseif isapprox(divrational, div; rtol=eps(div)) && (divrational.den < 10 || divrational.num == 1)
-            numstring = divrational.num == 1 ? "" : string(divrational.num)
-            return numstring * "π/" * string(divrational.den)
-        else
-            return string(v)
+    # An exact constant such as `π / 2` prints like the equivalent float,
+    # as `π/2`, so exact and floating-point angles display the same way.
+    if iscall(v) && !issymbolic(num)
+        f = unwrapvalue(num)
+        if f isa Float64
+            s = _pifraction(f)
+            isnothing(s) || return s
         end
     end
 
     return string(v)
 end
 
-_displaypi(num) = num
+_displaypi(io::IO, x) = _displaynum(io, x)
 
 function Base.show(io::IO, ::MIME"text/plain", op::AbstractOperator)
     compact = get(io, :compact, false)
@@ -211,7 +286,7 @@ function Base.show(io::IO, ::MIME"text/plain", op::AbstractOperator)
     print(io, opname(op))
     if numparams(op) > 0
         print(io, "(")
-        join(io, map(x -> _displaypi(getparam(op, x)), parnames(op)), sep)
+        join(io, map(x -> _displaypi(io, getparam(op, x)), parnames(op)), sep)
         print(io, ")")
     end
 end
@@ -221,6 +296,6 @@ function Base.show(io::IO, op::AbstractOperator)
     sep = compact ? "," : ", "
     print(io, Base.typename(typeof(op)).name)
     print(io, "(")
-    join(io, map(x -> _displaypi(getparam(op, x)), parnames(op)), sep)
+    join(io, map(x -> _displaypi(io, getparam(op, x)), parnames(op)), sep)
     print(io, ")")
 end

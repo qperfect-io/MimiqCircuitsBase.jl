@@ -106,13 +106,21 @@ allow_zvar_aliasing(::Type{<:IfStatement}) = true
 matches(strat::CanonicalRewrite, ifs::IfStatement) = matches(strat, getoperation(ifs))
 
 function decompose_step!(builder, rule::CanonicalRewrite, ifs::IfStatement, qtargets, ctargets, ztargets)
+    return _decompose_ifstatement!(builder, rule, ifs, qtargets, ctargets, ztargets)
+end
+
+# One decomposition step of the body of `ifs` with `basis` (a DecompositionBasis
+# or a RewriteRule), with every resulting instruction conditioned on the same
+# bits. Bases reuse it so that a conditional gate follows the same rules as the
+# bare gate.
+function _decompose_ifstatement!(builder, basis, ifs::IfStatement, qtargets, ctargets, ztargets)
     inner = getoperation(ifs)
     condition = getbitstring(ifs)
 
     target_bits = ctargets[1:numbits(inner)]
     condition_bits = ctargets[numbits(inner)+1:end]
 
-    decomposed = decompose_step!(Circuit(), rule, inner, qtargets, target_bits, ztargets)
+    decomposed = _decompose_once!(Circuit(), basis, inner, qtargets, target_bits, ztargets)
 
     for inst in decomposed
         op = getoperation(inst)
@@ -139,6 +147,9 @@ function decompose_step!(builder, rule::CanonicalRewrite, ifs::IfStatement, qtar
 
     return builder
 end
+
+_decompose_once!(builder, basis::DecompositionBasis, op, qt, ct, zt) = decompose!(builder, basis, op, qt, ct, zt)
+_decompose_once!(builder, rule::RewriteRule, op, qt, ct, zt) = decompose_step!(builder, rule, op, qt, ct, zt)
 
 function Base.show(io::IO, s::IfStatement)
     sep = get(io, :compact, false) ? "," : ", "

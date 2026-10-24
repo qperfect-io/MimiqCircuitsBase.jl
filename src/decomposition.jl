@@ -24,6 +24,7 @@ include("decomposition/rules/zyz.jl")
 include("decomposition/rules/special_angle.jl")
 include("decomposition/rules/to_z_rotation.jl")
 include("decomposition/rules/solovay_kitaev.jl")
+include("decomposition/rules/gridsynth/gridsynth.jl")
 include("decomposition/rules/toffoli_to_clifford_t.jl")
 include("decomposition/rules/flatten_containers.jl")
 

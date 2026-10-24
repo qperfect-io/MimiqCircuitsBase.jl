@@ -37,7 +37,7 @@ See also [`GateU3`](@ref), [`GateP`](@ref), [`GateU2`](@ref), [`GateU1`](@ref)
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> @variables θ ϕ λ
 3-element Vector{Symbolics.Num}:
  θ
@@ -70,7 +70,7 @@ julia> power(GateU(θ, ϕ, λ), 2), inverse(GateU(θ, ϕ, λ))
 
 Since ``U`` gate, is the most general single qubit unitary matrix, all other matrices are defined from it.
 
-```jldoctests; setup = :(@variables λ θ ϕ γ)
+```jldoctest; setup = :(@variables λ θ ϕ γ)
 julia> decompose(GateU(θ, λ, ϕ))
 1-qubit circuit with 1 instruction:
 └── U(θ,λ,ϕ) @ q[1]
@@ -88,7 +88,11 @@ struct GateU <: AbstractGate{1}
     end
 end
 
-inverse(g::GateU) = GateU(-g.θ, -g.λ, -g.ϕ, -g.γ)
+# Adding zero turns a negated `0.0` into `+0.0`, so that `-0.0` and `0.0`
+# serialize to the same bytes.
+_negate(x) = -x + zero(x)
+
+inverse(g::GateU) = GateU(_negate(g.θ), _negate(g.λ), _negate(g.ϕ), _negate(g.γ))
 
 opname(::Type{GateU}) = "U"
 
@@ -103,7 +107,7 @@ function _power(g::GateU, pwr)
 
     γ = angle(Up[1, 1])
     θ = 2 * acos(clamp(abs(Up[1, 1]), -1, 1))
-    if sin(θ / 2) ≈ 0
+    if abs(sin(θ / 2)) < 1e-12
         # Diagonal matrix: the off-diagonal entries are zero, so ϕ and λ cannot
         # be read from them. Only ϕ + λ is fixed (by Up[2,2] = e^{i(ϕ+λ+γ)}),
         # so pick ϕ = 0 and put the whole phase in λ.
@@ -122,9 +126,9 @@ function Base.show(io::IO, ::MIME"text/plain", gate::GateU)
     sep = compact ? "," : ", "
     print(io, opname(gate))
     print(io, "(")
-    print(io, _displaypi(gate.θ), sep, _displaypi(gate.ϕ), sep, _displaypi(gate.λ))
+    print(io, _displaypi(io, gate.θ), sep, _displaypi(io, gate.ϕ), sep, _displaypi(io, gate.λ))
     if !(Symbolics.value(gate.γ) isa Real) || gate.γ != 0
-        print(io, sep, _displaypi(gate.γ))
+        print(io, sep, _displaypi(io, gate.γ))
     end
     print(io, ")")
 end

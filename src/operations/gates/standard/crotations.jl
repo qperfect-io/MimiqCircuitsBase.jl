@@ -38,7 +38,7 @@ See also [`Control`](@ref), [`GateRX`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> @variables θ
 1-element Vector{Symbolics.Num}:
  θ
@@ -69,7 +69,7 @@ julia> power(GateCRX(θ), 2), inverse(GateCRX(θ))
 
 ## Decomposition
 
-```jldoctests; setup = :(@variables θ)
+```jldoctest; setup = :(@variables θ)
 julia> decompose(GateCRX(θ))
 2-qubit circuit with 5 instructions:
 ├── U(0,0,π/2) @ q[2]
@@ -93,7 +93,7 @@ function decompose_step!(builder, ::CanonicalRewrite, g::GateCRX, qtargets, _, _
     push!(builder, GateCX(), a, b)
     push!(builder, GateU(-θ / 2, 0, 0), b)
     push!(builder, GateCX(), a, b)
-    push!(builder, GateU(θ / 2, -π / 2, 0), b)
+    push!(builder, GateU(θ / 2, _mπ_2, 0), b)
     return builder
 end
 
@@ -120,7 +120,7 @@ See also [`Control`](@ref), [`GateRY`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> @variables θ
 1-element Vector{Symbolics.Num}:
  θ
@@ -151,7 +151,7 @@ julia> power(GateCRY(θ), 2), inverse(GateCRY(θ))
 
 ## Decomposition
 
-```jldoctests; setup = :(@variables θ)
+```jldoctest; setup = :(@variables θ)
 julia> decompose(GateCRY(θ))
 2-qubit circuit with 4 instructions:
 ├── U(θ / 2,0,0) @ q[2]
@@ -198,7 +198,7 @@ See also [`Control`](@ref), [`GateRZ`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> @variables θ
 1-element Vector{Symbolics.Num}:
  θ
@@ -229,7 +229,7 @@ julia> power(GateCRZ(θ), 2), inverse(GateCRZ(θ))
 
 ## Decomposition
 
-```jldoctests; setup = :(@variables θ)
+```jldoctest; setup = :(@variables θ)
 julia> decompose(GateCRZ(θ))
 2-qubit circuit with 4 instructions:
 ├── U(0,0,θ / 2,(-1//4)*θ) @ q[2]

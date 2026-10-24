@@ -32,7 +32,7 @@ It implements the unitary transformation.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> c = push!(Circuit(), QFT(10), 1:10...)
 10-qubit circuit with 1 instruction:
 └── QFT @ q[1:10]
@@ -74,7 +74,7 @@ function decompose_step!(circ, ::CanonicalRewrite, ::QFT{N}, qubits, _, _) where
     push!(circ, GateH(), qreg[1])
     for i in 2:N
         for j in 1:i-1
-            angle = π / 2.0^(i - j)
+            angle = Num(π) / 2^(i - j)
             push!(circ, GateCP(angle), qreg[i], qreg[j])
         end
         push!(circ, GateH(), qreg[i])

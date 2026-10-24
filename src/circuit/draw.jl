@@ -277,13 +277,6 @@ function drawtext!(canvas::AsciiCanvas, text::String, row, col)
     return canvas
 end
 
-function drawvtext!(canvas::AsciiCanvas, text::String, row, col)
-    for (i, c) in enumerate(collect(text))
-        canvas[row+i, col] = c
-    end
-    return canvas
-end
-
 function reset!(canvas::AsciiCanvas)
     empty!(canvas.data)
     return canvas
@@ -305,10 +298,13 @@ mutable struct AsciiCircuit
     nonerow::Union{Int,Nothing}
 
     currentcol::Int
+
+    # first free column of each canvas row
+    frontier::Vector{Int}
 end
 
 function AsciiCircuit(width::Int)
-    return AsciiCircuit(AsciiCanvas(width), Dict(), nothing, nothing, nothing, 1)
+    return AsciiCircuit(AsciiCanvas(width), Dict(), nothing, nothing, nothing, 1, Int[])
 end
 
 function AsciiCircuit()
@@ -330,6 +326,7 @@ function reset!(circuit::AsciiCircuit)
     circuit.zvarrow = nothing
     circuit.nonerow = nothing
     circuit.currentcol = 1
+    empty!(circuit.frontier)
     return circuit
 end
 
@@ -400,7 +397,51 @@ function drawwires!(circuit::AsciiCircuit, qubits, bits, zvars)
 
     setcurrentcol!(circuit, ccol + 1)
 
+    # enough rows for the wires, their labels and the row of target-less operations
+    circuit.frontier = fill(getcurrentcol(circuit), (length(qubits) + 2) * 2 + 4)
+
     return circuit
+end
+
+# Canvas rows an instruction blocks. Only the qubit rows count, so boxes on
+# neighbouring qubits can share the spacer row between them. Anything touching
+# c or z blocks every row from its topmost qubit down to the last classical
+# row: its double line crosses the qubits below it, and c and z are drawn as
+# single wires, so classical operations are always drawn one after the other.
+# Operations with no targets block everything.
+function _rowspan(circuit::AsciiCircuit, instr::Instruction)
+    rows = Int[getqubitrow(circuit, q) for q in getqubits(instr)]
+
+    if !isempty(getbits(instr)) || !isempty(getztargets(instr))
+        append!(rows, filter(!isnothing, [getbitrow(circuit), getzvarrow(circuit)]))
+    end
+
+    isempty(rows) && return eachindex(circuit.frontier)
+
+    return minimum(rows):maximum(rows)
+end
+
+# Split the circuit into runs of consecutive instructions of the same
+# operation type on disjoint rows, such as the ones a single broadcast `push!`
+# creates. A run is drawn starting in a single column, so it reads as one layer
+# even where some of its wires are free earlier.
+function _groups(circuit::AsciiCircuit, c)
+    groups = Vector{Vector{Instruction}}()
+    used = falses(length(circuit.frontier))
+
+    for instr in c
+        rows = _rowspan(circuit, instr)
+
+        if isempty(groups) || typeof(getoperation(instr)) != typeof(getoperation(groups[end][1])) || any(used[rows])
+            push!(groups, Instruction[])
+            fill!(used, false)
+        end
+
+        push!(groups[end], instr)
+        used[rows] .= true
+    end
+
+    return groups
 end
 
 function _gatenamepadding(qubits, bits, zvars)
@@ -413,9 +454,12 @@ function _gatenamepadding(qubits, bits, zvars)
     return max(qubitspadding, bitspadding, zvarspadding)
 end
 
-function draw!(circuit::AsciiCircuit, g::Operation{0,N,M}, qubits, bits, zvars) where {N,M}
-    namepadding = _gatenamepadding((), bits, zvars)
+# An operation on classical bits and z-variables only is labelled with its
+# instruction text, such as `c[1] = c[2] ⊻ c[3]`, which already names every
+# target, rather than with the operation's placeholders and a list of indices.
+_classicallabel(g, bits, zvars) = repr("text/plain", Instruction(g, (), Tuple(bits), Tuple(zvars)))
 
+function draw!(circuit::AsciiCircuit, g::Operation{0,N,M}, qubits, bits, zvars) where {N,M}
     ccol = getcurrentcol(circuit)
 
     bitrow = getbitrow(circuit)
@@ -432,17 +476,7 @@ function draw!(circuit::AsciiCircuit, g::Operation{0,N,M}, qubits, bits, zvars) 
 
     drawbox!(circuit.canvas, startrow, ccol, gw, gateheight; clean=true)
 
-    drawtext!(circuit.canvas, repr("text/plain", g; context=:compact => true), midrow, ccol + namepadding + 2)
-
-    if !isempty(bits)
-        bitsstr = join(string.(bits), ",")
-        drawtext!(circuit.canvas, bitsstr, bitrow, ccol + 1)
-    end
-
-    if !isempty(zvars)
-        zvarsstr = join(string.(zvars), ",")
-        drawtext!(circuit.canvas, zvarsstr, zvarrow, ccol + 1)
-    end
+    drawtext!(circuit.canvas, _classicallabel(g, bits, zvars), midrow, ccol + 1)
 
     setcurrentcol!(circuit, ccol + gw)
 
@@ -450,11 +484,8 @@ function draw!(circuit::AsciiCircuit, g::Operation{0,N,M}, qubits, bits, zvars) 
 end
 
 function asciiwidth(g::Operation{0,N,M}, qubits, bits, zvars=()) where {N,M}
-    # num + space
-    namepadding = _gatenamepadding((), bits, zvars)
-
-    # | + (num + space) + name + |
-    return 1 + namepadding + 1 + length(repr("text/plain", g; context=:compact => true)) + 1
+    # | + label + |
+    return 1 + length(_classicallabel(g, bits, zvars)) + 1
 end
 
 function draw!(circuit::AsciiCircuit, g::Operation{N,M,L}, qubits, bits, zvars) where {N,M,L}
@@ -771,31 +802,48 @@ asciiwidth(instr::Instruction) = asciiwidth(getoperation(instr), getqubits(instr
 
 draw!(canvas::AsciiCircuit, instr::Instruction) = draw!(canvas, getoperation(instr), getqubits(instr), getbits(instr), getztargets(instr))
 
-function draw(c::AbstractCircuit{Instruction})
+function draw(c::AbstractCircuit{Instruction}; compact=true)
     nq = numqubits(c)
     nb = numbits(c)
     nz = numzvars(c)
 
     canvas = AsciiCircuit()
     drawwires!(canvas, 1:nq, 1:nb, 1:nz)
+    lastcol = getcurrentcol(canvas)
 
-    for instr in c
-        if asciiwidth(instr) > getcols(canvas.canvas) - getcurrentcol(canvas)
+    # Each instruction goes in the first column free on all the rows it
+    # blocks, so independent instructions share columns. Instructions that
+    # block a common row keep their circuit order.
+    groups = compact ? _groups(canvas, c) : [[instr] for instr in c]
+
+    for group in groups
+        rows = [_rowspan(canvas, instr) for instr in group]
+        col = compact ? maximum(maximum(canvas.frontier[r]) for r in rows) : lastcol
+        width = maximum(asciiwidth, group)
+
+        if width > getcols(canvas.canvas) - col
+            drawempty!(canvas.canvas, 1, lastcol, getcols(canvas.canvas) - lastcol, getrows(canvas.canvas))
             println(canvas.canvas)
             println("...")
             reset!(canvas)
             drawwires!(canvas, 1:nq, 1:nb, 1:nz)
+            lastcol = col = getcurrentcol(canvas)
         end
 
-        if asciiwidth(instr) > getcols(canvas.canvas) - getcurrentcol(canvas)
+        if width > getcols(canvas.canvas) - col
             error("Cannot draw instruction. Insufficient space on screen.")
         end
 
-        draw!(canvas, instr)
+        for (instr, r) in zip(group, rows)
+            canvas.currentcol = col
+            draw!(canvas, instr)
+            canvas.frontier[r] .= getcurrentcol(canvas)
+            lastcol = max(lastcol, getcurrentcol(canvas))
+        end
     end
 
     # clean the rest of the canvas
-    drawempty!(canvas.canvas, 1, getcurrentcol(canvas), getcols(canvas.canvas) - getcurrentcol(canvas), getrows(canvas.canvas))
+    drawempty!(canvas.canvas, 1, lastcol, getcols(canvas.canvas) - lastcol, getrows(canvas.canvas))
 
     println(canvas.canvas)
 
@@ -805,12 +853,18 @@ end
 end # module AsciiDraw
 
 """
-    draw(circuit)
+    draw(circuit; compact=true)
 
 Draw an ascii representation of a circuit.
+
+With `compact=true`, instructions on disjoint wires share a column, and
+consecutive instructions of the same operation type on disjoint wires, such as
+those from one broadcast `push!`, start in the same column. Instructions that
+touch the classical or Z register are always drawn one after the other. With
+`compact=false`, every instruction gets its own column, in circuit order.
 
 _NOTE_ it automatically detects the screen width and will split the circuit if it is too wide.
 """
 function draw end
 
-draw(c::AbstractCircuit{Instruction}) = AsciiDraw.draw(c)
+draw(c::AbstractCircuit{Instruction}; kwargs...) = AsciiDraw.draw(c; kwargs...)

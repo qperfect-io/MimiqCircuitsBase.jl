@@ -25,7 +25,7 @@ applied over `N * repeats` qubits.
 
 ## Examples
 
-```jldoctests; setup = :(@variables λ)
+```jldoctest; setup = :(@variables λ)
 julia> Parallel(5, GateX())
 ⨷ ⁵ X
 
@@ -41,7 +41,7 @@ julia> Parallel(2, Parallel(3, GateX()))
 
 A parallel is decomposed into a sequence of operation, one for each group of qubits.
 
-```jldoctests
+```jldoctest
 julia> decompose(Parallel(2, GateX()))
 2-qubit circuit with 2 instructions:
 ├── U(π,0,π) @ q[1]
@@ -110,7 +110,7 @@ Get the number of repetitions of a parallel operation.
 See also [`Parallel`](@ref).
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> numrepeats(Parallel(5, GateX()))
 5
 
@@ -125,10 +125,12 @@ numrepeats(::Type{<:Parallel{N}}) where {N} = N
 
 numrepeats(::T) where {T<:Parallel} = numrepeats(T)
 
-@generated function _matrix(::Type{Parallel{N,M,L,T}}) where {N,M,L,T}
+function _compute_matrix(::Type{Parallel{N,M,L,T}}) where {N,M,L,T}
     mat = _matrix(T)
     return kron([mat for _ in 1:N]...)
 end
+
+_matrix(::Type{Parallel{N,M,L,T}}) where {N,M,L,T} = _cached_matrix(Parallel{N,M,L,T})
 
 function _matrix(::Type{Parallel{N,M,L,T}}, args...) where {N,M,L,T}
     mat = _matrix(T, args...)

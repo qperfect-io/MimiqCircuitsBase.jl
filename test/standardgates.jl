@@ -139,18 +139,6 @@ function test_inverse(g)
     end
 end
 
-# function manual_matrix_2q(c::Circuit)
-#     @assert numqubits(c) == 2
-#     @assert numbits(c) == 0
-
-#     M = Matrix(I, 4, 4)
-
-#     for inst in circ
-#         if numqubits(inst) == 2
-#             M = M * kron(matrix(inst), I)
-#         M = M * 
-# end
-
 @testset "CHadamard" begin end
 
 @testset "CnP" begin end
@@ -177,7 +165,12 @@ end
 
 @testset "CU" begin end
 
-@testset "DCX" begin end
+@testset "DCX" begin
+    # the matrix is a literal, so pin it to the identity it stands for
+    @test matrix(GateDCX()) ==
+          matrix(GateSWAP()) * matrix(GateCX()) * matrix(GateSWAP()) * matrix(GateCX())
+    @test matrix(power(GateDCX(), 3)) == Matrix(I, 4, 4)
+end
 
 @testset "Deprecated" begin
     @testset "U1" begin end

@@ -41,7 +41,7 @@ abstract type AbstractInstruction end
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> inst = Instruction(GateCX(), 1, 3)
 CX @ q[1], q[3]
 
@@ -61,7 +61,7 @@ function getqubit end
 
 Tuple of quantum bits which the instruction is applied to.
 
-```jldoctests
+```jldoctest
 julia> inst = Instruction(GateCX(), 1, 3)
 CX @ q[1], q[3]
 
@@ -83,7 +83,7 @@ function getqubits end
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> inst = Instruction(Measure(), 1, 3)
 M @ q[1], c[3]
 
@@ -105,7 +105,7 @@ Tuple of the classical bits which the instruction is applied to.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> inst = Instruction(Measure(), 1, 3)
 M @ q[1], c[3]
 
@@ -127,7 +127,7 @@ Tuple of the classical bits which the instruction is applied to.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> inst = Instruction(ExpectationValue(pauli"ZZ"), 1, 2, 1)
 ⟨ZZ⟩ @ q[1:2], z[1]
 
@@ -149,7 +149,7 @@ Tuple of the classical bits which the instruction is applied to.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> inst = Instruction(ExpectationValue(pauli"ZZ"), 1, 2, 1)
 ⟨ZZ⟩ @ q[1:2], z[1]
 
@@ -211,7 +211,7 @@ Representation of an operation applied to specific qubit and bit targets.
 
 ## Example
 
-```jldoctests
+```jldoctest
 julia> Instruction(GateX(), (1,), (), ())
 X @ q[1]
 
@@ -253,7 +253,7 @@ By convention, if `op` is an `N`-qubit and `M`-bit operations, then the first
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> Instruction(GateX(), 1)
 X @ q[1]
 

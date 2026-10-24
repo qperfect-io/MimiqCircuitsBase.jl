@@ -37,7 +37,7 @@ See also [`Control`](@ref), [`GateU`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> @variables θ ϕ λ γ
 4-element Vector{Symbolics.Num}:
  θ
@@ -71,7 +71,7 @@ julia> power(GateCU(θ, ϕ, λ, γ), 2), inverse(GateCU(θ, ϕ, λ, γ))
 
 ## Decomposition
 
-```jldoctests; setup = :(@variables λ θ ϕ γ)
+```jldoctest; setup = :(@variables λ θ ϕ γ)
 julia> decompose(GateCU(θ, λ, ϕ, γ))
 2-qubit circuit with 7 instructions:
 ├── U(0,0,γ) @ q[1]

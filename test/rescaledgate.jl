@@ -95,3 +95,20 @@ end
         @test getoperation(backforth) == GateRX(π * 0.324)
     end
 end
+
+@testset "rescale!" begin
+    for op in [Operator([1 2; 3 4]), LossyOperator([1 0; 0 1], (1,))]
+        expected = 2 .* matrix(op)
+        @test rescale!(op, 2) === op
+        @test matrix(op) == expected
+    end
+
+    immutables = [
+        GateX(), RescaledGate(GateX(), 0.5), Projector0(), Projector01(),
+        SigmaMinus(), SigmaPlus(), DiagonalOp(1, 2),
+    ]
+    for op in immutables
+        @test_throws ArgumentError rescale!(op, 0.5)
+        @test rescale(op, 0.5) isa AbstractOperator
+    end
+end

@@ -62,11 +62,13 @@ using ProtoBuf: ProtoEncoder, ProtoDecoder, encode, decode
     push!(c, MeasureXX(), 321, 213, 123)
     push!(c, MeasureYY(), 321, 213, 123)
     push!(c, MeasureZZ(), 321, 213, 123)
+    push!(c, MeasurePauli("XIYZ"), 321, 213, 12, 7, 123)
     push!(c, MeasureReset(), 321, 123)
     push!(c, MeasureResetX(), 321, 123)
     push!(c, MeasureResetY(), 321, 123)
     push!(c, MeasureResetZ(), 321, 123)
     push!(c, Reset(), 121)
+    push!(c, PrepareStateT(), 17)
 
     # barrier
     push!(c, Barrier(3), 1, 2, 121)

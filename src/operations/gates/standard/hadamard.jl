@@ -33,7 +33,7 @@ Single qubit Hadamard gate.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateH()
 H
 
@@ -58,7 +58,7 @@ julia> power(GateH(), 2), inverse(GateH())
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateH())
 1-qubit circuit with 1 instruction:
 └── U(π/2,0,π) @ q[1]
@@ -77,7 +77,7 @@ matches(::CanonicalRewrite, ::GateH) = true
 
 function decompose_step!(builder, ::CanonicalRewrite, ::GateH, qtargets, _, _)
     q = qtargets[1]
-    push!(builder, GateU(π / 2, 0, π), q)
+    push!(builder, GateU(_π_2, 0, π), q)
     return builder
 end
 
@@ -98,7 +98,7 @@ Single qubit HXY gate.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateHXY()
 HXY
 
@@ -118,7 +118,7 @@ julia> power(GateHXY(), 2), inverse(GateHXY())
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateHXY())
 1-qubit circuit with 5 instructions:
 ├── U(π/2,0,π) @ q[1]
@@ -144,7 +144,7 @@ function decompose_step!(builder, ::CanonicalRewrite, ::GateHXY, qtargets, _, _)
     push!(builder, GateZ(), q)
     push!(builder, GateH(), q)
     push!(builder, GateS(), q)
-    push!(builder, GateU(0, 0, 0, -π / 4), q)
+    push!(builder, GateU(0, 0, 0, _mπ_4), q)
     return builder
 end
 
@@ -164,7 +164,7 @@ end
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateHYZ()
 HYZ
 
@@ -184,7 +184,7 @@ julia> power(GateHYZ(), 2), inverse(GateHYZ())
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateHYZ())
 1-qubit circuit with 5 instructions:
 ├── U(π/2,0,π) @ q[1]
@@ -210,7 +210,7 @@ function decompose_step!(builder, ::CanonicalRewrite, ::GateHYZ, qtargets, _, _)
     push!(builder, GateS(), q)
     push!(builder, GateH(), q)
     push!(builder, GateZ(), q)
-    push!(builder, GateU(0, 0, 0, -π / 4), q)
+    push!(builder, GateU(0, 0, 0, _mπ_4), q)
     return builder
 end
 
@@ -231,7 +231,7 @@ It applies a transformation that puts the qubit in an equal superposition of `|0
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateHXZ()
 H
 
@@ -251,7 +251,7 @@ julia> power(GateHXZ(), 2), inverse(GateHXZ())
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateHXZ())
 1-qubit circuit with 1 instruction:
 └── U(π/2,0,π) @ q[1]

@@ -28,7 +28,7 @@ Each ``P_i`` is a Pauli operator ``I`` ``X``, ``Y``, or ``Z``.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> RPauli("X", π/2)
 exp(-i * 1.5707963267948966 * X)
 
@@ -151,8 +151,6 @@ function matrix(g::RPauli)
     catch e
         if e isa UndefinedValue
             symbols = listsymbols(g.θ)
-            println(typeof.(symbols))
-            println(symbols)
             decl = GateDecl(:rpauli, tuple(symbols...), decompose(g))
             return Symbolics.simplify.(matrix(decl(symbols...)))
         end
@@ -165,9 +163,9 @@ unwrappedmatrix(op::RPauli{N}) where {N} = matrix(op)
 inverse(g::RPauli) = RPauli(g.pauli, -g.θ)
 
 function Base.show(io::IO, g::RPauli{N}) where {N}
-    print(io, "RPauli(\"", g.pauli, "\", ", g.θ, ")")
+    print(io, "RPauli(\"", g.pauli, "\", ", _displaynum(io, g.θ), ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", g::RPauli{N}) where {N}
-    print(io, "R(\"", pstring(g.pauli), "\", ", g.θ, ")")
+    print(io, "R(\"", pstring(g.pauli), "\", ", _displaynum(io, g.θ), ")")
 end

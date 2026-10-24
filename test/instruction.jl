@@ -27,10 +27,10 @@ end
 
 @testset "Bit aliasing trait" begin
     # Default: bit and zvar uniqueness still enforced
-    @test allow_bit_aliasing(typeof(ParityCheck())) === false
+    @test allow_bit_aliasing(typeof(Detector(3))) === false
     @test allow_zvar_aliasing(typeof(GateX())) === false
-    @test_throws ArgumentError push!(Circuit(), ParityCheck(), 1, 1, 2)
-    @test_throws ArgumentError Instruction(ParityCheck(), (), (1, 1, 2), ())
+    @test_throws ArgumentError push!(Circuit(), Detector(3), 1, 1, 2)
+    @test_throws ArgumentError Instruction(Detector(3), (), (1, 1, 2), ())
 
     # Qubit uniqueness is never relaxed (no-cloning).
     @test_throws ArgumentError Instruction(GateCX(), 1, 1)

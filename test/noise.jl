@@ -81,6 +81,12 @@ end
 
     @test hasloss(kch)
     @test !hasloss(Kraus([[1 0; 0 1]]))
+    @test haslossybranch(kch)
+    @test !haslossybranch(Kraus([[1 0; 0 1]]))
+    @test !haslossybranch(PauliX(0.1))
+    @test !haslossybranch(AmplitudeDamping(0.1))
+    @test haslossybranch(MixedUnitary([0.9, 0.1], [GateID(), GateX()]; lossy=[Int[], [1]]))
+    @test !haslossybranch(MixedUnitary([0.9, 0.1], [GateID(), GateX()]))
     @test lossoperators(kch) == AbstractOperator[lossy]
     @test survivaloperators(kch) == AbstractOperator[survival]
     @test matrix(losseffect(kch)) ≈ ComplexF64[0 0; 0 0.2]
@@ -204,8 +210,8 @@ end
     ad = AmplitudeDamping(gam)
     kmats = krausmatrices(ad)
 
-    @test kmats[1] == [1 0; 0 sqrt(1 - gam)]
-    @test kmats[2] == [0 sqrt(gam); 0 0]
+    @test kmats[1] ≈ [1 0; 0 sqrt(1 - gam)]
+    @test kmats[2] ≈ [0 sqrt(gam); 0 0]
 
     ksum = sum(adjoint(Ek) * Ek for Ek in kmats)
     @test isapprox(ksum, Matrix(I, 2, 2), rtol=1e-8)
@@ -221,10 +227,10 @@ end
     kmats = krausmatrices(gad)
 
     # Expected matrices
-    @test kmats[1] == sqrt(p) .* [1 0; 0 sqrt(1 - gam)]
-    @test kmats[2] == sqrt(1 - p) .* [sqrt(1 - gam) 0; 0 1]
-    @test kmats[3] == sqrt(p) .* [0 sqrt(gam); 0 0]
-    @test kmats[4] == sqrt(1 - p) .* [0 0; sqrt(gam) 0]
+    @test kmats[1] ≈ sqrt(p) .* [1 0; 0 sqrt(1 - gam)]
+    @test kmats[2] ≈ sqrt(1 - p) .* [sqrt(1 - gam) 0; 0 1]
+    @test kmats[3] ≈ sqrt(p) .* [0 sqrt(gam); 0 0]
+    @test kmats[4] ≈ sqrt(1 - p) .* [0 0; sqrt(gam) 0]
 
     # Normalization of Kraus
     ksum = sum(adjoint(Ek) * Ek for Ek in kmats)
@@ -250,10 +256,10 @@ end
     pref4 = sqrt(gamma * (1 - p))
 
     # Expected matrices
-    @test kmats[1] == pref1 .* [K 0; 0 1]
-    @test kmats[2] == pref2 .* [1 0; 0 0]
-    @test kmats[3] == pref3 .* [0 1; 0 0]
-    @test kmats[4] == pref4 .* [0 0; 1 0]
+    @test kmats[1] ≈ pref1 .* [K 0; 0 1]
+    @test kmats[2] ≈ pref2 .* [1 0; 0 0]
+    @test kmats[3] ≈ pref3 .* [0 1; 0 0]
+    @test kmats[4] ≈ pref4 .* [0 0; 1 0]
 
     # Normalization of Kraus
     ksum = sum(adjoint(Ek) * Ek for Ek in kmats)

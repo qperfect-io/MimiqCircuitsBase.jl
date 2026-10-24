@@ -27,7 +27,7 @@ See also [`Control`](@ref), [`GateRZ`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> @variables λ
 1-element Vector{Symbolics.Num}:
  λ
@@ -58,7 +58,7 @@ julia> power(GateCP(λ), 2), inverse(GateCP(λ))
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> @variables θ
 1-element Vector{Symbolics.Num}:
  θ

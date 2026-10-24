@@ -31,7 +31,7 @@ See also [`Reload`](@ref), [`Check`](@ref), [`MeasureCheck`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> push!(Circuit(), Loss(0.1), 1)
 1-qubit circuit with 1 instruction:
 └── Loss(0.1) @ q[1]
@@ -71,8 +71,8 @@ end
 
 opname(::Type{<:Loss}) = "Loss"
 
-Base.show(io::IO, op::Loss) = print(io, opname(Loss), "(", op.p, ")")
-Base.show(io::IO, ::MIME"text/plain", op::Loss) = print(io, opname(Loss), "(", op.p, ")")
+Base.show(io::IO, op::Loss) = print(io, opname(Loss), "(", _displaynum(io, op.p), ")")
+Base.show(io::IO, ::MIME"text/plain", op::Loss) = print(io, opname(Loss), "(", _displaynum(io, op.p), ")")
 
 inverse(::Loss) = error("Loss is not invertible")
 
@@ -89,7 +89,7 @@ See also [`Loss`](@ref), [`Reset`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> push!(Circuit(), Reload(), 1)
 1-qubit circuit with 1 instruction:
 └── Reload @ q[1]
@@ -119,7 +119,7 @@ See also [`MeasureCheck`](@ref), [`Loss`](@ref), [`Reload`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> push!(Circuit(), Check(), 1, 1)
 1-qubit, 1-bit circuit with 1 instruction:
 └── Check @ q[1], c[1]
@@ -148,7 +148,7 @@ See also [`Check`](@ref), [`Measure`](@ref), [`Loss`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> push!(Circuit(), MeasureCheck(), 1, 1, 2)
 1-qubit, 2-bit circuit with 1 instruction:
 └── MeasureCheck @ q[1], c[1:2]

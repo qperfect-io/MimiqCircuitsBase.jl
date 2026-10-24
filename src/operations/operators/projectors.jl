@@ -36,7 +36,7 @@ See also [`Projector1`](@ref), [`DiagonalOp`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> Projector0()
 P₀(1)
 
@@ -80,7 +80,7 @@ See also [`Projector0`](@ref), [`DiagonalOp`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> Projector1()
 P₁(1)
 
@@ -140,7 +140,7 @@ See also [`ProjectorX1`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> ProjectorX0()
 PX₀(1)
 
@@ -184,7 +184,7 @@ See also [`ProjectorX0`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> ProjectorX1()
 PX₁(1)
 
@@ -227,7 +227,7 @@ See also [`ProjectorY1`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> ProjectorY0()
 PY₀(1)
 
@@ -270,7 +270,7 @@ See also [`ProjectorY0`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> ProjectorY1()
 PY₁(1)
 
@@ -315,7 +315,7 @@ See also [`Projector01`](@ref), [`Projector10`](@ref), [`Projector11`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> Projector00()
 P₀₀(1)
 
@@ -361,7 +361,7 @@ See also [`Projector00`](@ref), [`Projector10`](@ref), [`Projector11`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> Projector01()
 P₀₁(1)
 
@@ -407,7 +407,7 @@ See also [`Projector00`](@ref), [`Projector01`](@ref), [`Projector11`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> Projector10()
 P₁₀(1)
 
@@ -453,7 +453,7 @@ See also [`Projector00`](@ref), [`Projector01`](@ref), [`Projector10`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> Projector11()
 P₁₁(1)
 
@@ -484,10 +484,5 @@ for PROJ in [
         opsquared(op::$(PROJ)) = $(PROJ)(abs2(op.a))
 
         rescale(op::$(PROJ), scale) = $(PROJ)(op.a * scale)
-
-        function rescale!(op::$(PROJ), scale)
-            op.a *= scale
-            return op
-        end
     end)
 end

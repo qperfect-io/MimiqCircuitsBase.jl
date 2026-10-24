@@ -36,7 +36,7 @@ See also [`GateSDG`](@ref), [`GateZ`](@ref), [`Power`](@ref)
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateS()
 S
 
@@ -61,7 +61,7 @@ julia> power(GateS(), 2), inverse(GateS())
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateS())
 1-qubit circuit with 1 instruction:
 └── U(0,0,π/2) @ q[1]
@@ -76,7 +76,7 @@ matches(::CanonicalRewrite, ::GateS) = true
 
 function decompose_step!(builder, ::CanonicalRewrite, ::GateS, qtargets, _, _)
     q = qtargets[1]
-    push!(builder, GateU(0, 0, π / 2), q)
+    push!(builder, GateU(0, 0, _π_2), q)
     return builder
 end
 
@@ -101,7 +101,7 @@ See also [`GateS`](@ref), [`GateZ`](@ref), [`Power`](@ref), [`Inverse`](@ref)
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateSDG()
 S†
 
@@ -126,7 +126,7 @@ julia> power(GateSDG(), 2), inverse(GateSDG())
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateSDG())
 1-qubit circuit with 1 instruction:
 └── U(0,0,-1π/2) @ q[1]
@@ -139,7 +139,7 @@ matches(::CanonicalRewrite, ::GateSDG) = true
 
 function decompose_step!(builder, ::CanonicalRewrite, ::GateSDG, qtargets, _, _)
     q = qtargets[1]
-    push!(builder, GateU(0, 0, -π / 2), q)
+    push!(builder, GateU(0, 0, _mπ_2), q)
     return builder
 end
 

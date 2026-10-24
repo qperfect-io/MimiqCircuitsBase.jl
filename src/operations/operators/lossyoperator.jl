@@ -44,13 +44,13 @@ See also [`Operator`](@ref), [`Kraus`](@ref).
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> LossyOperator([0 1; 0 0])
 LossyOperator(0.0, 0.0, 1.0, 0.0; lossy=(1,))
 
 julia> push!(Circuit(), Kraus([[1 0; 0 sqrt(0.9)], LossyOperator([0 sqrt(0.1); 0 0])]), 1)
 1-qubit circuit with 1 instruction:
-└── Kraus(Operator([1.0 0.0; 0.0 0.948683]), LossyOperator(0.0,0.0,0.316228,0.0;lossy=(1,))) @ q[1]
+└── Kraus(Operator([1.0 0.0; 0.0 0.948683…]), LossyOperator(0.0,0.0,0.316228…,0.0;lossy=(1,))) @ q[1]
 ```
 """
 struct LossyOperator{N} <: AbstractOperator{N}
@@ -146,7 +146,7 @@ during simulation.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> op = LossyOperator(zeros(4, 4), 2);     # 2-qubit, qubit 2 is lossy
 
 julia> lossytargets(op, (3, 7))
@@ -187,7 +187,7 @@ function Base.show(io::IO, op::LossyOperator)
     sep = compact ? "," : ", "
     tail = compact ? ";lossy=" : "; lossy="
     print(io, opname(op), "(")
-    join(io, map(x -> _displaypi(getparam(op, x)), parnames(op)), sep)
+    join(io, map(x -> _displaypi(io, getparam(op, x)), parnames(op)), sep)
     print(io, tail, op.lossy, ")")
 end
 

@@ -62,3 +62,52 @@
     end
 end
 
+
+@testset "listvars and issymbolic see through wrappers" begin
+    @variables x
+    b = Block(push!(Circuit(), GateRX(x), 1))
+
+    for op in (
+        b,
+        Parallel(2, GateRX(x)),
+        Control(Inverse(GateRX(x))),
+        Power(GateRY(x), 1 // 2),
+        Repeat(2, b),
+        IfStatement(b, bs"1"),
+        WhileStatement(b, bs"1"),
+    )
+        @test isequal(listvars(op), [x])
+        @test issymbolic(op)
+    end
+
+    @test isempty(listvars(Repeat(2, Block(push!(Circuit(), GateRX(0.1), 1)))))
+    @test !issymbolic(IfStatement(Block(push!(Circuit(), GateRX(0.1), 1)), bs"1"))
+end
+
+@testset "evaluate wrappers" begin
+    @variables x
+    d = Dict(x => 0.3)
+
+    # Without free symbols a wrapper is returned as is.
+    @test evaluate(Inverse(GateRX(0.3)), Dict()) === Inverse(GateRX(0.3))
+    @test evaluate(Power(GateRX(0.3), 2), d) == Power(GateRX(0.3), 2)
+    @test evaluate(Control(Inverse(GateRX(0.3))), d) == Control(Inverse(GateRX(0.3)))
+
+    # With free symbols it is rebuilt with the simplifying builders.
+    @test evaluate(Inverse(GateRX(x)), d) == GateRX(-0.3)
+    @test evaluate(Power(GateRY(x), 2), d) == GateRY(0.6)
+    @test evaluate(Control(Inverse(GateRX(x))), d) == Control(GateRX(-0.3))
+    @test evaluate(Parallel(2, Inverse(GateRX(x))), d) == Parallel(2, GateRX(-0.3))
+
+    @test evaluate(Repeat(2, GateRX(x)), d) == Repeat(2, GateRX(0.3))
+    @test evaluate(IfStatement(GateRX(x), bs"1"), d) == IfStatement(GateRX(0.3), bs"1")
+
+    b = Block(push!(Circuit(), GateRX(x), 1))
+    b03 = Block(push!(Circuit(), GateRX(0.3), 1))
+    @test evaluate(Repeat(2, b), d) == Repeat(2, b03)
+    @test evaluate(IfStatement(b, bs"1"), d) == IfStatement(b03, bs"1")
+    w = evaluate(WhileStatement(b, bs"1"), d)
+    @test getoperation(w) == b03 && getbitstring(w) == bs"1"
+
+    @test evaluate(GateRX(x), x => 0.3) == GateRX(0.3)
+end

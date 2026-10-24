@@ -32,7 +32,7 @@ Single qubit Pauli-X gate.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateX()
 X
 
@@ -54,7 +54,7 @@ julia> push!(c, GateX, 2)
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateX())
 1-qubit circuit with 1 instruction:
 └── U(π,0,π) @ q[1]
@@ -96,7 +96,7 @@ Single qubit Pauli-Y gate.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateY()
 Y
 
@@ -118,7 +118,7 @@ julia> push!(c, GateY, 2)
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateY())
 1-qubit circuit with 1 instruction:
 └── U(π,π/2,π/2) @ q[1]
@@ -139,7 +139,7 @@ matches(::CanonicalRewrite, ::GateY) = true
 
 function decompose_step!(builder, ::CanonicalRewrite, ::GateY, qtargets, _, _)
     q = qtargets[1]
-    push!(builder, GateU(π, π / 2, π / 2), q)
+    push!(builder, GateU(π, _π_2, _π_2), q)
     return builder
 end
 
@@ -160,7 +160,7 @@ Single qubit Pauli-Z gate.
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> GateZ()
 Z
 
@@ -182,7 +182,7 @@ julia> push!(c, GateZ, 2)
 
 ## Decomposition
 
-```jldoctests
+```jldoctest
 julia> decompose(GateZ())
 1-qubit circuit with 1 instruction:
 └── U(0,0,π) @ q[1]

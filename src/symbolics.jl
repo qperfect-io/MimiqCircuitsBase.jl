@@ -27,7 +27,7 @@ Returns True if any parameter is symbolic (unevaluated), False if all parameters
 
 ## Examples
 
-```jldoctests
+```jldoctest
 julia> c = Circuit()
 empty circuit
 
@@ -54,6 +54,66 @@ true
 ```
 """
 function issymbolic end
+
+"""
+    listvars(obj)
+
+List the symbolic variables that appear in `obj`.
+
+`obj` can be an operation, an [`Instruction`](@ref), a [`Circuit`](@ref), a
+[`ParameterTable`](@ref) or a [`SweepExperiment`](@ref):
+
+- for an operation, the variables in its parameters. Wrappers such as
+  [`Control`](@ref), [`Inverse`](@ref), [`Power`](@ref), [`Parallel`](@ref),
+  [`Repeat`](@ref), [`IfStatement`](@ref) and [`WhileStatement`](@ref) give the
+  variables of the operation they wrap, and a [`Block`](@ref) those of all its
+  instructions;
+- for an instruction, the variables of its operation;
+- for a circuit, the variables of all its instructions;
+- for a parameter table, the symbols it gives values to, in column order;
+- for a sweep experiment, the symbols of its table, which are those of its
+  circuit.
+
+Returns a `Vector{Num}` with each variable once, in the order they are first
+found. It is empty when `obj` has no symbolic parameters. Variables already
+substituted by [`evaluate`](@ref) are not listed.
+
+## Examples
+
+```jldoctest
+julia> @variables θ φ
+2-element Vector{Symbolics.Num}:
+ θ
+ φ
+
+julia> listvars(GateRX(θ))
+1-element Vector{Symbolics.Num}:
+ θ
+
+julia> c = Circuit();
+
+julia> push!(c, GateRX(θ), 1);
+
+julia> push!(c, Control(GateRY(φ)), 1, 2);
+
+julia> push!(c, GateRX(2θ), 2);
+
+julia> listvars(c)
+2-element Vector{Symbolics.Num}:
+ θ
+ φ
+
+julia> listvars(evaluate(c, Dict(θ => 0.1)))
+1-element Vector{Symbolics.Num}:
+ φ
+
+julia> listvars(GateH())
+Symbolics.Num[]
+```
+
+See also [`issymbolic`](@ref), [`evaluate`](@ref).
+"""
+function listvars end
 
 function issymbolic(n::Num)
     v = Symbolics.value(Symbolics.symbolic_to_float(n))
@@ -83,6 +143,18 @@ issymbolic(op::Operation) = any(issymbolic, getparams(op))
 issymbolic(inst::Instruction) = issymbolic(getoperation(inst))
 
 issymbolic(c::Circuit) = any(issymbolic, c)
+
+# Wrappers forward to what they wrap: parameter forwarding through `getparams`
+# cannot reach a `Block`, whose symbols live in its instructions.
+const _SymbolWrapper = Union{
+    Control,Inverse,Power,Parallel,Repeat,IfStatement,WhileStatement,ExpectationValue,
+}
+
+issymbolic(op::_SymbolWrapper) = issymbolic(getoperation(op))
+listvars(op::_SymbolWrapper) = listvars(getoperation(op))
+
+issymbolic(b::Block) = any(issymbolic, b)
+listvars(b::Block) = unique(reduce(vcat, listvars.(b); init=Num[]))
 
 # ############################# #
 # Parameter Substitution Helper #

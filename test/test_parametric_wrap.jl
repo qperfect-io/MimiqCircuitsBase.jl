@@ -249,3 +249,39 @@ end
     @test length(inner_decl._arguments) == 1
     @test SymbolicUtils.issym(inner_decl._arguments[1])
 end
+
+@testset "Wrapping non-unitary operations" begin
+    # Non-unitary operations become a Block holding their decomposition, and the
+    # gates in that decomposition are wrapped into a GateDecl.
+    for op in (MeasureReset(), MeasurePauli(pauli"XZ"), MeasureResetX(), PrepareStateT())
+        c = push!(Circuit(), op, 1:numqubits(op)..., 1:numbits(op)...)
+
+        d = decompose(c; basis=QASMBasis(), wrap=true)
+
+        @test length(d) == 1
+        b = getoperation(d[1])
+        @test b isa Block
+        @test getqubits(d[1]) == getqubits(c[1])
+        @test getbits(d[1]) == getbits(c[1])
+        @test all(b._instructions) do inst
+            o = getoperation(inst)
+            o isa GateCall || o isa Block || MimiqCircuitsBase.isterminal(QASMBasis(), o)
+        end
+        @test decompose(d; basis=QASMBasis()) == decompose(c; basis=QASMBasis())
+    end
+
+    # Targets other than 1:N are kept on the Block instruction.
+    c = push!(Circuit(), MeasureReset(), 3, 2)
+    d = decompose(c; basis=QASMBasis(), wrap=true)
+    @test getqubits(d[1]) == (3,)
+    @test getbits(d[1]) == (2,)
+    @test decompose(d; basis=QASMBasis()) == decompose(c; basis=QASMBasis())
+
+    # A gate inside a Block is still wrapped.
+    inner = push!(Circuit(), GateCCP(0.3), 1, 2, 3)
+    c = push!(Circuit(), Block(inner), 1, 2, 3)
+    d = decompose(c; basis=QASMBasis(), wrap=true)
+    @test length(d) == 1
+    @test getoperation(d[1]) isa Block
+    @test getoperation(getoperation(d[1])._instructions[1]) isa GateCall
+end

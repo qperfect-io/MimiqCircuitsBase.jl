@@ -145,3 +145,15 @@ end
         end
     end
 end
+
+@testset "isunitary" begin
+    for op in (Detector(2), QubitCoordinates([1.0]), ShiftCoordinates([1.0]),
+        ObservableInclude(2), Tick(), Lost(), Reloaded())
+        @test isunitary(op)
+    end
+
+    c = push!(Circuit(), GateH(), 1)
+    push!(c, QubitCoordinates([0.0, 1.0]), 1)
+    push!(c, Lost(), 1)
+    @test isunitary(c)
+end

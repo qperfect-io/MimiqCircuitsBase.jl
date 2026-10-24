@@ -176,14 +176,6 @@ end
             base_rule_test(rule)
         end
 
-        # # CustomNoiseRule
-        # @testset "CustomNoiseRule" begin
-        #     matcher = inst -> true
-        #     generator = inst -> PauliX(0.05)
-        #     rule = CustomNoiseRule(matcher, generator; priority_val=50, before=false)
-        #     base_rule_test(rule)
-        # end
-
         @testset "Composite NoiseModel" begin
             nm = NoiseModel([
                     # Readout noise rules
@@ -230,5 +222,15 @@ end
             end
         end
 
+    end
+
+    @testset "CustomNoiseRule is not serializable" begin
+        rule = CustomNoiseRule(inst -> true, inst -> Instruction(PauliX(0.1), getqubits(inst)...))
+        model = NoiseModel([rule]; name="custom")
+        fname, _ = mktemp()
+        @test_throws ArgumentError saveproto(fname, model)
+
+        msg = MimiqCircuitsBase.noisemodel_pb.CustomNoiseRule("f", "g", 0, false, false)
+        @test_throws ArgumentError MimiqCircuitsBase.fromproto(msg)
     end
 end
