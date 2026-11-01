@@ -34,7 +34,7 @@
     @test length(c2) == 3
 
     # Build the experiment
-    ex = CircuitTesterExperiment(c1, c2)
+    ex = EquivalenceExperiment(c1, c2)
     tester = build_circuit(ex)
 
     @test numqubits(tester) == 10
@@ -46,7 +46,7 @@
     @test interpret_results(ex, results_bad) ≈ 0.5
 end
 
-@testset "Circuit tester using amplitudes" begin
+@testset "Circuits equivalence using amplitudes" begin
     # Construct identical circuits
     c1 = Circuit()
     push!(c1, GateX(), 1)
@@ -55,7 +55,7 @@ end
     push!(c2, GateX(), 1)
 
     # Test constructor
-    ex = CircuitTesterExperiment(c1, c2; method="amplitudes")
+    ex = EquivalenceExperiment(c1, c2; method="amplitudes")
     @test ex.method == "amplitudes"
 
     # Test build_circuit
@@ -92,4 +92,10 @@ end
     zstates_empty = Vector{Vector{ComplexF64}}()
     results_empty = QCSResults("sim", "1.0", Float64[], Float64[], BitString[], zstates_empty, Dict{BitString,ComplexF64}(), Dict{String,Float64}())
     @test interpret_results(ex, results_empty) ≈ 0.0
+end
+
+@testset "CircuitTesterExperiment is a deprecated alias" begin
+    c = push!(Circuit(), GateX(), 1)
+    @test MimiqCircuitsBase.CircuitTesterExperiment === EquivalenceExperiment
+    @test MimiqCircuitsBase.CircuitTesterExperiment(c, c) isa EquivalenceExperiment
 end

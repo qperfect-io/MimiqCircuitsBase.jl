@@ -586,10 +586,10 @@ export QCSResults
 export histsamples
 include("qcsresults.jl")
 
-export CircuitTesterExperiment
+export EquivalenceExperiment
 export build_circuit
 export interpret_results
-include("circuittester.jl")
+include("equivalence.jl")
 
 # Optimization
 export costhistory

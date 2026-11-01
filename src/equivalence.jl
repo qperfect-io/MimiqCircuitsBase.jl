@@ -15,7 +15,7 @@
 #
 
 @doc raw"""
-    CircuitTesterExperiment(c1::Circuit, c2::Circuit; method::String="samples")
+    EquivalenceExperiment(c1::Circuit, c2::Circuit; method::String="samples")
 
 Represents a circuit equivalence checking experiment.
 
@@ -26,12 +26,12 @@ Represents a circuit equivalence checking experiment.
     - "samples": Measures the final state.
     - "amplitudes": Computes the amplitude of the all-zero state.
 """
-struct CircuitTesterExperiment
+struct EquivalenceExperiment
     c1::Circuit
     c2::Circuit
     method::String
 
-    function CircuitTesterExperiment(c1::Circuit, c2::Circuit; method::String="samples")
+    function EquivalenceExperiment(c1::Circuit, c2::Circuit; method::String="samples")
         if method ∉ ["samples", "amplitudes"]
             throw(ArgumentError("Method must be one of \"samples\" or \"amplitudes\""))
         end
@@ -40,14 +40,14 @@ struct CircuitTesterExperiment
     end
 end
 
-numqubits(ex::CircuitTesterExperiment) = maximum([numqubits(ex.c1), numqubits(ex.c2)]) * 2
+numqubits(ex::EquivalenceExperiment) = maximum([numqubits(ex.c1), numqubits(ex.c2)]) * 2
 
 @doc raw"""
-    build_circuit(ex::CircuitTesterExperiment)
+    build_circuit(ex::EquivalenceExperiment)
 
-Constructs the circuit for the circuit tester experiment.
+Constructs the circuit for the equivalence experiment.
 """
-function build_circuit(ex::CircuitTesterExperiment)
+function build_circuit(ex::EquivalenceExperiment)
     c1 = ex.c1
     c2 = ex.c2
 
@@ -90,11 +90,11 @@ function build_circuit(ex::CircuitTesterExperiment)
 end
 
 """
-    interpret_results(ex::CircuitTesterExperiment, results::QCSResults)
+    interpret_results(ex::EquivalenceExperiment, results::QCSResults)
 
-Verifies the results of the circuit tester experiment. Returns the probability of the all-zero state.
+Verifies the results of the equivalence experiment. Returns the probability of the all-zero state.
 """
-function interpret_results(ex::CircuitTesterExperiment, results::QCSResults)
+function interpret_results(ex::EquivalenceExperiment, results::QCSResults)
     nqinput = maximum([numqubits(ex.c1), numqubits(ex.c2)])
 
     if nqinput == 0
@@ -138,13 +138,13 @@ function interpret_results(ex::CircuitTesterExperiment, results::QCSResults)
     return zeros_count / total_samples
 end
 
-function Base.show(io::IO, ex::CircuitTesterExperiment)
-    print(io, "CircuitTesterExperiment(...,...,")
+function Base.show(io::IO, ex::EquivalenceExperiment)
+    print(io, "EquivalenceExperiment(...,...,")
     print(io, "method=", ex.method)
     print(io, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", ex::CircuitTesterExperiment)
+function Base.show(io::IO, ::MIME"text/plain", ex::EquivalenceExperiment)
     println(io, "Choi-isomorphism circuit equivalence test:")
 
     println(io, "├── a == b",)
@@ -159,3 +159,5 @@ function Base.show(io::IO, ::MIME"text/plain", ex::CircuitTesterExperiment)
 
     print(io, "└── compare ", ex.method)
 end
+
+Base.@deprecate_binding CircuitTesterExperiment EquivalenceExperiment

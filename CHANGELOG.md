@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.27.2] — 2026-11-01
+
+### Changed
+- `CircuitTesterExperiment` is renamed `EquivalenceExperiment`, after what it checks. Its methods and arguments are unchanged.
+
+### Deprecated
+- `CircuitTesterExperiment` still works as an alias of `EquivalenceExperiment`, with a deprecation warning, and will be removed in a future release.
+
 ## [0.27.1] — 2026-10-24
 
 ### Fixed

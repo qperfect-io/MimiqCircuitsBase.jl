@@ -57,7 +57,7 @@ filelist = [
     "matrix_decompositions.jl",
     "circuitequality.jl",
     "dagcircuit.jl",
-    "circuittester.jl",
+    "equivalence.jl",
     "circuitrules.jl",
     "samplelosses.jl",
     "samplemixedunitaries.jl",
