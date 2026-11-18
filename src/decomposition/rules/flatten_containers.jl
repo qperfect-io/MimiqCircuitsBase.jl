@@ -19,8 +19,8 @@
 """
     FlattenContainers <: RewriteRule
 
-A rewrite rule that flattens container operations (`GateCall`, `Block`, and their
-inverses) into their constituent instructions, without performing any gate-level
+A rewrite rule that flattens container operations (`GateCall`, `BlockCall`, `Block`,
+and their inverses) into their constituent instructions, without performing any gate-level
 decomposition.
 
 This is useful for:
@@ -44,6 +44,7 @@ struct FlattenContainers <: RewriteRule end
 # Only match container types
 matches(::FlattenContainers, ::GateCall) = true
 matches(::FlattenContainers, ::Block) = true
+matches(::FlattenContainers, ::BlockCall) = true
 matches(::FlattenContainers, ::Inverse{N,<:GateCall}) where {N} = true
 matches(::FlattenContainers, ::Inverse{N,<:Block}) where {N} = true
 matches(::FlattenContainers, ::Operation) = false
@@ -53,7 +54,7 @@ function decompose_step!(builder, ::FlattenContainers, cl::GateCall, qtargets, c
     return decompose_step!(builder, CanonicalRewrite(), cl, qtargets, ctargets, ztargets)
 end
 
-function decompose_step!(builder, ::FlattenContainers, b::Block, qtargets, ctargets, ztargets)
+function decompose_step!(builder, ::FlattenContainers, b::Union{Block,BlockCall}, qtargets, ctargets, ztargets)
     return decompose_step!(builder, CanonicalRewrite(), b, qtargets, ctargets, ztargets)
 end
 

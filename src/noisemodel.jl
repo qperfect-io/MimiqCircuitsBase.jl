@@ -953,7 +953,7 @@ function _rewrite_nested_operation(op::Repeat, model::NoiseModel, active_decls::
     return Block(numqubits(op), numbits(op), numzvars(op), noisy_instructions)
 end
 
-function _rewrite_nested_operation(op::GateCall, model::NoiseModel, active_decls::IdDict{Any,Nothing})
+function _rewrite_nested_operation(op::Union{GateCall,BlockCall}, model::NoiseModel, active_decls::IdDict{Any,Nothing})
     decl = op._decl
 
     # Prevent infinite recursion for self-referential declarations.
@@ -1018,7 +1018,7 @@ one applies. The `apply_rule` function returns `nothing` for non-matching rules,
 allowing efficient rule search without redundant matching checks.
 
 Wrapper operations are processed recursively (`Block`, `IfStatement`, `Parallel`,
-`Repeat`, and `GateCall`). Nested wrappers are also traversed recursively.
+`Repeat`, `GateCall` and `BlockCall`). Nested wrappers are also traversed recursively.
 
 # Arguments
 - `circuit`: The original circuit

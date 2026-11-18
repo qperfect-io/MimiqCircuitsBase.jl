@@ -517,13 +517,13 @@ function push_suzukitrotter!(circuit::Circuit, qubits, hamiltonian::Hamiltonian,
         ck = Circuit()
         pk = 1 / (4 - 4^(1 // (2k - 1)))
 
-        push!(ck, decls[end](pk * λ), qubits...)
-        push!(ck, decls[end](pk * λ), qubits...)
+        push!(ck, decls[end](pk * λ), 1:length(qubits)...)
+        push!(ck, decls[end](pk * λ), 1:length(qubits)...)
 
-        push!(ck, decls[end]((1 - 4pk) * λ), qubits...)
+        push!(ck, decls[end]((1 - 4pk) * λ), 1:length(qubits)...)
 
-        push!(ck, decls[end](pk * λ), qubits...)
-        push!(ck, decls[end](pk * λ), qubits...)
+        push!(ck, decls[end](pk * λ), 1:length(qubits)...)
+        push!(ck, decls[end](pk * λ), 1:length(qubits)...)
 
         push!(decls, GateDecl(Symbol("suzukitrotter_$(2k)"), (Symbolics.value(λ),), ck))
     end
@@ -622,9 +622,9 @@ function push_yoshidatrotter!(circuit::Circuit, qubits, hamiltonian::Hamiltonian
         β = -2^(1 / (2k - 1)) / (2 - 2^(1 / (2k - 1)))
 
         ck = Circuit()
-        push!(ck, decls[end](α * λ), qubits...)
-        push!(ck, decls[end](β * λ), qubits...)
-        push!(ck, decls[end](α * λ), qubits...)
+        push!(ck, decls[end](α * λ), 1:length(qubits)...)
+        push!(ck, decls[end](β * λ), 1:length(qubits)...)
+        push!(ck, decls[end](α * λ), 1:length(qubits)...)
 
         push!(decls, GateDecl(Symbol("yoshidatrotter_$(2k)"), (Symbolics.value(λ),), ck))
     end

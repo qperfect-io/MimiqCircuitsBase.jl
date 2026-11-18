@@ -24,24 +24,28 @@ independently of the package release so API-only changes do not force
 client/executor incompatibility. A client and an executor must speak the
 same version. See `WIRE_FORMAT.md` for the surface and bump rules.
 """
-const WIRE_FORMAT_VERSION = v"1.3.0"
+const WIRE_FORMAT_VERSION = v"1.4.0"
 
 """
-    saveproto(fname, c::Circuit)
-    saveproto(fname, c::QCSResults)
-    saveproto(fname, h::Hamiltonian)
+    saveproto(fname, obj)
+    saveproto(io::IO, obj)
 
-Serialize a `Circuit`, a `QCSResults`, or a `Hamiltonian`, object to a
-ProtoBuf file.
+Serialize `obj` to a ProtoBuf file or stream.
+
+`obj` can be a `Circuit`, `QCSResults`, `Hamiltonian`, `NoiseModel`,
+`OptimizationExperiment`, `OptimizationRun`, `OptimizationResults`,
+`SweepExperiment` or `EquivalenceExperiment`.
+
+See also [`loadproto`](@ref).
 """
 function saveproto end
 
 """
-    loadproto(fname, Circuit)
-    loadproto(fname, QCSResults)
+    loadproto(fname, T)
+    loadproto(io::IO, T)
 
-Deserialize a `Circuit`, a `QCSResults`, or a `Hamiltonian` object from a
-ProtoBuf file.
+Deserialize an object of type `T` from a ProtoBuf file or stream written by
+[`saveproto`](@ref). `T` is one of the types `saveproto` accepts.
 """
 function loadproto end
 
@@ -55,7 +59,9 @@ for (T, PT) in [
     (OptimizationExperiment, optim_pb.OptimizationExperiment),
     (OptimizationRun, optim_pb.OptimizationRun),
     (OptimizationResults, optim_pb.OptimizationResults),
-    (NoiseModel, noisemodel_pb.NoiseModel)
+    (NoiseModel, noisemodel_pb.NoiseModel),
+    (SweepExperiment, experiment_pb.SweepExperiment),
+    (EquivalenceExperiment, experiment_pb.EquivalenceExperiment),
 ]
     eval(quote
         function saveproto(io::IO, c::$T)

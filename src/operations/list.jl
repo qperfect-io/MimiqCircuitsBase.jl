@@ -142,7 +142,9 @@ See [`GATES`](@ref) for a complete list unitary gates.
 
 [`GateCustom`](@ref), [`GateCustomDiagonal`](@ref)
 
-For gate definitions and calls, see [`GateDecl`](@ref) and [`GateCall`](@ref)
+For gate definitions and calls, see [`GateDecl`](@ref) and [`GateCall`](@ref).
+For non-unitary block definitions and calls, see [`BlockDecl`](@ref) and
+[`BlockCall`](@ref).
 
 ## Other circuits elements
 

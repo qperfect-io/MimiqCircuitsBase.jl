@@ -84,3 +84,17 @@ end
     @test length(d._instructions) == 1
     @test getoperation(d._instructions[1]) isa WhileStatement
 end
+
+@testset "WhileStatement decompose keeps the body size" begin
+    body = Block(2, 0, 0)
+    push!(body, GateH(), 1)
+    push!(body, GateX(), 1)
+    ws = WhileStatement(body, bs"1")
+
+    for qs in ((1, 2), (3, 5))
+        c = MimiqCircuitsBase.decompose_step!(Circuit(), MimiqCircuitsBase.CanonicalRewrite(), ws, qs, (1,), ())
+        @test length(c) == 1
+        @test getqubits(c[1]) == qs
+        @test numqubits(getoperation(getoperation(c[1]))) == 2
+    end
+end

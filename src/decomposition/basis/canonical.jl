@@ -15,12 +15,30 @@
 #
 
 """
-    CanonicalBasis <: DecompositionBasis
+    CanonicalBasis(; borrow=false, max_ancillas=0, allow_measurement=false)
 
 The canonical basis decomposes all operations to a minimal set of primitives:
 `GateU`, `GateCX`, `Measure`, `Reset`, and other irreducible operations.
 
 This is the default basis used by [`decompose`](@ref).
+
+# Keyword Arguments
+
+- `borrow::Bool = false`: let decompositions borrow qubits of the circuit
+  that the operation does not act on. A borrowed qubit can be in any state;
+  the decomposition leaves it as it found it.
+- `max_ancillas::Integer = 0`: let decompositions add up to this many clean
+  ancillas, numbered after the qubits of the circuit and marked with
+  [`AncillaAlloc`](@ref) and [`AncillaFree`](@ref). Ancillas freed by one
+  operation are reused by the next.
+- `allow_measurement::Bool = false`: with `max_ancillas`, let decompositions
+  undo steps by measuring an ancilla into one extra bit, numbered after the
+  bits of the circuit. A circuit without bits is refused with an
+  `ArgumentError`.
+
+The ancilla options only change how multi-controlled X gates are
+decomposed. Circuits whose width is unknown, such as a lone operation, get
+no ancillas.
 
 # Examples
 ```julia
@@ -30,7 +48,13 @@ decompose(circuit; basis=CanonicalBasis())
 
 See also [`DecompositionBasis`](@ref), [`CanonicalRewrite`](@ref).
 """
-struct CanonicalBasis <: DecompositionBasis end
+struct CanonicalBasis <: DecompositionBasis
+    ancillas::_AncillaOptions
+end
+
+CanonicalBasis(; borrow::Bool=false, max_ancillas::Integer=0, allow_measurement::Bool=false) = CanonicalBasis(_AncillaOptions(borrow, max_ancillas, allow_measurement))
+
+_ancillaoptions(basis::CanonicalBasis) = basis.ancillas
 
 # --- terminal operations ---
 
@@ -68,6 +92,7 @@ isterminal(::CanonicalBasis, ::Delay) = true
 
 # Noise channels
 isterminal(::CanonicalBasis, ::AbstractKrausChannel) = true
+isterminal(::CanonicalBasis, ::ReadoutErr) = true
 isterminal(::CanonicalBasis, ::Loss) = true
 isterminal(::CanonicalBasis, ::Reload) = true
 isterminal(::CanonicalBasis, ::Check) = true
@@ -83,6 +108,18 @@ isterminal(::CanonicalBasis, op::WhileStatement) = isterminal(CanonicalBasis(), 
 isterminal(::CanonicalBasis, ::Operation) = false
 
 # --- decomposition via CanonicalRewrite ---
+
+# Only these operations have rules that use the decomposition context. Bases
+# take the context for them alone, so a 6-argument `decompose!` method added
+# for any other operation type keeps being called.
+const _ContextOps = Union{Control,IfStatement}
+
+function decompose!(builder, basis::CanonicalBasis, op::_ContextOps, qtargets, ctargets, ztargets, ctx::DecompositionContext)
+    if matches(CanonicalRewrite(), op)
+        return decompose_step!(builder, CanonicalRewrite(), op, qtargets, ctargets, ztargets, ctx)
+    end
+    return decompose!(builder, basis, op, qtargets, ctargets, ztargets)
+end
 
 function decompose!(builder, ::CanonicalBasis, op::Operation, qtargets, ctargets, ztargets)
     if matches(CanonicalRewrite(), op)

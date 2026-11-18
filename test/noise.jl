@@ -37,6 +37,29 @@ using Symbolics
     @test isdefined(MimiqCircuitsBase, :ProjectiveNoise)
 end
 
+@testset "CPTP" begin
+    # Every channel fulfills \sum_k E_k^\dagger E_k = I.
+    for T in (Kraus, MixedUnitary, AmplitudeDamping, GeneralizedAmplitudeDamping,
+              PhaseAmplitudeDamping, ThermalNoise, PauliX, PauliY, PauliZ, PauliNoise,
+              Depolarizing, ProjectiveNoiseX, ProjectiveNoiseY, ProjectiveNoiseZ)
+        @test isCPTP(T)
+    end
+    @test isCPTP(AmplitudeDamping(0.1))
+    @test isCPTP(Depolarizing(1, 0.1))
+end
+
+@testset "ReadoutErr partial evaluate" begin
+    @variables x y
+    re = evaluate(ReadoutErr(x, y), Dict(x => 0.1))
+    @test isequal(getparam(re, :p0), 0.1)
+    @test isequal(getparam(re, :p1), y)
+    re = evaluate(re, Dict(y => 0.2))
+    @test isequal(getparam(re, :p1), 0.2)
+    @test_throws ArgumentError evaluate(ReadoutErr(x, y), Dict(x => 1.5))
+    c = push!(Circuit(), ReadoutErr(x, y), 1)
+    @test isequal(getparam(getoperation(evaluate(c, Dict(x => 0.1))[1]), :p1), y)
+end
+
 @testset "Mixed Unitary assignment" begin
     # Non mixed unitary channels
     @test !ismixedunitary(AbstractKrausChannel)
@@ -243,6 +266,17 @@ end
     @test_throws ArgumentError GeneralizedAmplitudeDamping(p, -0.1)   # gamma < 0
 end
 
+@testset "Phase Amplitude Damping at gamma = p = 1" begin
+    # Full decay to |0⟩: the same channel as AmplitudeDamping(1), for any beta.
+    superop(ch) = sum(krausoperators(ch)) do E
+        M = ComplexF64.(unwrappedmatrix(E))
+        kron(M, conj(M))
+    end
+    for (gamma, p) in ((1, 1), (1.0, 1.0)), beta in (0, 0.2, 0.5)
+        @test superop(PhaseAmplitudeDamping(p, gamma, beta)) ≈ superop(AmplitudeDamping(1))
+    end
+end
+
 @testset "Phase Amplitude Damping" begin
     p, gamma, beta = rand(), rand(), rand()
 
@@ -299,7 +333,7 @@ end
 
     # Wrong parameters
     T1 = -0.1
-    @test_throws "Value of T1 must be >= 0" ThermalNoise(T1, T2, time, ne)
+    @test_throws "Value of T1 must be > 0" ThermalNoise(T1, T2, time, ne)
 
     T1 = rand()
     T2 = 2 * T1 + rand()
@@ -367,4 +401,24 @@ end
     ])
     kraus_eval = evaluate(kraus, Dict(t => 1))
     @test all(op -> all(x -> (Symbolics.value(real(x)) isa Real) && (Symbolics.value(imag(x)) isa Real), op.O), krausoperators(kraus_eval))
+end
+
+@testset "Channel parameter checks" begin
+    @variables x y
+    @test ThermalNoise(x, 0.6, 1.2, 0.3) isa ThermalNoise
+    @test evaluate(ThermalNoise(x, y, 1.2, 0.3), Dict(y => 0.6)) isa ThermalNoise
+    @test_throws "T2 must fulfill" evaluate(ThermalNoise(x, y, 1.2, 0.3), Dict(x => 0.2, y => 0.6))
+    @test_throws "T1 must be > 0" ThermalNoise(0, 0, 1.2, 0.3)
+    @test_throws "T2 must be > 0" ThermalNoise(0.5, 0, 1.2, 0.3)
+
+    @test_throws "between 0 and 1" MixedUnitary([1.5, -0.5], [GateID(), GateX()])
+    @test_throws "sum to 1" MixedUnitary([RescaledGate(GateX(), 0.5)])
+    @test MixedUnitary([x, 1 - x], [GateID(), GateX()]) isa MixedUnitary
+end
+
+@testset "squaredkrausoperators with RescaledGate" begin
+    for ch in (PauliNoise([0.5, 0.5], ["X", "I"]), MixedUnitary([0.5, 0.5], [GateID(), GateX()]))
+        @test sum(matrix.(squaredkrausoperators(ch))) ≈ Matrix(I, 2, 2)
+    end
+    @test size(matrix(first(squaredkrausoperators(Depolarizing2(0.1))))) == (4, 4)
 end

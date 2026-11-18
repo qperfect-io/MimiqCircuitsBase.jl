@@ -57,6 +57,42 @@ using .DecompositionTestUtils
             swap_decomp = decompose_step(GateSWAP(); rule=rule)
             @test cnot_count(swap_decomp) == 3
         end
+
+        @testset "PolynomialOracle" begin
+            # Expected ±1 diagonal of the oracle on qubits `qs`. In `matrix` qubit q holds
+            # bit N - q of the basis index; each register is little-endian.
+            function oraclediag(NX, NY, (a, b, c, d), qs)
+                N = length(qs)
+                reg(k, r) = sum(((k >> (N - q)) & 1) << (i - 1) for (i, q) in enumerate(r); init=0)
+                return map(0:(1<<N)-1) do k
+                    x, y = reg(k, qs[1:NX]), reg(k, qs[NX+1:end])
+                    round(Int, a * x * y + b * x + c * y + d) == 0 ? -1.0 : 1.0
+                end
+            end
+
+            for (NX, NY) in [(0, 2), (2, 0), (1, 2), (2, 1), (2, 2), (3, 2)],
+                co in [(1, 0, 0, -2), (0, 1, -1, 0), (1, -1, -1, 1), (0, 0, 1, -1), (0, 1, 0, 0), (0, 0, 0, 0), (1, 2, 3, 4), (0.5, -0.7, 0.25, 0.1)]
+                N = NX + NY
+                c = decompose_step(PolynomialOracle(NX, NY, co...); rule=rule)
+                @test numqubits(c) == N
+                @test unwrapvalue.(matrix(c)) ≈ Diagonal(oraclediag(NX, NY, co, 1:N))
+            end
+
+            c = decompose(PolynomialOracle(1, 2, 0, 1, 0, 0))
+            @test numqubits(c) == 3
+            @test unwrapvalue.(matrix(c)) ≈ Diagonal(oraclediag(1, 2, (0, 1, 0, 0), 1:3))
+
+            # Placed on scattered qubits, and fully decomposed to U + CX
+            c = decompose(push!(Circuit(), PolynomialOracle(2, 2, 1, 0, 0, -2), 3, 4, 1, 2))
+            @test matrices_equivalent(unwrapvalue.(matrix(c)), Diagonal(oraclediag(2, 2, (1, 0, 0, -2), [3, 4, 1, 2])))
+
+            # No solutions (f ≥ 4): a single GateID that keeps the circuit's width
+            c = decompose_step(push!(Circuit(), PolynomialOracle(5, 5, 1, 2, 3, 4), 1:10...))
+            @test length(c) == 1 && getoperation(c[1]) isa GateID && numqubits(c) == 10
+
+            @variables p
+            @test_throws MimiqCircuitsBase.UndefinedValue decompose_step(PolynomialOracle(1, 1, p, 0, 0, 0); rule=rule)
+        end
     end
 
     # === SpecialAngleRewrite ===

@@ -105,22 +105,23 @@ allow_zvar_aliasing(::Type{<:IfStatement}) = true
 
 matches(strat::CanonicalRewrite, ifs::IfStatement) = matches(strat, getoperation(ifs))
 
-function decompose_step!(builder, rule::CanonicalRewrite, ifs::IfStatement, qtargets, ctargets, ztargets)
-    return _decompose_ifstatement!(builder, rule, ifs, qtargets, ctargets, ztargets)
+function decompose_step!(builder, rule::CanonicalRewrite, ifs::IfStatement, qtargets, ctargets, ztargets, ctx::DecompositionContext=_NO_CONTEXT)
+    return _decompose_ifstatement!(builder, rule, ifs, qtargets, ctargets, ztargets, ctx)
 end
 
 # One decomposition step of the body of `ifs` with `basis` (a DecompositionBasis
 # or a RewriteRule), with every resulting instruction conditioned on the same
 # bits. Bases reuse it so that a conditional gate follows the same rules as the
 # bare gate.
-function _decompose_ifstatement!(builder, basis, ifs::IfStatement, qtargets, ctargets, ztargets)
+function _decompose_ifstatement!(builder, basis, ifs::IfStatement, qtargets, ctargets, ztargets, ctx::DecompositionContext=_NO_CONTEXT)
     inner = getoperation(ifs)
     condition = getbitstring(ifs)
 
     target_bits = ctargets[1:numbits(inner)]
     condition_bits = ctargets[numbits(inner)+1:end]
 
-    decomposed = _decompose_once!(Circuit(), basis, inner, qtargets, target_bits, ztargets)
+    # Each piece is conditioned in turn, so none of them may measure.
+    decomposed = _decompose_once!(Circuit(), basis, inner, qtargets, target_bits, ztargets, _unitary(ctx))
 
     for inst in decomposed
         op = getoperation(inst)
@@ -128,7 +129,10 @@ function _decompose_ifstatement!(builder, basis, ifs::IfStatement, qtargets, cta
         bt = getbits(inst)
         zt = getztargets(inst)
 
-        if op isa IfStatement
+        if op isa Union{AncillaAlloc,AncillaFree}
+            # The ancilla is in |0⟩ before and after, whether the body runs or not.
+            push!(builder, inst)
+        elseif op isa IfStatement
             # Flatten the if statements, the topmost condition goes to the back.
             inner_inner = getoperation(op)
 
@@ -148,8 +152,8 @@ function _decompose_ifstatement!(builder, basis, ifs::IfStatement, qtargets, cta
     return builder
 end
 
-_decompose_once!(builder, basis::DecompositionBasis, op, qt, ct, zt) = decompose!(builder, basis, op, qt, ct, zt)
-_decompose_once!(builder, rule::RewriteRule, op, qt, ct, zt) = decompose_step!(builder, rule, op, qt, ct, zt)
+_decompose_once!(builder, basis::DecompositionBasis, op, qt, ct, zt, ctx) = decompose!(builder, basis, op, qt, ct, zt, ctx)
+_decompose_once!(builder, rule::RewriteRule, op, qt, ct, zt, ctx) = decompose_step!(builder, rule, op, qt, ct, zt, ctx)
 
 function Base.show(io::IO, s::IfStatement)
     sep = get(io, :compact, false) ? "," : ", "

@@ -37,7 +37,7 @@ julia> c = push!(Circuit(), Diffusion(10), 1:10...)
 julia> push!(c, inverse(Diffusion(10)), 1:10...)
 10-qubit circuit with 2 instructions:
 ├── Diffusion @ q[1:10]
-└── Diffusion† @ q[1:10]
+└── Diffusion @ q[1:10]
 ```
 
 ```jldoctest
@@ -92,11 +92,13 @@ opname(::Type{<:Diffusion}) = "Diffusion"
 
 qregsizes(::Diffusion{N}) where {N} = (N,)
 
+inverse(g::Diffusion) = g
+
 matches(::CanonicalRewrite, ::Diffusion) = true
 
 function decompose_step!(circ, ::CanonicalRewrite, ::Diffusion{N}, qubits, _, _) where {N}
     push!(circ, GateRY(_π_2), qubits)
-    push!(circ, control(N - 1, GateZ()), qubits...)
+    push!(circ, N == 1 ? GateZ() : control(N - 1, GateZ()), qubits...)
     push!(circ, GateRY(_mπ_2), qubits)
     return circ
 end

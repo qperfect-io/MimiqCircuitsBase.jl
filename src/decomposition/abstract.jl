@@ -163,3 +163,135 @@ isterminal(CanonicalBasis(), GateH())   # false (will be decomposed)
 See also [`DecompositionBasis`](@ref), [`decompose`](@ref).
 """
 isterminal(::DecompositionBasis, ::Operation) = false
+
+# --- ancilla options and decomposition context ---
+
+# Ancilla options of a basis. Every basis that supports them stores one and
+# returns it from `_ancillaoptions`; the others use the defaults, which keep
+# every decomposition inside the targets of the operation it decomposes.
+struct _AncillaOptions
+    borrow::Bool
+    max_ancillas::Int
+    allow_measurement::Bool
+
+    function _AncillaOptions(borrow::Bool, max_ancillas::Integer, allow_measurement::Bool)
+        max_ancillas >= 0 || throw(ArgumentError("max_ancillas must be non-negative, got $max_ancillas"))
+        return new(borrow, max_ancillas, allow_measurement)
+    end
+end
+
+_AncillaOptions(; borrow::Bool=false, max_ancillas::Integer=0, allow_measurement::Bool=false) = _AncillaOptions(borrow, max_ancillas, allow_measurement)
+
+_ancillaoptions(::DecompositionBasis) = _AncillaOptions()
+
+# Clean ancillas handed out while a circuit is decomposed. The iterator keeps
+# it up to date as instructions stream out: `AncillaAlloc` raises the window
+# depth of its qubit and `AncillaFree` lowers it. A qubit whose depth drops to
+# 0 is free, and stays free until an instruction touches it. Qubits a rule
+# takes leave the free list at once, before their `AncillaAlloc` is streamed.
+mutable struct _AncillaAllocator
+    next::Int
+    remaining::Int
+    depth::Dict{Int,Int}
+    free::Vector{Int}
+end
+
+_AncillaAllocator(next::Integer, remaining::Integer) = _AncillaAllocator(next, remaining, Dict{Int,Int}(), Int[])
+
+_available(alloc::_AncillaAllocator) = length(alloc.free) + alloc.remaining
+
+# Take up to `k` clean ancillas: free ones first, lowest index first, then new
+# ones numbered after the circuit.
+function _take_clean!(alloc::_AncillaAllocator, k::Integer)
+    taken = Int[]
+    sort!(alloc.free)
+    while length(taken) < k && !isempty(alloc.free)
+        push!(taken, popfirst!(alloc.free))
+    end
+    while length(taken) < k && alloc.remaining > 0
+        push!(taken, alloc.next)
+        alloc.next += 1
+        alloc.remaining -= 1
+    end
+    return taken
+end
+
+"""
+    DecompositionContext(; nqubits=0, borrow=false, unitary_only=false)
+
+State that [`decompose`](@ref) hands to a basis and its rules, next to the
+operation and its targets.
+
+- `nqubits`: width of the circuit being decomposed. Qubits `1:nqubits` that
+  are not targets of the operation may be borrowed. `0` means the width is
+  unknown, and nothing is borrowed.
+- `borrow`: whether rules may borrow qubits outside the operation's targets.
+  A borrowed qubit can be in any state; the decomposition acts as the
+  identity on it.
+- `unitary_only`: set when the result must be unitary, as for the body of a
+  wrapped `GateDecl` or of an `IfStatement`.
+
+[`decompose`](@ref) also hands out clean ancillas through the context when
+the basis has `max_ancillas > 0`. A rule that takes them brackets their use
+with [`AncillaAlloc`](@ref) and [`AncillaFree`](@ref) and returns them in
+``|0⟩``. With `allow_measurement=true` on the basis, the context also holds
+a classical bit, numbered after those of the circuit, that rules may measure
+an ancilla into.
+
+Bases and rules that do not use the context receive it through the
+fallback methods of [`decompose!`](@ref) and [`decompose_step!`](@ref),
+which drop it and call the 6-argument form.
+"""
+struct DecompositionContext
+    nqubits::Int
+    borrow::Bool
+    unitary_only::Bool
+    allocator::Union{Nothing,_AncillaAllocator}
+    # Bit that measuring rules write to, or 0 when they may not measure.
+    bit::Int
+end
+
+function DecompositionContext(; nqubits::Integer=0, borrow::Bool=false, unitary_only::Bool=false)
+    nqubits >= 0 || throw(ArgumentError("nqubits must be non-negative, got $nqubits"))
+    return DecompositionContext(nqubits, borrow, unitary_only, nothing, 0)
+end
+
+const _NO_CONTEXT = DecompositionContext()
+
+# The context for a circuit `nqubits` wide with `nbits` bits. Clean ancillas
+# and the measured bit are numbered after them, so a circuit of unknown width
+# gets none.
+function DecompositionContext(basis::DecompositionBasis, nqubits::Integer, nbits::Integer=0)
+    opts = _ancillaoptions(basis)
+    alloc = (opts.max_ancillas > 0 && nqubits > 0) ? _AncillaAllocator(nqubits + 1, opts.max_ancillas) : nothing
+    bit = (opts.allow_measurement && nbits > 0) ? nbits + 1 : 0
+    return DecompositionContext(nqubits, opts.borrow, false, alloc, bit)
+end
+
+# The same context for a result that must be unitary.
+_unitary(ctx::DecompositionContext) = DecompositionContext(ctx.nqubits, ctx.borrow, true, ctx.allocator, ctx.bit)
+
+_can_measure(ctx::DecompositionContext) = ctx.bit > 0 && !ctx.unitary_only
+
+_available(ctx::DecompositionContext) = isnothing(ctx.allocator) ? 0 : _available(ctx.allocator)
+
+_take_clean!(ctx::DecompositionContext, k::Integer) = isnothing(ctx.allocator) || k <= 0 ? Int[] : _take_clean!(ctx.allocator, k)
+
+# Bases and rules that do not use the context keep their 6-argument method.
+function decompose!(builder, basis::DecompositionBasis, op::Operation, qtargets, ctargets, ztargets, ::DecompositionContext)
+    return decompose!(builder, basis, op, qtargets, ctargets, ztargets)
+end
+
+function decompose_step!(builder, rule::RewriteRule, op::Operation, qtargets, ctargets, ztargets, ::DecompositionContext)
+    return decompose_step!(builder, rule, op, qtargets, ctargets, ztargets)
+end
+
+# Qubits a rule may borrow for an operation on `qtargets`, at most `k`,
+# nearest to the targets first so that MPS chains stay local.
+function _borrowable(ctx::DecompositionContext, qtargets, k::Integer)
+    (ctx.borrow && k > 0) || return Int[]
+    targets = Set(qtargets)
+    free = [q for q in 1:ctx.nqubits if !(q in targets)]
+    sort!(free; by=q -> (minimum(t -> abs(q - t), qtargets), q))
+    return free[1:min(k, length(free))]
+end

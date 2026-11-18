@@ -39,6 +39,7 @@ using .DecompositionTestUtils
             @test isterminal(basis, Measure())
             @test isterminal(basis, Reset())
             @test isterminal(basis, Barrier(1))
+            @test isterminal(basis, ReadoutErr(0.1, 0.2))
 
             # Non-terminal gates
             @test !isterminal(basis, GateH())
@@ -941,4 +942,28 @@ end  # @testset "DecompositionBases"
     @test !isterminal(basis, op)
     d = decompose(push!(Circuit(), op, 1, 1); basis=basis)
     @test all(inst -> getoperation(inst) isa IfStatement && isterminal(basis, getoperation(inst)), d)
+end
+
+@testset "ECR decomposes into Cliffords" begin
+    for basis in (StimBasis(), CliffordTBasis())
+        c = decompose(push!(Circuit(), GateECR(), 1, 2); basis=basis)
+        @test length(c) == 4
+        @test all(inst -> isterminal(StimBasis(), getoperation(inst)), c)
+        u = reduce((acc, inst) -> matrix(inst, 2) * acc, c; init=Matrix{ComplexF64}(I, 4, 4))
+        e = matrix(GateECR())
+        k = argmax(abs.(u))
+        @test isapprox(e, (e[k] / u[k]) * u)
+    end
+end
+
+@testset "symbolic rotations throw instead of looping" begin
+    @variables x
+    @test_throws DecompositionError decompose(push!(Circuit(), GateRZ(x), 1); basis=CliffordTBasis())
+end
+
+@testset "SpecialAngleRewrite step honours only_cliffords" begin
+    rule = SpecialAngleRewrite(only_cliffords=true)
+    c = MimiqCircuitsBase.decompose_step!(Circuit(), rule, GateRZ(π / 4), (1,), (), ())
+    @test length(c) == 1
+    @test getoperation(c[1]) isa GateRZ
 end

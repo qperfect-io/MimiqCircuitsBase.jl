@@ -117,9 +117,9 @@ end
 
 # --- decompose_step! — expand to Clifford+T ---
 
-function decompose_step!(builder, ::SpecialAngleRewrite, g::GateRX, qtargets, _, _)
+function decompose_step!(builder, rule::SpecialAngleRewrite, g::GateRX, qtargets, _, _)
     k = get_pi_factor_or_nothing(g.θ)
-    if isnothing(k)
+    if isnothing(k) || !matches(rule, g)
         push!(builder, g, qtargets...)
         return builder
     end
@@ -172,9 +172,9 @@ function decompose_step!(builder, ::SpecialAngleRewrite, g::GateRX, qtargets, _,
     return builder
 end
 
-function decompose_step!(builder, ::SpecialAngleRewrite, g::GateRY, qtargets, _, _)
+function decompose_step!(builder, rule::SpecialAngleRewrite, g::GateRY, qtargets, _, _)
     k = get_pi_factor_or_nothing(g.θ)
-    if isnothing(k)
+    if isnothing(k) || !matches(rule, g)
         push!(builder, g, qtargets...)
         return builder
     end
@@ -232,9 +232,9 @@ function decompose_step!(builder, ::SpecialAngleRewrite, g::GateRY, qtargets, _,
     return builder
 end
 
-function decompose_step!(builder, ::SpecialAngleRewrite, g::GateRZ, qtargets, _, _)
+function decompose_step!(builder, rule::SpecialAngleRewrite, g::GateRZ, qtargets, _, _)
     k = get_pi_factor_or_nothing(g.λ)
-    if isnothing(k)
+    if isnothing(k) || !matches(rule, g)
         push!(builder, g, qtargets...)
         return builder
     end

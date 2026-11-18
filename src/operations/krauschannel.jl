@@ -51,9 +51,10 @@ Whether the Kraus channel is Completely Positive, and Trace Preserving.
 If the Kraus operators fulfill ``\\sum_k E_k^\\dagger E_k = I`` then the quantum operation
 is CPTP. If ``\\sum_k E_k^\\dagger E_k < I``, then it's not CPTP.
 
-Currently, all noise channels are CPTP.
+Currently, all noise channels are CPTP. A channel whose operators only fulfill
+``\\sum_k E_k^\\dagger E_k < I`` must define its own method returning `false`.
 """
-isCPTP(::Type{T}) where {T<:AbstractKrausChannel} = false
+isCPTP(::Type{T}) where {T<:AbstractKrausChannel} = true
 
 isCPTP(::T) where {T} = isCPTP(T)
 

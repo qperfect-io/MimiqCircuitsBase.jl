@@ -93,8 +93,34 @@ end
 Define a new gate type `Name` with the given arguments and instructions.
 """
 macro gatedecl(head, body)
-    if head.head != :call
-        error("Expected function call syntax: @gatedecl Name(args...) begin ... end")
+    return _decl_macro(:GateDecl, "@gatedecl", head, body)
+end
+
+"""
+    @blockdecl Name(args...) begin ... end
+
+Bind `Name` to a [`BlockDecl`](@ref) with the given arguments and instructions.
+
+The body uses the same `@on` syntax as [`@block`](@ref). The arguments are
+fresh symbols visible only inside the body.
+
+```julia
+@blockdecl syndrome(θ) begin
+    @on GateRX(θ) q=1
+    @on GateCX() q=(1, 2)
+    @on Measure() q=2 c=1
+end
+
+push!(c, syndrome(0.1), 1, 2, 1)
+```
+"""
+macro blockdecl(head, body)
+    return _decl_macro(:BlockDecl, "@blockdecl", head, body)
+end
+
+function _decl_macro(decltype::Symbol, macroname, head, body)
+    if !(head isa Expr && head.head == :call)
+        error("Expected function call syntax: $macroname Name(args...) begin ... end")
     end
     
     struct_name = head.args[1]
@@ -124,7 +150,7 @@ macro gatedecl(head, body)
     for arg in arg_names
         s_var = gensym(string(arg))
         push!(sym_vars_syms, s_var)
-        push!(vars_creation.args, :($s_var = $SymbolicUtils.Sym{$SymbolicUtils.SymReal}($(QuoteNode(arg)); type=Real)))
+        push!(vars_creation.args, :($s_var = $Symbolics.value($Symbolics.variable($(QuoteNode(arg))))))
         push!(vars_creation.args, :($(arg) = $s_var))
     end
     
@@ -133,7 +159,7 @@ macro gatedecl(head, body)
             $vars_creation
             $c_sym = $MimiqCircuitsBase.Circuit()
             $new_body
-            $MimiqCircuitsBase.GateDecl(Symbol($name_str), ($(sym_vars_syms...),), $c_sym)
+            $MimiqCircuitsBase.$decltype(Symbol($name_str), ($(sym_vars_syms...),), $c_sym)
         end
     end)
 end
@@ -144,12 +170,12 @@ end
 
 Add `operation` on the given qubits (`q`), classical bits (`c`) and z-variables
 (`z`) to the circuit being built. `@on` is syntax read by [`@circuit`](@ref),
-[`@block`](@ref) and [`@gatedecl`](@ref), and only as a top-level statement of
+[`@block`](@ref), [`@gatedecl`](@ref) and [`@blockdecl`](@ref), and only as a top-level statement of
 their block. Anywhere else, including inside a loop or `if` in that block, it
 throws an error.
 """
 macro on(args...)
-    error("`@on` is only valid as a top-level statement inside `@circuit`, `@block` or `@gatedecl`.")
+    error("`@on` is only valid as a top-level statement inside `@circuit`, `@block`, `@gatedecl` or `@blockdecl`.")
 end
 
 function _parse_on_call(expr)

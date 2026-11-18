@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.28.0] — 2026-11-19
+
+### Added
+- `PolynomialOracle` decomposes into one multi-controlled Z per solution of the polynomial, so it runs on backends that do not implement it. The decomposition is practical only with few solutions; symbolic coefficients must be evaluated first.
+- `CanonicalBasis`, `CliffordTBasis` and `QASMBasis` take three ancilla options, all off by default. `borrow=true` lets decompositions borrow qubits of the circuit outside the operation, in any state. `max_ancillas=k` lets them add up to `k` clean ancillas after the qubits of the circuit, reused once freed. `allow_measurement=true` lets them undo steps by measuring an ancilla into one extra bit after the bits of the circuit; circuits without bits are refused.
+- With these options, a multi-controlled X with three or more controls decomposes into a linear number of gates: Toffolis with borrowed qubits (Barenco et al.), relative-phase Toffoli ladders with clean ancillas (8(n-2)+7 T gates), or measured ANDs (4(n-1) T gates, and 4 instead of 7 for a Toffoli in `CliffordTBasis`).
+- `AncillaAlloc` and `AncillaFree` annotations mark where a clean ancilla starts being used and where it is back in |0⟩. `decompose` places them, reads those already in its input, and reuses the ancillas they free.
+- `GateDecl`, `BlockDecl` and `Block` take a `numancillas` keyword: the number of their last qubits that are clean ancillas. `numancillas(op)` returns it, and is 0 for other operations. With `wrap=true`, a gate that uses clean ancillas becomes a call with `numancillas` set and markers around it; a gate whose body measures becomes a call to a `BlockDecl`, shared between identical gates like a `GateDecl`.
+- `ancillas(c)` lists the qubits that carry an `AncillaAlloc`, `merge_ancilla_windows(c)` joins windows that meet on a qubit, and `check_ancillas(c)` checks that the markers are consistent.
+- `DecompositionContext` carries the circuit width and the ancilla state to bases and rules, through new 7-argument `decompose!` and `decompose_step!` methods. Bases and rules that only define the 6-argument methods keep working unchanged.
+- `BlockDecl(name, args, body)` declares a named block with symbolic arguments, and `decl(args...)` gives a `BlockCall` that can be added to a circuit. Unlike a `GateDecl`, the body can hold any instruction, including measurements, noise and conditionals, and act on bits and z-variables. Every symbol in the body must be one of the arguments.
+- `@blockdecl name(args...) begin ... end` builds a `BlockDecl` with the same `@on` syntax as `@block`.
+- Every `BlockCall` refers to its declaration, which `evaluate` keeps and protobuf stores once per circuit. Noise models, `FlattenContainers` and `FlattenedBasis` expand `BlockCall` like `GateCall`.
+- `saveproto` and `loadproto` support `SweepExperiment` and `EquivalenceExperiment`, with the new `experiment.proto` schema (`ParameterTable`, `SweepExperiment`, `EquivalenceExperiment`).
+- Wire format 1.4.0 adds `experiment.proto`, the `AncillaAlloc` and `AncillaFree` annotation types, and a `numancillas` field to `GateDecl`, `BlockDecl` and `Block`. Old payloads decode with no markers and `numancillas = 0`.
+
+### Changed
+- The key of `WrappedDeclCache` is the symbolic operation together with the numbers of borrowed and clean qubits its body was offered.
+- `QASMBasis` keeps annotations, such as `Lost`, instead of failing on them.
+- `pauli_based_computation` drops `AncillaAlloc` and `AncillaFree`, since it moves Clifford gates across them.
+- The circuit protobuf schema adds a `BlockDecl` declaration and a `BlockCall` operation. Older readers fail on circuits that contain a `BlockCall`; circuits without one are unchanged.
+
+### Fixed
+- `push_suzukitrotter!` and `push_yoshidatrotter!` with `order >= 4` apply the target qubits once; they failed or acted on the wrong qubits when the targets were not `1:n`.
+- `Diffusion(1)` decomposes.
+- `inverse(::Diffusion)` returns the diffusion operator itself instead of wrapping it in an inverse: the operator is its own inverse.
+- `GateCustomDiagonal` checks the modulus of its numeric entries also when another entry is symbolic.
+- `ThermalNoise` requires `T1 > 0` and `T2 > 0`, and skips the `T2 <= 2 * T1` check while either is symbolic.
+- `MixedUnitary` rejects numeric probabilities outside `[0, 1]`.
+- `squaredkrausoperators` works for channels whose Kraus operators are `RescaledGate`: `opsquared(::RescaledGate)` returns a rescaled identity.
+- The Kraus operators of `PhaseAmplitudeDamping` with `gamma = p = 1` no longer throw `DivideError`; the channel is `AmplitudeDamping(1)`, full decay to |0⟩.
+- `isCPTP` returns `true` for every Kraus channel instead of `false`: each of them satisfies Σ E†E = I, as its documentation already said. `isCPTP` is exported, like `ismixedunitary`.
+- `evaluate` on a `ReadoutErr` keeps `p0` and `p1` symbolic when some of their symbols are left, instead of throwing `TypeError: non-boolean (Num) used in boolean context`.
+- The ancilla-free branch of the Barenco decomposition of a multi-controlled X no longer throws a `MethodError`.
+- `issymbolic` no longer throws on a `GateCall`, and `listvars` returns the symbols of its arguments instead of an empty list.
+- `==` on two `Block`s compares their instructions; before, any two blocks with the same sizes and length were equal.
+- Declarations made with `@gatedecl` and `@blockdecl` compare equal to themselves after a protobuf round trip.
+- Decomposing a `WhileStatement` keeps the size of its body, so a body that leaves its last qubit unused, or sits on qubits other than the first ones, no longer fails.
+- Decomposing a rotation with a symbolic angle to `CliffordTBasis` throws a `DecompositionError` instead of looping forever.
+- `StimBasis` and `CliffordTBasis` decompose `GateECR` into `S`, `SX`, `CX` and `X`, since Stim has no ECR instruction.
+- `SpecialAngleRewrite` with `only_cliffords=true` leaves a rotation by an odd multiple of `π/4` as it is in `decompose_step!`, as `matches` refuses it, instead of emitting a `T` gate.
+
+### Docs
+- The documentation uses the MIMIQ v4 brand: the new logo, the QPerfect colours in light and dark mode, and the brand fonts, served with the docs.
+
 ## [0.27.2] — 2026-11-01
 
 ### Changed

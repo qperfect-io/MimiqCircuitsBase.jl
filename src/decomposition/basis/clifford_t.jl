@@ -15,7 +15,7 @@
 #
 
 """
-    CliffordTBasis(; rotations=GridSynthRewrite())
+    CliffordTBasis(; rotations=GridSynthRewrite(), borrow=false, max_ancillas=0, allow_measurement=false)
     CliffordTBasis(; sk_depth)
 
 Decomposition basis targeting the Clifford+T gate set.
@@ -49,13 +49,16 @@ Non-terminal operations are rewritten by the first rule that matches, in this
 order:
 
 1. [`SpecialAngleRewrite`](@ref): rotations by multiples of `π/4` to exact Clifford+T.
-2. [`ToffoliToCliffordTRewrite`](@ref): `GateCCX` to Clifford+T with 7 T gates.
-3. A `GateU` whose angles are all zero (a pure global phase) is dropped.
-4. [`ZYZRewrite`](@ref): `GateU` to `RZ·RY·RZ`.
-5. [`ToZRotationRewrite`](@ref): `GateRX`, `GateRY` to `GateRZ` and Cliffords.
-6. The `rotations` rule (default [`GridSynthRewrite`](@ref)): remaining
+2. `GateECR` to `S`, `SX`, `CX` and `X`, as in [`StimBasis`](@ref), with no T gate.
+3. [`ToffoliToCliffordTRewrite`](@ref): `GateCCX` to Clifford+T with 7 T gates.
+4. A `GateU` whose angles are all zero (a pure global phase) is dropped.
+5. [`ZYZRewrite`](@ref): `GateU` to `RZ·RY·RZ`.
+6. [`ToZRotationRewrite`](@ref): `GateRX`, `GateRY` to `GateRZ` and Cliffords.
+7. The `rotations` rule (default [`GridSynthRewrite`](@ref)): remaining
    `GateRZ` to an approximate Clifford+T sequence.
-7. [`CanonicalRewrite`](@ref): any other operation, toward `GateU` and `GateCX`.
+8. [`CanonicalRewrite`](@ref): any other operation, toward `GateU` and `GateCX`.
+   A `GateRX`, `GateRY` or `GateRZ` that reaches this point has a symbolic
+   angle and throws a `DecompositionError`.
 
 The `rotations` rule only sees angles that step 1 could not decompose exactly.
 The body of an `IfStatement` goes through the same pipeline and stays
@@ -69,6 +72,22 @@ conditional. No T-count optimization is performed on the result.
   angle and emit only gates of this basis.
 - `sk_depth::Int`: use [`SolovayKitaevRewrite`](@ref) with this recursion
   depth as the `rotations` rule.
+- `borrow::Bool = false`: let decompositions borrow qubits of the circuit
+  that the operation does not act on. A borrowed qubit can be in any state;
+  the decomposition leaves it as it found it.
+- `max_ancillas::Integer = 0`: let decompositions add up to this many clean
+  ancillas, numbered after the qubits of the circuit and marked with
+  [`AncillaAlloc`](@ref) and [`AncillaFree`](@ref). Ancillas freed by one
+  operation are reused by the next.
+- `allow_measurement::Bool = false`: with `max_ancillas`, let decompositions
+  undo steps by measuring an ancilla into one extra bit, numbered after the
+  bits of the circuit. A circuit without bits is refused with an
+  `ArgumentError`. With a clean ancilla, a `GateCCX` then costs 4 T instead
+  of 7.
+
+The ancilla options only change how multi-controlled X gates are
+decomposed. Circuits whose width is unknown, such as a lone operation, get
+no ancillas.
 
 Throws an `ArgumentError` if both keywords are given, or if `rotations` does
 not match `GateRZ`. Decomposing an operation that no rule handles, such as a
@@ -95,10 +114,14 @@ See also [`DecompositionBasis`](@ref), [`StimBasis`](@ref), [`CanonicalBasis`](@
 """
 struct CliffordTBasis{R<:RewriteRule} <: DecompositionBasis
     rotations::R
+    ancillas::_AncillaOptions
 
     function CliffordTBasis(;
         sk_depth::Union{Nothing,Int} = nothing,
         rotations::Union{Nothing,RewriteRule} = nothing,
+        borrow::Bool = false,
+        max_ancillas::Integer = 0,
+        allow_measurement::Bool = false,
     )
         if !isnothing(sk_depth) && !isnothing(rotations)
             throw(ArgumentError("give either sk_depth or rotations, not both"))
@@ -109,12 +132,14 @@ struct CliffordTBasis{R<:RewriteRule} <: DecompositionBasis
         matches(rotations, GateRZ(0.1)) || throw(
             ArgumentError("rotations rule $(typeof(rotations)) does not match GateRZ"),
         )
-        new{typeof(rotations)}(rotations)
+        new{typeof(rotations)}(rotations, _AncillaOptions(borrow, max_ancillas, allow_measurement))
     end
 end
 
-Base.:(==)(a::CliffordTBasis, b::CliffordTBasis) = a.rotations == b.rotations
-Base.hash(b::CliffordTBasis, h::UInt) = hash(b.rotations, hash(CliffordTBasis, h))
+Base.:(==)(a::CliffordTBasis, b::CliffordTBasis) = a.rotations == b.rotations && a.ancillas == b.ancillas
+Base.hash(b::CliffordTBasis, h::UInt) = hash(b.ancillas, hash(b.rotations, hash(CliffordTBasis, h)))
+
+_ancillaoptions(basis::CliffordTBasis) = basis.ancillas
 
 # --- terminal operations: those of StimBasis, plus T and T† ---
 
@@ -143,17 +168,26 @@ const _CLIFFORDT_CANONICAL = CanonicalRewrite()
 
 # The body of a conditional goes through this pipeline too, so that, for
 # example, a conditional rotation by a multiple of π/4 stays exact.
-function decompose!(builder, basis::CliffordTBasis, op::IfStatement, qtargets, ctargets, ztargets)
-    return _decompose_ifstatement!(builder, basis, op, qtargets, ctargets, ztargets)
+function decompose!(builder, basis::CliffordTBasis, op::IfStatement, qtargets, ctargets, ztargets, ctx::DecompositionContext=_NO_CONTEXT)
+    return _decompose_ifstatement!(builder, basis, op, qtargets, ctargets, ztargets, ctx)
 end
 
-function decompose!(
+function decompose!(builder, basis::CliffordTBasis, op::Operation, qtargets, ctargets, ztargets)
+    return _decompose_cliffordt!(builder, basis, op, qtargets, ctargets, ztargets, _NO_CONTEXT)
+end
+
+function decompose!(builder, basis::CliffordTBasis, op::Control, qtargets, ctargets, ztargets, ctx::DecompositionContext)
+    return _decompose_cliffordt!(builder, basis, op, qtargets, ctargets, ztargets, ctx)
+end
+
+function _decompose_cliffordt!(
     builder,
     basis::CliffordTBasis,
     op::Operation,
     qtargets,
     ctargets,
     ztargets,
+    ctx::DecompositionContext,
 )
     # Priority 1: Special angles (exact, no approximation needed)
     if matches(_CLIFFORDT_SPECIAL_ANGLE, op)
@@ -167,8 +201,14 @@ function decompose!(
         )
     end
 
-    # Priority 2: Toffoli gate (optimal T-count decomposition)
-    if matches(_CLIFFORDT_TOFFOLI, op)
+    # ECR is Clifford; the canonical rule would spend two T gates on it.
+    if op isa GateECR
+        return _decompose_ecr!(builder, qtargets)
+    end
+
+    # Priority 2: Toffoli gate (optimal T-count decomposition without
+    # measurements; with them, CanonicalRewrite uses 4 T)
+    if matches(_CLIFFORDT_TOFFOLI, op) && !(_can_measure(ctx) && _available(ctx) > 0)
         return decompose_step!(
             builder,
             _CLIFFORDT_TOFFOLI,
@@ -202,6 +242,15 @@ function decompose!(
         return decompose_step!(builder, basis.rotations, op, qtargets, ctargets, ztargets)
     end
 
+    # A rotation left here has a symbolic angle that no rule can approximate;
+    # the canonical rule would cycle RZ → U → RZ forever.
+    if op isa Union{GateRX,GateRY,GateRZ}
+        throw(DecompositionError(
+            "Rotation $(opname(op)) has a symbolic angle and cannot be decomposed " *
+            "into the Clifford+T basis. Evaluate it first."
+        ))
+    end
+
     # Priority 6: Fallback to canonical decomposition
     if matches(_CLIFFORDT_CANONICAL, op)
         return decompose_step!(
@@ -211,6 +260,7 @@ function decompose!(
             qtargets,
             ctargets,
             ztargets,
+            ctx,
         )
     end
 

@@ -66,8 +66,9 @@ List the symbolic variables that appear in `obj`.
 - for an operation, the variables in its parameters. Wrappers such as
   [`Control`](@ref), [`Inverse`](@ref), [`Power`](@ref), [`Parallel`](@ref),
   [`Repeat`](@ref), [`IfStatement`](@ref) and [`WhileStatement`](@ref) give the
-  variables of the operation they wrap, and a [`Block`](@ref) those of all its
-  instructions;
+  variables of the operation they wrap, a [`Block`](@ref) those of all its
+  instructions, and a [`GateCall`](@ref) or [`BlockCall`](@ref) those of its
+  arguments;
 - for an instruction, the variables of its operation;
 - for a circuit, the variables of all its instructions;
 - for a parameter table, the symbols it gives values to, in column order;
@@ -155,6 +156,16 @@ listvars(op::_SymbolWrapper) = listvars(getoperation(op))
 
 issymbolic(b::Block) = any(issymbolic, b)
 listvars(b::Block) = unique(reduce(vcat, listvars.(b); init=Num[]))
+
+# The body of a declaration only holds its formal arguments; the call's values are in `_args`.
+issymbolic(c::Union{GateCall,BlockCall}) = any(issymbolic, c._args)
+function listvars(c::Union{GateCall,BlockCall})
+    vars = Num[]
+    for x in c._args
+        append!(vars, Symbolics.get_variables(x))
+    end
+    return unique(vars)
+end
 
 # ############################# #
 # Parameter Substitution Helper #

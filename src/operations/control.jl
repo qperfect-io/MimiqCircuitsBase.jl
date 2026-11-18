@@ -380,7 +380,7 @@ function _controlx_decompose!(builder, ctrl, trgt, ancl)
         append!(builder, circ2)
     else
         # No free qubits available
-        _control_recursive_decompose!(builder, Control(ctrl, GateX()), ctrl..., trgt)
+        _control_recursive_decompose!(builder, Control(nctrl, GateX()), Int[ctrl..., trgt])
     end
 
     return builder

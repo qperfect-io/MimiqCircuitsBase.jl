@@ -321,13 +321,13 @@ end
 function toproto(decl::GateDecl, declcache=nothing)
     instructions = map(inst -> toproto(inst, declcache), decl._instructions)
     args = map(toproto, decl._arguments)
-    return circuit_pb.GateDecl(string(decl.name), collect(args), instructions)
+    return circuit_pb.GateDecl(string(decl.name), collect(args), instructions, numancillas(decl))
 end
 
 function fromproto(decl::circuit_pb.GateDecl, declcache=nothing)
     instructions = map(inst -> fromproto(inst, declcache), decl.instructions)
     args = map(fromproto, decl.args)
-    return GateDecl(Symbol(decl.name), Tuple(args), instructions)
+    return GateDecl(Symbol(decl.name), Tuple(args), instructions; numancillas=decl.numancillas)
 end
 
 function toproto(cl::GateCall)
@@ -365,6 +365,48 @@ function fromproto(cl::circuit_pb.CachedGateCall, declcache)
     args = map(fromproto, cl.args)
 
     return GateCall(decl, args...)
+end
+
+function toproto(decl::BlockDecl, declcache=nothing)
+    instructions = map(inst -> toproto(inst, declcache), decl._instructions)
+    args = collect(map(toproto, decl._arguments))
+    return circuit_pb.BlockDecl(string(decl.name), args, numqubits(decl), numbits(decl), numzvars(decl), instructions, numancillas(decl))
+end
+
+function fromproto(decl::circuit_pb.BlockDecl, declcache=nothing)
+    instructions = map(inst -> fromproto(inst, declcache), decl.instructions)
+    args = Tuple(map(fromproto, decl.args))
+    return BlockDecl{decl.numqubits,decl.numbits,decl.numzvars}(Symbol(decl.name), args, instructions; numancillas=decl.numancillas)
+end
+
+function toproto(cl::BlockCall)
+    args = collect(map(toproto, cl._args))
+    return circuit_pb.BlockCall(zero(UInt64), args, toproto(cl._decl))
+end
+
+function toproto(cl::BlockCall, declcache)
+    declid = objectid(cl._decl)
+
+    if !haskey(declcache[1], declid)
+        declcache[1][declid] = toproto_declaration(cl._decl, declcache)
+        push!(declcache[2], declid)
+    end
+
+    args = collect(map(toproto, cl._args))
+    return circuit_pb.BlockCall(declid, args, nothing)
+end
+
+function fromproto(cl::circuit_pb.BlockCall, declcache=nothing)
+    decl = if !isnothing(cl.decl)
+        fromproto(cl.decl, declcache)
+    elseif !isnothing(declcache) && haskey(declcache, cl.id)
+        declcache[cl.id]
+    else
+        error("Block declaration with id $(cl.id) not found in cache.")
+    end
+
+    args = map(fromproto, cl.args)
+    return BlockCall(decl, args...)
 end
 
 function toproto(g::Control{N}, declcache=nothing) where {N}
@@ -712,6 +754,8 @@ const ANNOTATIONMAP = Bijection(Dict(
     Tick => circuit_pb.AnnotationType.Tick,
     Lost => circuit_pb.AnnotationType.Lost,
     Reloaded => circuit_pb.AnnotationType.Reloaded,
+    AncillaAlloc => circuit_pb.AnnotationType.AncillaAlloc,
+    AncillaFree => circuit_pb.AnnotationType.AncillaFree,
 ))
 
 const GENERALIZEDANNOTATIONMAP = Bijection(Dict(
@@ -748,7 +792,7 @@ function fromproto(g::circuit_pb.SimpleAnnotation)
     isnothing(T) && error(lazy"Unsupported ProtoBuf SimpleAnnotation type $(g.mtype).")
     notes = map(x -> fromproto(x), g.notes)
 
-    if T in (Tick, Lost, Reloaded)
+    if T in (Tick, Lost, Reloaded, AncillaAlloc, AncillaFree)
         if !isempty(notes)
             @warn "Ignoring notes for $(T) annotation."
         end
@@ -864,12 +908,12 @@ end
 
 function toproto(block::Block, declcache=nothing)
     instructions = map(inst -> toproto(inst, declcache), block)
-    return circuit_pb.Block(numqubits(block), numbits(block), numzvars(block), instructions)
+    return circuit_pb.Block(numqubits(block), numbits(block), numzvars(block), instructions, numancillas(block))
 end
 
 function fromproto(block::circuit_pb.Block, declcache=nothing)
     instructions = map(inst -> fromproto(inst, declcache), block.instructions)
-    return Block(block.numqubits, block.numbits, block.numzvars, instructions)
+    return Block(block.numqubits, block.numbits, block.numzvars, instructions; numancillas=block.numancillas)
 end
 
 function fromproto(block::circuit_pb.Declaration, declcache=nothing)
@@ -877,6 +921,8 @@ function fromproto(block::circuit_pb.Declaration, declcache=nothing)
     if decl isa circuit_pb.GateDecl
         return fromproto(decl, declcache)
     elseif decl isa circuit_pb.Block
+        return fromproto(decl, declcache)
+    elseif decl isa circuit_pb.BlockDecl
         return fromproto(decl, declcache)
     end
 
@@ -888,7 +934,7 @@ function toproto_declaration(decl, declcache=nothing)
 end
 
 function _build_oneof(gop, declcache=nothing)
-    op = if !isnothing(declcache) && (gop isa GateCall || gop isa MixedUnitary || gop isa RescaledGate || gop isa Power || gop isa Control || gop isa Inverse || gop isa Parallel || gop isa ExpectationValue || gop isa IfStatement || gop isa WhileStatement || gop isa Block || gop isa Repeat || gop isa GateDecl)
+    op = if !isnothing(declcache) && (gop isa GateCall || gop isa MixedUnitary || gop isa RescaledGate || gop isa Power || gop isa Control || gop isa Inverse || gop isa Parallel || gop isa ExpectationValue || gop isa IfStatement || gop isa WhileStatement || gop isa Block || gop isa Repeat || gop isa GateDecl || gop isa BlockCall || gop isa BlockDecl)
         toproto(gop, declcache)
     else
         toproto(gop)
@@ -926,6 +972,8 @@ function _build_oneof(gop, declcache=nothing)
     op isa circuit_pb.Repeat ? OneOf(:repeat, op) :
     op isa circuit_pb.Block ? OneOf(:block, op) :
     op isa circuit_pb.GateDecl ? OneOf(:gatedecl, op) :
+    op isa circuit_pb.BlockCall ? OneOf(:blockcall, op) :
+    op isa circuit_pb.BlockDecl ? OneOf(:blockdecl, op) :
     op isa circuit_pb.ReadoutErr ? OneOf(:readouterr, op) :
     op isa circuit_pb.Loss ? OneOf(:loss, op) :
     op isa circuit_pb.MeasurePauli ? OneOf(:measurepauli, op) :

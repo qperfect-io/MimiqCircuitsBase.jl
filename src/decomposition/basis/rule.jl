@@ -43,13 +43,13 @@ function isterminal(basis::RuleBasis, op::IfStatement)
     return !matches(basis.rule, op) && isterminal(basis, getoperation(op))
 end
 
-function decompose!(builder, basis::RuleBasis, op::Operation, qtargets, ctargets, ztargets)
-    return decompose_step!(builder, basis.rule, op, qtargets, ctargets, ztargets)
+function decompose!(builder, basis::RuleBasis, op::Operation, qtargets, ctargets, ztargets, ctx::DecompositionContext=_NO_CONTEXT)
+    return decompose_step!(builder, basis.rule, op, qtargets, ctargets, ztargets, ctx)
 end
 
-function decompose!(builder, basis::RuleBasis, op::IfStatement, qtargets, ctargets, ztargets)
+function decompose!(builder, basis::RuleBasis, op::IfStatement, qtargets, ctargets, ztargets, ctx::DecompositionContext=_NO_CONTEXT)
     if matches(basis.rule, op)
-        return decompose_step!(builder, basis.rule, op, qtargets, ctargets, ztargets)
+        return decompose_step!(builder, basis.rule, op, qtargets, ctargets, ztargets, ctx)
     end
-    return _decompose_ifstatement!(builder, basis, op, qtargets, ctargets, ztargets)
+    return _decompose_ifstatement!(builder, basis, op, qtargets, ctargets, ztargets, ctx)
 end

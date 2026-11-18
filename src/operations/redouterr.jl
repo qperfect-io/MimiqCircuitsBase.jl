@@ -86,10 +86,11 @@ function evaluate(op::ReadoutErr, d::Dict=Dict())
     p0_val = issymbolic(p0_eval) ? p0_eval : unwrapvalue(p0_eval)
     p1_val = issymbolic(p1_eval) ? p1_eval : unwrapvalue(p1_eval)
 
-    if p0_val isa Real && !(0.0 ≤ p0_val ≤ 1.0)
+    # A symbol is a `Num`, which is also a `Real`, so `isa Real` would not skip it.
+    if !(p0_val isa Symbolics.Num) && !(0.0 ≤ p0_val ≤ 1.0)
         throw(ArgumentError("p0 must be in [0,1] after evaluation, got $p0_val"))
     end
-    if p1_val isa Real && !(0.0 ≤ p1_val ≤ 1.0)
+    if !(p1_val isa Symbolics.Num) && !(0.0 ≤ p1_val ≤ 1.0)
         throw(ArgumentError("p1 must be in [0,1] after evaluation, got $p1_val"))
     end
 

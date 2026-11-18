@@ -14,14 +14,14 @@ using ProtoBuf.EnumX: @enumx
 export GeneralizedAnnotationType, Rational, KrausChannelType, Symbol, GeneralizedType
 export OperationType, GateType, GeneralizedOperationType, AnnotationType, Note, Amplitude
 export MeasurePauli, ArgValue, FunctionType, Irrational, OperatorType
-export GeneralizedAnnotation, SimpleAnnotation, Arg, ArgFunction, Block, CachedGateCall
-export ComplexArg, Control, CustomDiagonalGate, CustomGate, CustomKrausChannel
-export CustomOperator, DepolarizingChannel, ExpectationValue, GateDecl, Generalized
-export GeneralizedOperation, IfStatement, Instruction, Inverse, Loss, LossyOperator
-export MixedUnitaryChannel, Parallel, PauliChannel, Power, RPauli, ReadoutErr, Repeat
-export SimpleGate, SimpleKrausChannel, SimpleOperation, SimpleOperator, WhileStatement
-export Circuit, Declaration, GateCall, RescaledGate, KrausChannel, Gate, Operator
-export Operation
+export GeneralizedAnnotation, SimpleAnnotation, Arg, ArgFunction, Block, BlockDecl
+export CachedGateCall, ComplexArg, Control, CustomDiagonalGate, CustomGate
+export CustomKrausChannel, CustomOperator, DepolarizingChannel, ExpectationValue, GateDecl
+export Generalized, GeneralizedOperation, IfStatement, Instruction, Inverse, Loss
+export LossyOperator, MixedUnitaryChannel, Parallel, PauliChannel, Power, RPauli
+export ReadoutErr, Repeat, SimpleGate, SimpleKrausChannel, SimpleOperation, SimpleOperator
+export WhileStatement, BlockCall, Circuit, GateCall, RescaledGate, Declaration
+export KrausChannel, Gate, Operator, Operation
 abstract type var"##Abstract#IfStatement" end
 abstract type var"##Abstract#GeneralizedOperation" end
 abstract type var"##Abstract#ArgFunction" end
@@ -36,12 +36,14 @@ abstract type var"##Abstract#Operator" end
 abstract type var"##Abstract#CustomOperator" end
 abstract type var"##Abstract#Control" end
 abstract type var"##Abstract#RPauli" end
+abstract type var"##Abstract#BlockCall" end
 abstract type var"##Abstract#WhileStatement" end
 abstract type var"##Abstract#CachedGateCall" end
 abstract type var"##Abstract#Parallel" end
 abstract type var"##Abstract#Repeat" end
 abstract type var"##Abstract#MixedUnitaryChannel" end
 abstract type var"##Abstract#Gate" end
+abstract type var"##Abstract#BlockDecl" end
 abstract type var"##Abstract#LossyOperator" end
 abstract type var"##Abstract#Block" end
 abstract type var"##Abstract#CustomDiagonalGate" end
@@ -142,7 +144,7 @@ end
 
 @enumx GeneralizedOperationType Barrier=0 Add=1 Multiply=2 And=3 Or=4 Xor=5 ParityCheck=6
 
-@enumx AnnotationType QubitCoordinates=0 ShiftCoordinates=1 Tick=3 Lost=4 Reloaded=5
+@enumx AnnotationType QubitCoordinates=0 ShiftCoordinates=1 Tick=3 Lost=4 Reloaded=5 AncillaAlloc=6 AncillaFree=7
 
 struct Note
     note::Union{Nothing,OneOf{<:Union{Int64,Float64}}}
@@ -411,6 +413,17 @@ struct var"##Stub#Block"{T1<:var"##Abstract#Instruction"} <: var"##Abstract#Bloc
     numbits::Int64
     numzvars::Int64
     instructions::Vector{T1}
+    numancillas::Int64
+end
+
+struct var"##Stub#BlockDecl"{T1<:var"##Abstract#Instruction"} <: var"##Abstract#BlockDecl"
+    name::String
+    args::Vector{Symbol}
+    numqubits::Int64
+    numbits::Int64
+    numzvars::Int64
+    instructions::Vector{T1}
+    numancillas::Int64
 end
 
 struct var"##Stub#CachedGateCall" <: var"##Abstract#CachedGateCall"
@@ -461,6 +474,7 @@ struct var"##Stub#GateDecl"{T1<:var"##Abstract#Instruction"} <: var"##Abstract#G
     name::String
     args::Vector{Symbol}
     instructions::Vector{T1}
+    numancillas::Int64
 end
 
 struct var"##Stub#Generalized" <: var"##Abstract#Generalized"
@@ -563,14 +577,16 @@ struct var"##Stub#WhileStatement"{T1<:var"##Abstract#Operation"} <: var"##Abstra
     bitstring::Union{Nothing,bitvector_pb.BitVector}
 end
 
+struct var"##Stub#BlockCall"{T1<:var"##Abstract#Operation"} <: var"##Abstract#BlockCall"
+    id::UInt64
+    args::Vector{var"##Stub#Arg"{var"##Stub#ArgFunction"}}
+    decl::Union{Nothing,var"##Stub#BlockDecl"{var"##Stub#Instruction"{T1}}}
+end
+
 struct var"##Stub#Circuit"{T1<:var"##Abstract#Operation",T2<:var"##Abstract#Declaration"} <: var"##Abstract#Circuit"
     instructions::Vector{var"##Stub#Instruction"{T1}}
     decls::Dict{UInt64,T2}
     declorder::Vector{UInt64}
-end
-
-struct var"##Stub#Declaration"{T1<:var"##Abstract#Operation"} <: var"##Abstract#Declaration"
-    decl::Union{Nothing,OneOf{<:Union{var"##Stub#GateDecl"{var"##Stub#Instruction"{T1}},var"##Stub#Block"{var"##Stub#Instruction"{T1}}}}}
 end
 
 struct var"##Stub#GateCall"{T1<:var"##Abstract#Operation"} <: var"##Abstract#GateCall"
@@ -581,6 +597,10 @@ end
 struct var"##Stub#RescaledGate"{T1<:var"##Abstract#Gate"} <: var"##Abstract#RescaledGate"
     operation::Union{Nothing,T1}
     scale::Union{Nothing,var"##Stub#Arg"{var"##Stub#ArgFunction"}}
+end
+
+struct var"##Stub#Declaration"{T1<:var"##Abstract#Operation"} <: var"##Abstract#Declaration"
+    decl::Union{Nothing,OneOf{<:Union{var"##Stub#GateDecl"{var"##Stub#Instruction"{T1}},var"##Stub#Block"{var"##Stub#Instruction"{T1}},var"##Stub#BlockDecl"{var"##Stub#Instruction"{T1}}}}}
 end
 
 struct var"##Stub#KrausChannel"{T1<:var"##Abstract#Operator",T2<:var"##Abstract#Gate"} <: var"##Abstract#KrausChannel"
@@ -596,7 +616,7 @@ struct var"##Stub#Operator"{T1<:var"##Abstract#Operation"} <: var"##Abstract#Ope
 end
 
 struct var"##Stub#Operation" <: var"##Abstract#Operation"
-    operation::Union{Nothing,OneOf{<:Union{var"##Stub#SimpleGate",var"##Stub#CustomGate",var"##Stub#Generalized",var"##Stub#Control"{var"##Stub#Gate"{var"##Stub#Operation"}},var"##Stub#Power"{var"##Stub#Gate"{var"##Stub#Operation"}},var"##Stub#Inverse"{var"##Stub#Gate"{var"##Stub#Operation"}},var"##Stub#Parallel"{var"##Stub#Gate"{var"##Stub#Operation"}},var"##Stub#GateCall"{var"##Stub#Operation"},pauli_pb.PauliString,var"##Stub#SimpleKrausChannel",var"##Stub#CustomKrausChannel"{var"##Stub#Operator"{var"##Stub#Operation"}},var"##Stub#DepolarizingChannel",var"##Stub#MixedUnitaryChannel"{var"##Stub#RescaledGate"{var"##Stub#Gate"{var"##Stub#Operation"}}},var"##Stub#PauliChannel",var"##Stub#SimpleOperator",var"##Stub#CustomOperator",var"##Stub#RescaledGate"{var"##Stub#Gate"{var"##Stub#Operation"}},var"##Stub#SimpleOperation",var"##Stub#IfStatement"{var"##Stub#Operation"},var"##Stub#GeneralizedOperation",Amplitude,var"##Stub#ExpectationValue"{var"##Stub#Operator"{var"##Stub#Operation"}},SimpleAnnotation,GeneralizedAnnotation,var"##Stub#CachedGateCall",var"##Stub#RPauli",var"##Stub#Repeat"{var"##Stub#Operation"},var"##Stub#Block"{var"##Stub#Instruction"{var"##Stub#Operation"}},var"##Stub#ReadoutErr",var"##Stub#Loss",var"##Stub#LossyOperator",var"##Stub#WhileStatement"{var"##Stub#Operation"},var"##Stub#CustomDiagonalGate",MeasurePauli}}}
+    operation::Union{Nothing,OneOf{<:Union{var"##Stub#SimpleGate",var"##Stub#CustomGate",var"##Stub#Generalized",var"##Stub#Control"{var"##Stub#Gate"{var"##Stub#Operation"}},var"##Stub#Power"{var"##Stub#Gate"{var"##Stub#Operation"}},var"##Stub#Inverse"{var"##Stub#Gate"{var"##Stub#Operation"}},var"##Stub#Parallel"{var"##Stub#Gate"{var"##Stub#Operation"}},var"##Stub#GateCall"{var"##Stub#Operation"},pauli_pb.PauliString,var"##Stub#SimpleKrausChannel",var"##Stub#CustomKrausChannel"{var"##Stub#Operator"{var"##Stub#Operation"}},var"##Stub#DepolarizingChannel",var"##Stub#MixedUnitaryChannel"{var"##Stub#RescaledGate"{var"##Stub#Gate"{var"##Stub#Operation"}}},var"##Stub#PauliChannel",var"##Stub#SimpleOperator",var"##Stub#CustomOperator",var"##Stub#RescaledGate"{var"##Stub#Gate"{var"##Stub#Operation"}},var"##Stub#SimpleOperation",var"##Stub#IfStatement"{var"##Stub#Operation"},var"##Stub#GeneralizedOperation",Amplitude,var"##Stub#ExpectationValue"{var"##Stub#Operator"{var"##Stub#Operation"}},SimpleAnnotation,GeneralizedAnnotation,var"##Stub#CachedGateCall",var"##Stub#RPauli",var"##Stub#Repeat"{var"##Stub#Operation"},var"##Stub#Block"{var"##Stub#Instruction"{var"##Stub#Operation"}},var"##Stub#ReadoutErr",var"##Stub#Loss",var"##Stub#LossyOperator",var"##Stub#WhileStatement"{var"##Stub#Operation"},var"##Stub#CustomDiagonalGate",MeasurePauli,var"##Stub#BlockCall"{var"##Stub#Operation"}}}}
 end
 
 const Arg = var"##Stub#Arg"{var"##Stub#ArgFunction"}
@@ -688,14 +708,15 @@ function PB._encoded_size(x::ArgFunction)
 end
 
 const Block = var"##Stub#Block"{var"##Stub#Instruction"{var"##Stub#Operation"}}
-PB.default_values(::Type{Block}) = (;numqubits = zero(Int64), numbits = zero(Int64), numzvars = zero(Int64), instructions = Vector{Instruction}())
-PB.field_numbers(::Type{Block}) = (;numqubits = 1, numbits = 2, numzvars = 3, instructions = 4)
+PB.default_values(::Type{Block}) = (;numqubits = zero(Int64), numbits = zero(Int64), numzvars = zero(Int64), instructions = Vector{Instruction}(), numancillas = zero(Int64))
+PB.field_numbers(::Type{Block}) = (;numqubits = 1, numbits = 2, numzvars = 3, instructions = 4, numancillas = 5)
 
 function PB.decode(d::PB.AbstractProtoDecoder, ::Type{<:Block})
     numqubits = zero(Int64)
     numbits = zero(Int64)
     numzvars = zero(Int64)
     instructions = PB.BufferedVector{Instruction}()
+    numancillas = zero(Int64)
     while !PB.message_done(d)
         field_number, wire_type = PB.decode_tag(d)
         if field_number == 1
@@ -706,11 +727,13 @@ function PB.decode(d::PB.AbstractProtoDecoder, ::Type{<:Block})
             numzvars = PB.decode(d, Int64)
         elseif field_number == 4
             PB.decode!(d, instructions)
+        elseif field_number == 5
+            numancillas = PB.decode(d, Int64)
         else
             Base.skip(d, wire_type)
         end
     end
-    return Block(numqubits, numbits, numzvars, instructions[])
+    return Block(numqubits, numbits, numzvars, instructions[], numancillas)
 end
 
 function PB.encode(e::PB.AbstractProtoEncoder, x::Block)
@@ -719,6 +742,7 @@ function PB.encode(e::PB.AbstractProtoEncoder, x::Block)
     x.numbits != zero(Int64) && PB.encode(e, 2, x.numbits)
     x.numzvars != zero(Int64) && PB.encode(e, 3, x.numzvars)
     !isempty(x.instructions) && PB.encode(e, 4, x.instructions)
+    x.numancillas != zero(Int64) && PB.encode(e, 5, x.numancillas)
     return position(e.io) - initpos
 end
 function PB._encoded_size(x::Block)
@@ -727,6 +751,65 @@ function PB._encoded_size(x::Block)
     x.numbits != zero(Int64) && (encoded_size += PB._encoded_size(x.numbits, 2))
     x.numzvars != zero(Int64) && (encoded_size += PB._encoded_size(x.numzvars, 3))
     !isempty(x.instructions) && (encoded_size += PB._encoded_size(x.instructions, 4))
+    x.numancillas != zero(Int64) && (encoded_size += PB._encoded_size(x.numancillas, 5))
+    return encoded_size
+end
+
+const BlockDecl = var"##Stub#BlockDecl"{var"##Stub#Instruction"{var"##Stub#Operation"}}
+PB.default_values(::Type{BlockDecl}) = (;name = "", args = Vector{Symbol}(), numqubits = zero(Int64), numbits = zero(Int64), numzvars = zero(Int64), instructions = Vector{Instruction}(), numancillas = zero(Int64))
+PB.field_numbers(::Type{BlockDecl}) = (;name = 1, args = 2, numqubits = 3, numbits = 4, numzvars = 5, instructions = 6, numancillas = 7)
+
+function PB.decode(d::PB.AbstractProtoDecoder, ::Type{<:BlockDecl})
+    name = ""
+    args = PB.BufferedVector{Symbol}()
+    numqubits = zero(Int64)
+    numbits = zero(Int64)
+    numzvars = zero(Int64)
+    instructions = PB.BufferedVector{Instruction}()
+    numancillas = zero(Int64)
+    while !PB.message_done(d)
+        field_number, wire_type = PB.decode_tag(d)
+        if field_number == 1
+            name = PB.decode(d, String)
+        elseif field_number == 2
+            PB.decode!(d, args)
+        elseif field_number == 3
+            numqubits = PB.decode(d, Int64)
+        elseif field_number == 4
+            numbits = PB.decode(d, Int64)
+        elseif field_number == 5
+            numzvars = PB.decode(d, Int64)
+        elseif field_number == 6
+            PB.decode!(d, instructions)
+        elseif field_number == 7
+            numancillas = PB.decode(d, Int64)
+        else
+            Base.skip(d, wire_type)
+        end
+    end
+    return BlockDecl(name, args[], numqubits, numbits, numzvars, instructions[], numancillas)
+end
+
+function PB.encode(e::PB.AbstractProtoEncoder, x::BlockDecl)
+    initpos = position(e.io)
+    !isempty(x.name) && PB.encode(e, 1, x.name)
+    !isempty(x.args) && PB.encode(e, 2, x.args)
+    x.numqubits != zero(Int64) && PB.encode(e, 3, x.numqubits)
+    x.numbits != zero(Int64) && PB.encode(e, 4, x.numbits)
+    x.numzvars != zero(Int64) && PB.encode(e, 5, x.numzvars)
+    !isempty(x.instructions) && PB.encode(e, 6, x.instructions)
+    x.numancillas != zero(Int64) && PB.encode(e, 7, x.numancillas)
+    return position(e.io) - initpos
+end
+function PB._encoded_size(x::BlockDecl)
+    encoded_size = 0
+    !isempty(x.name) && (encoded_size += PB._encoded_size(x.name, 1))
+    !isempty(x.args) && (encoded_size += PB._encoded_size(x.args, 2))
+    x.numqubits != zero(Int64) && (encoded_size += PB._encoded_size(x.numqubits, 3))
+    x.numbits != zero(Int64) && (encoded_size += PB._encoded_size(x.numbits, 4))
+    x.numzvars != zero(Int64) && (encoded_size += PB._encoded_size(x.numzvars, 5))
+    !isempty(x.instructions) && (encoded_size += PB._encoded_size(x.instructions, 6))
+    x.numancillas != zero(Int64) && (encoded_size += PB._encoded_size(x.numancillas, 7))
     return encoded_size
 end
 
@@ -1023,13 +1106,14 @@ function PB._encoded_size(x::ExpectationValue)
 end
 
 const GateDecl = var"##Stub#GateDecl"{var"##Stub#Instruction"{var"##Stub#Operation"}}
-PB.default_values(::Type{GateDecl}) = (;name = "", args = Vector{Symbol}(), instructions = Vector{Instruction}())
-PB.field_numbers(::Type{GateDecl}) = (;name = 1, args = 2, instructions = 3)
+PB.default_values(::Type{GateDecl}) = (;name = "", args = Vector{Symbol}(), instructions = Vector{Instruction}(), numancillas = zero(Int64))
+PB.field_numbers(::Type{GateDecl}) = (;name = 1, args = 2, instructions = 3, numancillas = 4)
 
 function PB.decode(d::PB.AbstractProtoDecoder, ::Type{<:GateDecl})
     name = ""
     args = PB.BufferedVector{Symbol}()
     instructions = PB.BufferedVector{Instruction}()
+    numancillas = zero(Int64)
     while !PB.message_done(d)
         field_number, wire_type = PB.decode_tag(d)
         if field_number == 1
@@ -1038,11 +1122,13 @@ function PB.decode(d::PB.AbstractProtoDecoder, ::Type{<:GateDecl})
             PB.decode!(d, args)
         elseif field_number == 3
             PB.decode!(d, instructions)
+        elseif field_number == 4
+            numancillas = PB.decode(d, Int64)
         else
             Base.skip(d, wire_type)
         end
     end
-    return GateDecl(name, args[], instructions[])
+    return GateDecl(name, args[], instructions[], numancillas)
 end
 
 function PB.encode(e::PB.AbstractProtoEncoder, x::GateDecl)
@@ -1050,6 +1136,7 @@ function PB.encode(e::PB.AbstractProtoEncoder, x::GateDecl)
     !isempty(x.name) && PB.encode(e, 1, x.name)
     !isempty(x.args) && PB.encode(e, 2, x.args)
     !isempty(x.instructions) && PB.encode(e, 3, x.instructions)
+    x.numancillas != zero(Int64) && PB.encode(e, 4, x.numancillas)
     return position(e.io) - initpos
 end
 function PB._encoded_size(x::GateDecl)
@@ -1057,6 +1144,7 @@ function PB._encoded_size(x::GateDecl)
     !isempty(x.name) && (encoded_size += PB._encoded_size(x.name, 1))
     !isempty(x.args) && (encoded_size += PB._encoded_size(x.args, 2))
     !isempty(x.instructions) && (encoded_size += PB._encoded_size(x.instructions, 3))
+    x.numancillas != zero(Int64) && (encoded_size += PB._encoded_size(x.numancillas, 4))
     return encoded_size
 end
 
@@ -1733,6 +1821,44 @@ function PB._encoded_size(x::WhileStatement)
     return encoded_size
 end
 
+const BlockCall = var"##Stub#BlockCall"{var"##Stub#Operation"}
+PB.default_values(::Type{BlockCall}) = (;id = zero(UInt64), args = Vector{Arg}(), decl = nothing)
+PB.field_numbers(::Type{BlockCall}) = (;id = 1, args = 2, decl = 3)
+
+function PB.decode(d::PB.AbstractProtoDecoder, ::Type{<:BlockCall})
+    id = zero(UInt64)
+    args = PB.BufferedVector{Arg}()
+    decl = Ref{Union{Nothing,BlockDecl}}(nothing)
+    while !PB.message_done(d)
+        field_number, wire_type = PB.decode_tag(d)
+        if field_number == 1
+            id = PB.decode(d, UInt64)
+        elseif field_number == 2
+            PB.decode!(d, args)
+        elseif field_number == 3
+            PB.decode!(d, decl)
+        else
+            Base.skip(d, wire_type)
+        end
+    end
+    return BlockCall(id, args[], decl[])
+end
+
+function PB.encode(e::PB.AbstractProtoEncoder, x::BlockCall)
+    initpos = position(e.io)
+    x.id != zero(UInt64) && PB.encode(e, 1, x.id)
+    !isempty(x.args) && PB.encode(e, 2, x.args)
+    !isnothing(x.decl) && PB.encode(e, 3, x.decl)
+    return position(e.io) - initpos
+end
+function PB._encoded_size(x::BlockCall)
+    encoded_size = 0
+    x.id != zero(UInt64) && (encoded_size += PB._encoded_size(x.id, 1))
+    !isempty(x.args) && (encoded_size += PB._encoded_size(x.args, 2))
+    !isnothing(x.decl) && (encoded_size += PB._encoded_size(x.decl, 3))
+    return encoded_size
+end
+
 const Circuit = var"##Stub#Circuit"{var"##Stub#Operation",var"##Stub#Declaration"{var"##Stub#Operation"}}
 PB.default_values(::Type{Circuit}) = (;instructions = Vector{Instruction}(), decls = Dict{UInt64,Declaration}(), declorder = Vector{UInt64}())
 PB.field_numbers(::Type{Circuit}) = (;instructions = 1, decls = 2, declorder = 3)
@@ -1768,49 +1894,6 @@ function PB._encoded_size(x::Circuit)
     !isempty(x.instructions) && (encoded_size += PB._encoded_size(x.instructions, 1))
     !isempty(x.decls) && (encoded_size += PB._encoded_size(x.decls, 2))
     !isempty(x.declorder) && (encoded_size += PB._encoded_size(x.declorder, 3))
-    return encoded_size
-end
-
-const Declaration = var"##Stub#Declaration"{var"##Stub#Operation"}
-PB.oneof_field_types(::Type{Declaration}) = (;
-    decl = (;gatedecl=GateDecl, block=Block),
-)
-PB.default_values(::Type{Declaration}) = (;gatedecl = nothing, block = nothing)
-PB.field_numbers(::Type{Declaration}) = (;gatedecl = 1, block = 2)
-
-function PB.decode(d::PB.AbstractProtoDecoder, ::Type{<:Declaration})
-    decl = nothing
-    while !PB.message_done(d)
-        field_number, wire_type = PB.decode_tag(d)
-        if field_number == 1
-            decl = OneOf(:gatedecl, PB.decode(d, Ref{GateDecl}))
-        elseif field_number == 2
-            decl = OneOf(:block, PB.decode(d, Ref{Block}))
-        else
-            Base.skip(d, wire_type)
-        end
-    end
-    return Declaration(decl)
-end
-
-function PB.encode(e::PB.AbstractProtoEncoder, x::Declaration)
-    initpos = position(e.io)
-    if isnothing(x.decl);
-    elseif x.decl.name === :gatedecl
-        PB.encode(e, 1, x.decl[]::GateDecl)
-    elseif x.decl.name === :block
-        PB.encode(e, 2, x.decl[]::Block)
-    end
-    return position(e.io) - initpos
-end
-function PB._encoded_size(x::Declaration)
-    encoded_size = 0
-    if isnothing(x.decl);
-    elseif x.decl.name === :gatedecl
-        encoded_size += PB._encoded_size(x.decl[]::GateDecl, 1)
-    elseif x.decl.name === :block
-        encoded_size += PB._encoded_size(x.decl[]::Block, 2)
-    end
     return encoded_size
 end
 
@@ -1877,6 +1960,55 @@ function PB._encoded_size(x::RescaledGate)
     encoded_size = 0
     !isnothing(x.operation) && (encoded_size += PB._encoded_size(x.operation, 1))
     !isnothing(x.scale) && (encoded_size += PB._encoded_size(x.scale, 2))
+    return encoded_size
+end
+
+const Declaration = var"##Stub#Declaration"{var"##Stub#Operation"}
+PB.oneof_field_types(::Type{Declaration}) = (;
+    decl = (;gatedecl=GateDecl, block=Block, blockdecl=BlockDecl),
+)
+PB.default_values(::Type{Declaration}) = (;gatedecl = nothing, block = nothing, blockdecl = nothing)
+PB.field_numbers(::Type{Declaration}) = (;gatedecl = 1, block = 2, blockdecl = 3)
+
+function PB.decode(d::PB.AbstractProtoDecoder, ::Type{<:Declaration})
+    decl = nothing
+    while !PB.message_done(d)
+        field_number, wire_type = PB.decode_tag(d)
+        if field_number == 1
+            decl = OneOf(:gatedecl, PB.decode(d, Ref{GateDecl}))
+        elseif field_number == 2
+            decl = OneOf(:block, PB.decode(d, Ref{Block}))
+        elseif field_number == 3
+            decl = OneOf(:blockdecl, PB.decode(d, Ref{BlockDecl}))
+        else
+            Base.skip(d, wire_type)
+        end
+    end
+    return Declaration(decl)
+end
+
+function PB.encode(e::PB.AbstractProtoEncoder, x::Declaration)
+    initpos = position(e.io)
+    if isnothing(x.decl);
+    elseif x.decl.name === :gatedecl
+        PB.encode(e, 1, x.decl[]::GateDecl)
+    elseif x.decl.name === :block
+        PB.encode(e, 2, x.decl[]::Block)
+    elseif x.decl.name === :blockdecl
+        PB.encode(e, 3, x.decl[]::BlockDecl)
+    end
+    return position(e.io) - initpos
+end
+function PB._encoded_size(x::Declaration)
+    encoded_size = 0
+    if isnothing(x.decl);
+    elseif x.decl.name === :gatedecl
+        encoded_size += PB._encoded_size(x.decl[]::GateDecl, 1)
+    elseif x.decl.name === :block
+        encoded_size += PB._encoded_size(x.decl[]::Block, 2)
+    elseif x.decl.name === :blockdecl
+        encoded_size += PB._encoded_size(x.decl[]::BlockDecl, 3)
+    end
     return encoded_size
 end
 
@@ -2173,10 +2305,10 @@ end
 
 const Operation = var"##Stub#Operation"
 PB.oneof_field_types(::Type{Operation}) = (;
-    operation = (;simplegate=SimpleGate, customgate=CustomGate, generalized=Generalized, control=Control, power=Power, inverse=Inverse, parallel=Parallel, gatecall=GateCall, paulistring=pauli_pb.PauliString, simplekrauschannel=SimpleKrausChannel, customkrauschannel=CustomKrausChannel, depolarizingchannel=DepolarizingChannel, mixedunitarychannel=MixedUnitaryChannel, paulichannel=PauliChannel, simpleoperator=SimpleOperator, customoperator=CustomOperator, rescaledgate=RescaledGate, simpleoperation=SimpleOperation, ifstatement=IfStatement, generalizedoperation=GeneralizedOperation, amplitude=Amplitude, expectationvalue=ExpectationValue, simpleannotation=SimpleAnnotation, generalizedannotation=GeneralizedAnnotation, cachedgatecall=CachedGateCall, rpauli=RPauli, repeat=Repeat, block=Block, readouterr=ReadoutErr, loss=Loss, lossyoperator=LossyOperator, whilestatement=WhileStatement, customdiagonalgate=CustomDiagonalGate, measurepauli=MeasurePauli),
+    operation = (;simplegate=SimpleGate, customgate=CustomGate, generalized=Generalized, control=Control, power=Power, inverse=Inverse, parallel=Parallel, gatecall=GateCall, paulistring=pauli_pb.PauliString, simplekrauschannel=SimpleKrausChannel, customkrauschannel=CustomKrausChannel, depolarizingchannel=DepolarizingChannel, mixedunitarychannel=MixedUnitaryChannel, paulichannel=PauliChannel, simpleoperator=SimpleOperator, customoperator=CustomOperator, rescaledgate=RescaledGate, simpleoperation=SimpleOperation, ifstatement=IfStatement, generalizedoperation=GeneralizedOperation, amplitude=Amplitude, expectationvalue=ExpectationValue, simpleannotation=SimpleAnnotation, generalizedannotation=GeneralizedAnnotation, cachedgatecall=CachedGateCall, rpauli=RPauli, repeat=Repeat, block=Block, readouterr=ReadoutErr, loss=Loss, lossyoperator=LossyOperator, whilestatement=WhileStatement, customdiagonalgate=CustomDiagonalGate, measurepauli=MeasurePauli, blockcall=BlockCall),
 )
-PB.default_values(::Type{Operation}) = (;simplegate = nothing, customgate = nothing, generalized = nothing, control = nothing, power = nothing, inverse = nothing, parallel = nothing, gatecall = nothing, paulistring = nothing, simplekrauschannel = nothing, customkrauschannel = nothing, depolarizingchannel = nothing, mixedunitarychannel = nothing, paulichannel = nothing, simpleoperator = nothing, customoperator = nothing, rescaledgate = nothing, simpleoperation = nothing, ifstatement = nothing, generalizedoperation = nothing, amplitude = nothing, expectationvalue = nothing, simpleannotation = nothing, generalizedannotation = nothing, cachedgatecall = nothing, rpauli = nothing, repeat = nothing, block = nothing, readouterr = nothing, loss = nothing, lossyoperator = nothing, whilestatement = nothing, customdiagonalgate = nothing, measurepauli = nothing)
-PB.field_numbers(::Type{Operation}) = (;simplegate = 1, customgate = 2, generalized = 3, control = 4, power = 5, inverse = 6, parallel = 7, gatecall = 8, paulistring = 9, simplekrauschannel = 10, customkrauschannel = 11, depolarizingchannel = 12, mixedunitarychannel = 13, paulichannel = 14, simpleoperator = 15, customoperator = 16, rescaledgate = 17, simpleoperation = 18, ifstatement = 19, generalizedoperation = 20, amplitude = 21, expectationvalue = 22, simpleannotation = 23, generalizedannotation = 24, cachedgatecall = 25, rpauli = 26, repeat = 27, block = 28, readouterr = 29, loss = 30, lossyoperator = 31, whilestatement = 32, customdiagonalgate = 33, measurepauli = 34)
+PB.default_values(::Type{Operation}) = (;simplegate = nothing, customgate = nothing, generalized = nothing, control = nothing, power = nothing, inverse = nothing, parallel = nothing, gatecall = nothing, paulistring = nothing, simplekrauschannel = nothing, customkrauschannel = nothing, depolarizingchannel = nothing, mixedunitarychannel = nothing, paulichannel = nothing, simpleoperator = nothing, customoperator = nothing, rescaledgate = nothing, simpleoperation = nothing, ifstatement = nothing, generalizedoperation = nothing, amplitude = nothing, expectationvalue = nothing, simpleannotation = nothing, generalizedannotation = nothing, cachedgatecall = nothing, rpauli = nothing, repeat = nothing, block = nothing, readouterr = nothing, loss = nothing, lossyoperator = nothing, whilestatement = nothing, customdiagonalgate = nothing, measurepauli = nothing, blockcall = nothing)
+PB.field_numbers(::Type{Operation}) = (;simplegate = 1, customgate = 2, generalized = 3, control = 4, power = 5, inverse = 6, parallel = 7, gatecall = 8, paulistring = 9, simplekrauschannel = 10, customkrauschannel = 11, depolarizingchannel = 12, mixedunitarychannel = 13, paulichannel = 14, simpleoperator = 15, customoperator = 16, rescaledgate = 17, simpleoperation = 18, ifstatement = 19, generalizedoperation = 20, amplitude = 21, expectationvalue = 22, simpleannotation = 23, generalizedannotation = 24, cachedgatecall = 25, rpauli = 26, repeat = 27, block = 28, readouterr = 29, loss = 30, lossyoperator = 31, whilestatement = 32, customdiagonalgate = 33, measurepauli = 34, blockcall = 35)
 
 function PB.decode(d::PB.AbstractProtoDecoder, ::Type{<:Operation})
     operation = nothing
@@ -2250,6 +2382,8 @@ function PB.decode(d::PB.AbstractProtoDecoder, ::Type{<:Operation})
             operation = OneOf(:customdiagonalgate, PB.decode(d, Ref{CustomDiagonalGate}))
         elseif field_number == 34
             operation = OneOf(:measurepauli, PB.decode(d, Ref{MeasurePauli}))
+        elseif field_number == 35
+            operation = OneOf(:blockcall, PB.decode(d, Ref{BlockCall}))
         else
             Base.skip(d, wire_type)
         end
@@ -2328,6 +2462,8 @@ function PB.encode(e::PB.AbstractProtoEncoder, x::Operation)
         PB.encode(e, 33, x.operation[]::CustomDiagonalGate)
     elseif x.operation.name === :measurepauli
         PB.encode(e, 34, x.operation[]::MeasurePauli)
+    elseif x.operation.name === :blockcall
+        PB.encode(e, 35, x.operation[]::BlockCall)
     end
     return position(e.io) - initpos
 end
@@ -2402,6 +2538,8 @@ function PB._encoded_size(x::Operation)
         encoded_size += PB._encoded_size(x.operation[]::CustomDiagonalGate, 33)
     elseif x.operation.name === :measurepauli
         encoded_size += PB._encoded_size(x.operation[]::MeasurePauli, 34)
+    elseif x.operation.name === :blockcall
+        encoded_size += PB._encoded_size(x.operation[]::BlockCall, 35)
     end
     return encoded_size
 end

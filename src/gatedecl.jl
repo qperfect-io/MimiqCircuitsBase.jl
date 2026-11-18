@@ -16,9 +16,16 @@
 #
 
 @doc raw"""
-    GateDecl(name, args, circuit)
+    GateDecl(name, args, circuit; numancillas=0)
 
 Define a new gate of given name, arguments and circuit.
+
+`numancillas` is the number of its last qubits that are clean ancillas: each
+call must find them in ``|0⟩``, and gets them back in ``|0⟩``. On other
+inputs the call is still a unitary on all its qubits, but not the gate it was
+built for. [`decompose`](@ref) sets it when it wraps a decomposition that uses
+clean ancillas. It must be between 0 and the number of qubits, otherwise an
+`ArgumentError` is thrown.
 
 ### Examples
 
@@ -50,8 +57,9 @@ struct GateDecl{N,M}
     name::Symbol
     _arguments::NTuple{M,Symbolics.BasicSymbolic}
     _instructions::Vector{<:Instruction}
+    numancillas::Int
 
-    function GateDecl(name, args, instructions)
+    function GateDecl(name, args, instructions; numancillas::Integer=0)
         if !all(x -> SymbolicUtils.issym(x), args)
             throw(ArgumentError("All GateDecl arguments must be symbols."))
         end
@@ -75,11 +83,15 @@ struct GateDecl{N,M}
         nq = numqubits(instructions)
         np = length(args)
 
-        return new{nq,np}(name, args, copy(instructions))
+        _check_numancillas(numancillas, nq)
+
+        return new{nq,np}(name, args, copy(instructions), numancillas)
     end
 end
 
-GateDecl(name, args, circuit::Circuit) = GateDecl(name, args, circuit._instructions)
+GateDecl(name, args, circuit::Circuit; kwargs...) = GateDecl(name, args, circuit._instructions; kwargs...)
+
+numancillas(decl::GateDecl) = decl.numancillas
 
 # TODO: check for undefined parameters
 # @gatedecl macro defined in dsl.jl
@@ -88,6 +100,7 @@ function Base.:(==)(d1::GateDecl, d2::GateDecl)
     d1.name == d2.name || return false
     d1._arguments == d2._arguments || return false
     d1._instructions == d2._instructions || return false
+    d1.numancillas == d2.numancillas || return false
     return true
 end
 
@@ -145,6 +158,8 @@ struct GateCall{N,M} <: AbstractGate{N}
 end
 
 opname(::Type{<:GateCall}) = "GateCall"
+
+numancillas(g::GateCall) = numancillas(g._decl)
 
 numparams(::Type{<:GateCall{N,M}}) where {N,M} = M
 

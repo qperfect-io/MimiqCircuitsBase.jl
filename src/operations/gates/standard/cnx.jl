@@ -217,3 +217,125 @@ function decompose_step!(builder, ::CanonicalRewrite, ::GateC3X, qtargets, _, _)
 
     return builder
 end
+
+# A multi-controlled X can use qubits outside its targets. In order of
+# preference:
+#
+# - clean ancillas and measurements: a ladder of ANDs computed with 4 T each
+#   and uncomputed by measurement with none (Jones 2013, Gidney 2018), also
+#   for the Toffoli;
+# - clean ancillas: an AND ladder of relative-phase Toffolis (Maslov 2016)
+#   computes the AND of the first controls into them, so 4 T per ancilla and
+#   step instead of a full Toffoli;
+# - borrowed qubits: one gives a linear count of Toffolis (Lemma 7.3 of
+#   Barenco et al. 1995), n-2 give 4(n-2) (Lemma 7.2).
+#
+# GateC3X is included: its ancilla-free form needs π/8 phases, which have no
+# exact Clifford+T decomposition.
+function decompose_step!(builder, rule::CanonicalRewrite, control::Control{N,1,L,GateX}, qtargets, ctargets, ztargets, ctx::DecompositionContext) where {N,L}
+    controls = collect(qtargets[1:N])
+    target = qtargets[N+1]
+
+    if N >= 2 && _can_measure(ctx)
+        clean = _take_clean!(ctx, N - 1)
+        if !isempty(clean)
+            return _cnx_measured_ladder!(builder, controls, target, clean, ctx.bit)
+        end
+    end
+
+    N >= 3 || return decompose_step!(builder, rule, control, qtargets, ctargets, ztargets)
+
+    clean = _take_clean!(ctx, N - 2)
+    if !isempty(clean)
+        return _cnx_ladder!(builder, controls, target, clean)
+    end
+
+    borrowed = _borrowable(ctx, qtargets, N - 2)
+    if !isempty(borrowed)
+        return _controlx_decompose!(builder, controls, target, borrowed)
+    end
+
+    return decompose_step!(builder, rule, control, qtargets, ctargets, ztargets)
+end
+
+# Relative-phase Toffoli: a Toffoli up to a diagonal phase on its three qubits,
+# with 4 T gates. It is its own inverse.
+function _rccx!(builder, a, b, t)
+    push!(builder, GateH(), t)
+    push!(builder, GateT(), t)
+    push!(builder, GateCX(), b, t)
+    push!(builder, GateTDG(), t)
+    push!(builder, GateCX(), a, t)
+    push!(builder, GateT(), t)
+    push!(builder, GateCX(), b, t)
+    push!(builder, GateTDG(), t)
+    push!(builder, GateH(), t)
+    return builder
+end
+
+# C_n(X) with m clean ancillas, m <= n - 2. The ladder stores in ancilla i the
+# AND of the first i+1 controls. The remaining controls and the last ancilla
+# control the target, then the ladder is undone. The relative phases of the
+# ladder cancel: they are diagonal, and the middle gate only reads the ladder
+# qubits. With m < n - 2 the middle gate still has 3 or more controls; it
+# borrows the qubits the ladder has already read, which sit idle meanwhile.
+function _cnx_ladder!(builder, controls, target, ancillas)
+    m = length(ancillas)
+    for a in ancillas
+        push!(builder, AncillaAlloc(), a)
+    end
+    ladder = _rccx!(Circuit(), controls[1], controls[2], ancillas[1])
+    for i in 2:m
+        _rccx!(ladder, ancillas[i-1], controls[i+1], ancillas[i])
+    end
+    rest = controls[m+2:end]
+    append!(builder, ladder)
+    _controlx_decompose!(builder, [ancillas[m]; rest], target, [controls[1:m+1]; ancillas[1:m-1]])
+    append!(builder, inverse(ladder))
+    for a in ancillas
+        push!(builder, AncillaFree(), a)
+    end
+    return builder
+end
+
+# Logical AND of `a` and `b` into `t`, which must be in |0⟩. The relative
+# Toffoli leaves a phase i on |111⟩ only, among the states it reaches from
+# t = 0; the S† removes it.
+function _and!(builder, a, b, t)
+    _rccx!(builder, a, b, t)
+    push!(builder, GateSDG(), t)
+    return builder
+end
+
+# Undo `_and!(builder, a, b, t)` by measurement, without T gates. Measured in
+# the X basis, `t` gives a random bit; when it is 1 the state has picked up a
+# phase -1 where a and b are both 1, which a CZ conditioned on the bit undoes.
+# The reset returns `t` to |0⟩.
+function _unand!(builder, a, b, t, bit)
+    push!(builder, GateH(), t)
+    push!(builder, MeasureReset(), t, bit)
+    push!(builder, IfStatement(GateCZ(), bs"1"), a, b, bit)
+    return builder
+end
+
+# C_n(X) with m clean ancillas, m <= n - 1, and a bit to measure into. As
+# `_cnx_ladder!`, but each step is an exact AND, undone by measurement.
+function _cnx_measured_ladder!(builder, controls, target, ancillas, bit)
+    m = length(ancillas)
+    steps = [(i == 1 ? controls[1] : ancillas[i-1], controls[i+1], ancillas[i]) for i in 1:m]
+    for a in ancillas
+        push!(builder, AncillaAlloc(), a)
+    end
+    for (a, b, t) in steps
+        _and!(builder, a, b, t)
+    end
+    rest = controls[m+2:end]
+    _controlx_decompose!(builder, [ancillas[m]; rest], target, [controls[1:m+1]; ancillas[1:m-1]])
+    for (a, b, t) in reverse(steps)
+        _unand!(builder, a, b, t, bit)
+    end
+    for a in ancillas
+        push!(builder, AncillaFree(), a)
+    end
+    return builder
+end

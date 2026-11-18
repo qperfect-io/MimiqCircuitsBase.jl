@@ -64,11 +64,8 @@ struct GateCustomDiagonal{N} <: AbstractGate{N}
 
         dd = convert(Vector{Complex{Num}}, collect(d))
 
-        if !any(issymbolic, dd)
-            ud = unwrapvalue.(dd)
-            if !all(x -> isapprox(abs(x), 1; rtol=1e-8), ud)
-                throw(ArgumentError("Custom diagonal not unitary (|dᵢ| ≉ 1)."))
-            end
+        if !all(x -> issymbolic(x) || isapprox(abs(unwrapvalue(x)), 1; rtol=1e-8), dd)
+            throw(ArgumentError("Custom diagonal not unitary (|dᵢ| ≉ 1)."))
         end
 
         return new{N}(dd)

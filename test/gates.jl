@@ -360,3 +360,11 @@ nothing
     decomp = decompose_step(Power(PhaseGradient(2), 1 // 2))
     @test [MimiqCircuitsBase.unwrapvalue(getoperation(i).λ) for i in decomp] ≈ [π / 4, π / 2]
 end
+
+@testset "Diffusion(1) and GateCustomDiagonal checks" begin
+    @test map(i -> typeof(getoperation(i)), collect(decompose_step(Diffusion(1)))) == [GateRY, GateZ, GateRY]
+
+    @variables x
+    @test_throws ArgumentError GateCustomDiagonal([2, x])
+    @test GateCustomDiagonal([im, x]) isa GateCustomDiagonal
+end

@@ -15,7 +15,7 @@
 #
 
 """
-    QASMBasis <: DecompositionBasis
+    QASMBasis(; borrow=false, max_ancillas=0, allow_measurement=false)
 
 Decomposition basis targeting the OpenQASM 2.0 gate library.
 
@@ -53,6 +53,7 @@ The following gate categories are terminal (not decomposed further):
 **Non-unitary operations:**
 - `Measure`, `Reset`, `Barrier`
 - `IfStatement` (if inner operation is terminal)
+- Annotations, such as [`AncillaAlloc`](@ref), which an OpenQASM writer drops
 
 **Other operations:**
 - `GateCall` (custom gate invocations)
@@ -62,6 +63,24 @@ state and bit as its canonical decomposition, a measurement and a `GateX` condit
 on its outcome, and unlike that conditional it can be written for a circuit of any
 number of bits. OpenQASM 2.0 has no loops, so `WhileStatement` throws a
 [`DecompositionError`](@ref).
+
+# Keyword Arguments
+
+- `borrow::Bool = false`: let decompositions borrow qubits of the circuit
+  that the operation does not act on. A borrowed qubit can be in any state;
+  the decomposition leaves it as it found it.
+- `max_ancillas::Integer = 0`: let decompositions add up to this many clean
+  ancillas, numbered after the qubits of the circuit and marked with
+  [`AncillaAlloc`](@ref) and [`AncillaFree`](@ref). Ancillas freed by one
+  operation are reused by the next.
+- `allow_measurement::Bool = false`: with `max_ancillas`, let decompositions
+  undo steps by measuring an ancilla into one extra bit, numbered after the
+  bits of the circuit. A circuit without bits is refused with an
+  `ArgumentError`.
+
+The ancilla options only change how multi-controlled X gates are
+decomposed. Circuits whose width is unknown, such as a lone operation, get
+no ancillas.
 
 # Examples
 ```julia
@@ -75,7 +94,13 @@ saveqasm(qasm_circuit, "output.qasm")
 
 See also [`DecompositionBasis`](@ref), [`CanonicalBasis`](@ref), [`CliffordTBasis`](@ref).
 """
-struct QASMBasis <: DecompositionBasis end
+struct QASMBasis <: DecompositionBasis
+    ancillas::_AncillaOptions
+end
+
+QASMBasis(; borrow::Bool=false, max_ancillas::Integer=0, allow_measurement::Bool=false) = QASMBasis(_AncillaOptions(borrow, max_ancillas, allow_measurement))
+
+_ancillaoptions(basis::QASMBasis) = basis.ancillas
 
 # === terminal operations — OpenQASM 2.0 / qelib1.inc ===
 
@@ -143,6 +168,9 @@ isterminal(::QASMBasis, ::Measure) = true
 isterminal(::QASMBasis, ::Reset) = true
 isterminal(::QASMBasis, ::Barrier) = true
 
+# Annotations carry no gate. An OpenQASM writer drops them.
+isterminal(::QASMBasis, ::AbstractAnnotation) = true
+
 # --- Custom gate calls (user-defined gates) ---
 
 # A GateCall is terminal only if all instructions inside its declaration are terminal.
@@ -172,6 +200,13 @@ function decompose!(builder, ::QASMBasis, ::WhileStatement, _, _, _)
     throw(DecompositionError(
         "WhileStatement cannot be decomposed into the OpenQASM 2.0 basis, which has no loops."
     ))
+end
+
+function decompose!(builder, basis::QASMBasis, op::_ContextOps, qtargets, ctargets, ztargets, ctx::DecompositionContext)
+    if matches(CanonicalRewrite(), op)
+        return decompose_step!(builder, CanonicalRewrite(), op, qtargets, ctargets, ztargets, ctx)
+    end
+    return decompose!(builder, basis, op, qtargets, ctargets, ztargets)
 end
 
 function decompose!(builder, ::QASMBasis, op::Operation, qtargets, ctargets, ztargets)

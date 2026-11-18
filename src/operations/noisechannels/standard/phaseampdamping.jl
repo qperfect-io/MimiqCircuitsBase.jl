@@ -100,16 +100,18 @@ function krausoperators(pad::PhaseAmplitudeDamping)
     gamma = pad.gamma
     beta = pad.beta
 
-    K = sqrt(1 - gamma) * (1 - 2 * beta) / (1 - gamma * p)
+    # (1 - gamma) / (1 - gamma * p) is 1 at p == 1; dividing would give 0/0 at gamma == 1.
+    ratio = !issymbolic(p) && unwrapvalue(p) == 1 ? 1 : (1 - gamma) / (1 - gamma * p)
 
     pref1 = sqrt(1 - gamma * p)
-    pref2 = sqrt(1 - gamma * (1 - p) - (1 - gamma * p) * K^2)
+    pref1K = (1 - 2 * beta) * sqrt(ratio)
+    pref2 = sqrt(1 - gamma * (1 - p) - ratio * (1 - 2 * beta)^2)
     pref3 = sqrt(gamma * p)
     pref4 = sqrt(gamma * (1 - p))
 
     # TODO: Change order depending on parameters to evaluate always the highest norm op first.
     return [
-        DiagonalOp(pref1 * K, pref1),
+        DiagonalOp(pref1K, pref1),
         Projector0(pref2),
         SigmaMinus(pref3),
         SigmaPlus(pref4)
@@ -133,7 +135,7 @@ but it is parametrized instead as
 ```
 
 where ``\Gamma_1=1/T_1`` and ``\Gamma_2=1/T_2``, and the parameters must fulfill
-``T_1 \geq 0``, ``T_2 \leq 2 T_1``, ``t \geq 0``, and ``0 \leq n_e \leq 1``.
+``T_1 > 0``, ``0 < T_2 \leq 2 T_1``, ``t \geq 0``, and ``0 \leq n_e \leq 1``.
 
 These parameters can be related to the ones used to define the [`PhaseAmplitudeDamping`](@ref)
 channel through ``p = 1-n_e``, ``\gamma = 1-e^{-\Gamma_1 t}``, and
@@ -164,10 +166,13 @@ struct ThermalNoise <: AbstractKrausChannel{1}
     ne::Num
 
     function ThermalNoise(T1, T2, time, ne)
-        if !(T1 isa Symbolics.Num) && (T1 < 0)
-            throw(ArgumentError("Value of T1 must be >= 0."))
+        if !(T1 isa Symbolics.Num) && (T1 <= 0)
+            throw(ArgumentError("Value of T1 must be > 0."))
         end
-        if !(T2 isa Symbolics.Num) && (T2 > 2 * T1)
+        if !(T2 isa Symbolics.Num) && (T2 <= 0)
+            throw(ArgumentError("Value of T2 must be > 0."))
+        end
+        if !(T1 isa Symbolics.Num || T2 isa Symbolics.Num) && (T2 > 2 * T1)
             throw(ArgumentError("Value of T2 must fulfill T2 <= 2*T1."))
         end
         if !(time isa Symbolics.Num) && (time < 0)
@@ -192,24 +197,7 @@ function evaluate(tn::ThermalNoise, d::Dict=Dict())
     concrete_time = issymbolic(evaluated_time) ? evaluated_time : unwrapvalue(evaluated_time)
     concrete_ne = issymbolic(evaluated_ne) ? evaluated_ne : unwrapvalue(evaluated_ne)
 
-    if (concrete_T1 isa Real) && (concrete_T2 isa Real) && (concrete_time isa Real) && (concrete_ne isa Real)
-        if concrete_T1 < 0
-            throw(ArgumentError("Value of T1 must be >= 0."))
-        end
-        if concrete_T2 > 2 * concrete_T1
-            throw(ArgumentError("Value of T2 must fulfill T2 <= 2*T1."))
-        end
-        if concrete_time < 0
-            throw(ArgumentError("time must be a positive parameter."))
-        end
-        if concrete_ne < 0 || concrete_ne > 1
-            throw(ArgumentError("Value of ne must be between 0 and 1."))
-        end
-
-        return ThermalNoise(concrete_T1, concrete_T2, concrete_time, concrete_ne)
-    end
-
-    # If any parameter is symbolic, return an instance with evaluated values.
+    # the constructor checks the parameters that are numeric
     return ThermalNoise(concrete_T1, concrete_T2, concrete_time, concrete_ne)
 end
 

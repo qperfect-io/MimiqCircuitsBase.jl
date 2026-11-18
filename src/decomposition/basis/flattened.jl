@@ -17,7 +17,7 @@
 """
     FlattenedBasis <: DecompositionBasis
 
-A basis that flattens all container operations (`GateCall`, `Block`, etc.)
+A basis that flattens all container operations (`GateCall`, `BlockCall`, `Block`, etc.)
 into their constituent instructions, while leaving all other operations
 (including all gates) untouched.
 
@@ -37,6 +37,7 @@ struct FlattenedBasis <: DecompositionBasis end
 # Terminal for non-container operations
 isterminal(::FlattenedBasis, ::GateCall) = false
 isterminal(::FlattenedBasis, ::Block) = false
+isterminal(::FlattenedBasis, ::BlockCall) = false
 isterminal(::FlattenedBasis, ::Inverse{N,<:GateCall}) where {N} = false
 isterminal(::FlattenedBasis, ::Inverse{N,<:Block}) where {N} = false
 

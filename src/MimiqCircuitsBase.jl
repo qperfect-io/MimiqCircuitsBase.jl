@@ -113,6 +113,7 @@ export unitarymatrices
 export unwrappedunitarymatrices
 export unitarygates
 export ismixedunitary
+export isCPTP
 include("operations/krauschannel.jl")
 
 # circuits and circuit-embedded gates
@@ -193,6 +194,7 @@ export parallel
 include("operations/parallel.jl")
 
 export Block
+export numancillas
 include("operations/block.jl")
 
 export Repeat
@@ -470,6 +472,8 @@ export ObservableInclude
 export Tick
 export Lost
 export Reloaded
+export AncillaAlloc
+export AncillaFree
 export getnotes
 include("operations/annotations.jl")
 
@@ -514,6 +518,11 @@ export @gatedecl
 export GateCall
 include("gatedecl.jl")
 
+export BlockDecl
+export @blockdecl
+export BlockCall
+include("blockdecl.jl")
+
 # decompositions
 export CanonicalRewrite
 export SpecialAngleRewrite
@@ -525,6 +534,7 @@ export GridSynthRewrite
 export FlattenContainers
 
 export DecompositionBasis
+export DecompositionContext
 export RuleBasis
 export CanonicalBasis
 export CliffordTBasis
@@ -550,7 +560,7 @@ export push_yoshidatrotter!
 include("hamiltonian.jl")
 
 # macros
-export @circuit, @block, @on, @gatedecl
+export @circuit, @block, @on, @gatedecl, @blockdecl
 
 
 export evaluate, evaluate!
@@ -626,6 +636,11 @@ include("circuit/samplelosses.jl")
 
 export pauli_based_computation
 include("circuit/paulibased.jl")
+
+export ancillas
+export merge_ancilla_windows
+export check_ancillas
+include("circuit/ancillas.jl")
 
 export AbstractNoiseRule
 export priority
@@ -706,6 +721,7 @@ function _generateallproto()
     gen = _generateproto("optim.proto") || gen
     gen = _generateproto("noisemodel.proto") || gen
     gen = _generateproto("circuitrules.proto") || gen
+    gen = _generateproto("experiment.proto") || gen
 
     if gen
         _clean_proto_file("bitvector.proto")
@@ -716,6 +732,7 @@ function _generateallproto()
         _clean_proto_file("optim.proto")
         _clean_proto_file("noisemodel.proto")
         _clean_proto_file("circuitrules.proto")
+        _clean_proto_file("experiment.proto")
     end
 end
 
@@ -729,6 +746,7 @@ include("proto/qcsresults_pb.jl")
 include("proto/optim_pb.jl")
 include("proto/noisemodel_pb.jl")
 include("proto/circuitrules_pb.jl")
+include("proto/experiment_pb.jl")
 
 include("proto/bitstring.jl")
 include("proto/pauli.jl")
@@ -738,6 +756,7 @@ include("proto/circuit.jl")
 include("proto/optim.jl")
 include("proto/noisemodel.jl")
 include("proto/circuitrules.jl")
+include("proto/experiment.jl")
 
 export show_mimiq_hierarchy
 include("generating_list.jl")

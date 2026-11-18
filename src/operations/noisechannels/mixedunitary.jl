@@ -119,6 +119,10 @@ struct MixedUnitary{N} <: AbstractKrausChannel{N}
             any(x -> issymbolic(x), vector)
         end
 
+        if any(x -> !issymbolic(x) && !(0 <= unwrapvalue(x) <= 1), p)
+            throw(ArgumentError("Probabilities must be between 0 and 1."))
+        end
+
         # Perform probability sum check if all probabilities are concrete
         if !contains_symbolic_elements(p) && !isapprox(sum(unwrapvalue.(p)), 1, rtol=1e-13)
             sump = sum(p)

@@ -30,7 +30,9 @@ The basis applies rewrite rules to decompose gates into Clifford operations:
 1. A `GateU` whose angles are all zero (a pure global phase) is dropped.
 2. [`ZYZRewrite`](@ref): GateU → RZ·RY·RZ Euler decomposition
 3. [`SpecialAngleRewrite`](@ref) (Clifford-only): Rotations at k·π/2 → exact Clifford gates
-4. [`CanonicalRewrite`](@ref): Fallback for other gates
+4. `GateECR` → `S`, `SX`, `CX`, `X`, equal up to a global phase. Stim has no ECR
+   instruction, and the canonical decomposition goes through non-Clifford `RZX(±π/4)`.
+5. [`CanonicalRewrite`](@ref): Fallback for other gates
 
 Non-Clifford rotations (angles not multiples of π/2) are explicitly rejected
 with a clear error message.
@@ -53,7 +55,6 @@ with a clear error message.
 - Controlled Paulis: `GateCX`, `GateCY`, `GateCZ`
 - Swap: `GateSWAP`, `GateISWAP`, `GateISWAPDG`
 - Double CX: `GateDCX`
-- ECR: `GateECR`
 
 **Pauli rotations by ±π/2:**
 - `GateRXX`, `GateRYY`, `GateRZZ` with angle ±π/2
@@ -211,9 +212,6 @@ isterminal(::StimBasis, ::GateISWAPDG) = true
 # Double CX
 isterminal(::StimBasis, ::GateDCX) = true
 
-# Echoed Cross-Resonance
-isterminal(::StimBasis, ::GateECR) = true
-
 # --- Pauli rotations by ±π/2 (Stim's SQRT_XX, SQRT_YY, SQRT_ZZ, SPP) ---
 
 _stim_is_half_pi(θ) = get_pi_factor_or_nothing(θ) in (2, 6)
@@ -282,6 +280,16 @@ isterminal(::StimBasis, ::Operation) = false
 # === Decomposition Pipeline ===
 
 # Pre-instantiated rules (avoid allocation in hot path)
+# GateECR as S, SX, CX, X: equal up to a global phase, and Clifford.
+function _decompose_ecr!(builder, qtargets)
+    a, b = qtargets
+    push!(builder, GateS(), a)
+    push!(builder, GateSX(), b)
+    push!(builder, GateCX(), a, b)
+    push!(builder, GateX(), a)
+    return builder
+end
+
 const _STIM_ZYZ = ZYZRewrite()
 const _STIM_SPECIAL_ANGLE_CLIFFORD = SpecialAngleRewrite(only_cliffords=true)
 const _STIM_CANONICAL = CanonicalRewrite()
@@ -345,6 +353,10 @@ function decompose!(builder, ::StimBasis, op::Operation, qtargets, ctargets, zta
             "Rotation $(opname(op)) cannot be decomposed into the Stim basis. " *
             "Only rotations with angles that are multiples of π/2 are Clifford gates."
         ))
+    end
+
+    if op isa GateECR
+        return _decompose_ecr!(builder, qtargets)
     end
 
     # Priority 3: Fallback to canonical decomposition

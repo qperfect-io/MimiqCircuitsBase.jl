@@ -1,0 +1,241 @@
+/* MIMIQ brand for Documenter.jl, on the documenter-light and documenter-dark
+   themes; other themes in the picker are left as they are.
+   Neutral surfaces; teal marks links in the text, and the octopus fuchsia
+   marks the current page in the sidebar. */
+
+:root {
+  --mimiq-font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --mimiq-font-heading: "Plus Jakarta Sans", var(--mimiq-font-body);
+  --mimiq-font-mono: "JetBrains Mono", "JuliaMono", "SFMono-Regular", Menlo, Consolas, monospace;
+}
+html:not([class*="theme--"]) {
+  --mimiq-accent: #e52b87;
+  --mimiq-ink: #17222b;
+  --mimiq-ink-2: #56636f;
+  --mimiq-muted: #7b8691;
+  --mimiq-bg: #ffffff;
+  --mimiq-surface: #f6f7f9;
+  --mimiq-code: #f1f3f5;
+  --mimiq-hover: #f1f3f5;
+  --mimiq-border: #e5e8eb;
+  --mimiq-border-strong: #c9d0d6;
+  --mimiq-link: #0f6f7d;
+  --mimiq-syn-keyword: #a51d63;
+  --mimiq-syn-string: #0f6f7d;
+  --mimiq-syn-number: #9a5800;
+  --mimiq-syn-comment: #7b8691;
+}
+html.theme--documenter-dark {
+  --mimiq-accent: #f578b4;
+  --mimiq-ink: #e8ecef;
+  --mimiq-ink-2: #a3adb7;
+  --mimiq-muted: #7c8792;
+  --mimiq-bg: #0f1419;
+  --mimiq-surface: #161d24;
+  --mimiq-code: #1c242c;
+  --mimiq-hover: #1c242c;
+  --mimiq-border: #242e37;
+  --mimiq-border-strong: #3a4650;
+  --mimiq-link: #5ec4d2;
+  --mimiq-syn-keyword: #f578b4;
+  --mimiq-syn-string: #5ec4d2;
+  --mimiq-syn-number: #e3b341;
+  --mimiq-syn-comment: #7c8792;
+}
+
+/* Type, for every theme. Documenter marks its own stacks !important. */
+html, body, #documenter .docs-sidebar, #documenter .docs-main,
+.content, input, button, select, textarea {
+  font-family: var(--mimiq-font-body) !important;
+}
+#documenter .docs-main h1, #documenter .docs-main h2, #documenter .docs-main h3,
+#documenter .docs-main h4, #documenter .docs-main header.docs-navbar .docs-breadcrumbs {
+  font-family: var(--mimiq-font-heading) !important;
+}
+code, pre, kbd, samp, .content code, .content pre {
+  font-family: var(--mimiq-font-mono) !important;
+}
+#documenter .docs-sidebar .docs-logo > img { max-height: 3.5rem; }
+
+/* The rest applies to the two themes that define the --mimiq-* colours. */
+html:is(:not([class*="theme--"]), .theme--documenter-dark) {
+
+  &, & body, & #documenter .docs-main header.docs-navbar { background-color: var(--mimiq-bg); }
+  & body, & .content { color: var(--mimiq-ink); line-height: 1.65; }
+
+  /* Type scale: one step apart, tight tracking on the display face. */
+  & .content :is(h1, h2, h3, h4) {
+    color: var(--mimiq-ink);
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+  }
+  & .content h1 { font-size: 2.125rem; letter-spacing: -0.025em; }
+  & .content h2 { font-size: 1.5rem; margin-top: 2.75rem; }
+  & .content h3 { font-size: 1.1875rem; margin-top: 2rem; }
+  & .content h4 { font-size: 1rem; }
+  & .content :is(h1, h2, h3, h4) a.docs-heading-anchor { color: inherit; text-decoration: none; }
+  & #documenter .docs-main header.docs-navbar {
+    border-bottom-color: var(--mimiq-border);
+  }
+  & #documenter .docs-main header.docs-navbar .docs-breadcrumbs a { color: var(--mimiq-ink-2); }
+  & #documenter .docs-main header.docs-navbar .docs-right a,
+  & #documenter .docs-main header.docs-navbar .docs-right .docs-icon { color: var(--mimiq-muted); }
+
+  /* Links in the text: teal with a light underline that firms up on hover. */
+  & .content a {
+    color: var(--mimiq-link);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--mimiq-link) 30%, transparent);
+    text-underline-offset: 0.2em;
+  }
+  & .content a:hover { text-decoration-color: var(--mimiq-link); }
+  & .content a:has(> code:only-child) { text-decoration: none; }
+
+  /* Sidebar: same surface as the page, quiet text, accent on the current page. */
+  & #documenter .docs-sidebar {
+    background-color: var(--mimiq-bg);
+    border-right: 1px solid var(--mimiq-border);
+    color: var(--mimiq-ink);
+  }
+  & #documenter .docs-sidebar ul.docs-menu { border-top: 0; }
+  & #documenter .docs-sidebar ul.docs-menu .tocitem {
+    background: transparent;
+    color: var(--mimiq-ink-2);
+    font-weight: 400;
+    padding-top: 0.4rem;
+    padding-bottom: 0.4rem;
+  }
+  & #documenter .docs-sidebar ul.docs-menu > li > .tocitem { color: var(--mimiq-ink); font-weight: 500; }
+  & #documenter .docs-sidebar ul.docs-menu :is(a, label).tocitem:hover {
+    background-color: var(--mimiq-hover);
+    color: var(--mimiq-ink);
+  }
+  & #documenter .docs-sidebar ul.docs-menu li.is-active {
+    border: 0;
+    background: transparent;
+  }
+  & #documenter .docs-sidebar ul.docs-menu li.is-active > .tocitem {
+    background: transparent;
+    color: var(--mimiq-ink);
+    font-weight: 600;
+    box-shadow: inset 2px 0 0 var(--mimiq-accent);
+  }
+  & #documenter .docs-sidebar ul.docs-menu li.is-active ul.internal,
+  & #documenter .docs-sidebar ul.docs-menu li.is-active ul.internal li {
+    border-top: 0;
+    background: transparent;
+    margin: 0;
+  }
+  & #documenter .docs-sidebar ul.docs-menu li.is-active ul.internal .tocitem {
+    color: var(--mimiq-muted);
+    background: transparent;
+    font-size: 0.875rem;
+    padding-left: 1.75rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+  & #documenter .docs-sidebar ul.docs-menu li.is-active ul.internal .tocitem:hover { color: var(--mimiq-ink); }
+  & #documenter .docs-sidebar ul.docs-menu li.is-active ul.internal .tocitem::before { display: none; }
+  & #documenter .docs-sidebar ul.docs-menu .tocitem + ul,
+  & #documenter .docs-sidebar ul.docs-menu ul { border-left-color: var(--mimiq-border); }
+  & #documenter .docs-sidebar ul.docs-menu .docs-label { color: var(--mimiq-muted); }
+  & #documenter .docs-sidebar #documenter-search-query {
+    background: var(--mimiq-bg);
+    border: 1px solid var(--mimiq-border);
+    border-radius: 8px;
+    box-shadow: none;
+    color: var(--mimiq-ink);
+  }
+  & #documenter .docs-sidebar #documenter-search-query:focus { border-color: var(--mimiq-border-strong); }
+
+  /* Inline code reads as text, not as a chip. */
+  & .content code:not(pre code), & .content kbd {
+    background-color: var(--mimiq-code);
+    color: var(--mimiq-ink);
+    border: 0;
+    border-radius: 4px;
+    padding: 0.1em 0.35em;
+    font-size: 0.875em;
+  }
+  & .content a > code:not(pre code) { color: var(--mimiq-link); }
+
+  /* Code blocks on the neutral surface, with brand syntax colours. */
+  & .content pre {
+    background-color: var(--mimiq-surface);
+    border: 1px solid var(--mimiq-border);
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+  }
+  & .content pre code, & .hljs { background: transparent; color: var(--mimiq-ink); }
+  & :is(.hljs-keyword, .hljs-built_in, .hljs-literal, .hljs-meta) { color: var(--mimiq-syn-keyword); font-weight: normal; }
+  & :is(.hljs-string, .hljs-symbol, .hljs-regexp) { color: var(--mimiq-syn-string); }
+  & :is(.hljs-number, .hljs-type) { color: var(--mimiq-syn-number); }
+  & :is(.hljs-comment, .hljs-quote, .hljs-meta.prompt_) { color: var(--mimiq-syn-comment); }
+  & .hljs-comment { font-style: italic; }
+  & :is(.hljs-title, .hljs-function, .hljs-params, .hljs-variable, .hljs-subst) { color: inherit; font-weight: normal; }
+
+  /* Docstrings: an outlined block with a plain signature line. */
+  & details.docstring {
+    border: 1px solid var(--mimiq-border);
+    border-radius: 10px;
+    box-shadow: none;
+    overflow: hidden;
+  }
+  & details.docstring > summary {
+    background-color: var(--mimiq-surface);
+    border-bottom: 1px solid var(--mimiq-border);
+  }
+  & details.docstring > summary .docstring-binding {
+    color: var(--mimiq-ink);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  & details.docstring > summary .docstring-binding code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+  }
+  & details.docstring > summary .docstring-category {
+    color: var(--mimiq-muted);
+    font-style: normal;
+  }
+  & details.docstring > section > a.docs-sourcelink { color: var(--mimiq-muted); text-decoration: none; }
+
+  /* Admonitions: a thin coloured rule, no filled header band. */
+  & .content .admonition {
+    background-color: transparent;
+    border: 1px solid var(--mimiq-border);
+    border-left: 3px solid var(--mimiq-border-strong);
+    border-radius: 8px;
+  }
+  & .content .admonition > .admonition-header {
+    background-color: transparent;
+    color: var(--mimiq-ink);
+    font-weight: 600;
+  }
+  & .content .admonition > .admonition-body { border: 0; color: inherit; }
+  & .content .admonition:is(.is-info, .is-success) { border-left-color: var(--mimiq-link); }
+  & .content .admonition:is(.is-info, .is-success) > .admonition-header { color: var(--mimiq-link); }
+  & .content .admonition.is-warning { border-left-color: #d99a00; }
+  & .content .admonition.is-danger { border-left-color: #d64545; }
+  & .content .admonition.is-compat { border-left-color: var(--mimiq-accent); }
+
+  /* Tables */
+  & .content table { border: 1px solid var(--mimiq-border); border-radius: 8px; }
+  & .content table :is(th, td) { border-color: var(--mimiq-border); }
+  & .content table th { background-color: var(--mimiq-surface); color: var(--mimiq-ink); }
+
+  & #documenter nav.docs-footer { border-top-color: var(--mimiq-border); }
+  & #documenter nav.docs-footer a:is(.docs-footer-nextpage, .docs-footer-prevpage) {
+    color: var(--mimiq-ink);
+    font-weight: 500;
+  }
+  & #documenter nav.docs-footer a:is(.docs-footer-nextpage, .docs-footer-prevpage):hover { color: var(--mimiq-link); }
+
+  & .content .docs-heading-anchor-permalink:hover,
+  & details.docstring > summary a.docs-sourcelink:hover { color: var(--mimiq-accent) !important; }
+
+  & :focus-visible { outline: 2px solid var(--mimiq-link); outline-offset: 2px; }
+}

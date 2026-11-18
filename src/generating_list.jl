@@ -115,6 +115,8 @@ Show an hierarchy of the MIMIQ `type` and its subtypes.
 julia> show_mimiq_hierarchy()
 └── Operation
     ├── AbstractAnnotation
+    │   ├── AncillaAlloc
+    │   ├── AncillaFree
     │   ├── Detector
     │   ├── Lost
     │   ├── ObservableInclude
@@ -257,6 +259,7 @@ julia> show_mimiq_hierarchy()
     ├── Amplitude
     ├── Barrier
     ├── Block
+    ├── BlockCall
     ├── BondDim
     ├── Check
     ├── ExpectationValue

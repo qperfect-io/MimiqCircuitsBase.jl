@@ -125,13 +125,18 @@ function evaluate(g::GateCall{N,M}, d::Dict=Dict()) where {N,M}
     return GateCall(decl, args...)
 end
 
+function evaluate(c::BlockCall, d::Dict=Dict())
+    args = map(x -> Symbolics.substitute(x, d), c._args)
+    return BlockCall(c._decl, args...)
+end
+
 function evaluate(ev::ExpectationValue, d::Dict=Dict())
     return ExpectationValue(evaluate(getoperation(ev), d))
 end
 
 function evaluate(b::Block{N,M,L}, d::Dict=Dict()) where {N,M,L}
     isempty(listvars(b)) && return b
-    return Block{N,M,L}([evaluate(inst, d) for inst in b])
+    return Block{N,M,L}([evaluate(inst, d) for inst in b], b.numancillas)
 end
 
 evaluate(g::Operation, ::Dict) = g

@@ -14,11 +14,41 @@
 # limitations under the License.
 #
 
+@doc raw"""
+    numancillas(op)
+
+Number of clean ancillas of `op`: its last `numancillas(op)` qubit targets
+must be in ``|0⟩`` when it starts, and are returned in ``|0⟩``.
+
+On those inputs `op` acts as the operation it was built for, which only
+touches the other qubits. On other inputs a unitary `op` is still a
+well-defined unitary on all its qubits, but not that operation.
+
+It is defined for [`GateDecl`](@ref), [`BlockDecl`](@ref), [`Block`](@ref)
+and calls to them, and is `0` for every other operation. [`decompose`](@ref)
+sets it when it wraps a decomposition that uses clean ancillas, and marks
+the ancillas of each call with [`AncillaAlloc`](@ref) and
+[`AncillaFree`](@ref).
+"""
+function numancillas end
+
+numancillas(::Operation) = 0
+
+function _check_numancillas(numancillas, nq)
+    if !(0 <= numancillas <= nq)
+        throw(ArgumentError("numancillas must be between 0 and the number of qubits ($nq), got $numancillas"))
+    end
+end
+
 """
    Block()
    Block(circuit) 
    Block(instructions)
    Block(num_qubits, num_bits, num_variables[, instructions])
+
+Every form takes a `numancillas` keyword (default 0): the number of the
+block's last qubits that are clean ancillas, found and returned in ``|0⟩``.
+See [`numancillas`](@ref).
 
 A block is a collection of instructions grouped together.
 It can be used to encapsulate a set of operations that can be reused in
@@ -81,20 +111,28 @@ julia> begin
 """
 struct Block{N,M,L} <: Operation{N,M,L}
     _instructions::Vector{<:Instruction}
+    numancillas::Int
+
+    function Block{N,M,L}(instructions, numancillas::Integer=0) where {N,M,L}
+        _check_numancillas(numancillas, N)
+        return new{N,M,L}(instructions, numancillas)
+    end
 end
 
-Block(nq, nc, nz, instructions=Instruction[]) = Block{nq,nc,nz}(copy(instructions))
+Block(nq, nc, nz, instructions=Instruction[]; numancillas::Integer=0) = Block{nq,nc,nz}(copy(instructions), numancillas)
 
-Block(; nq=0, nc=0, nz=0) = Block(nq, nc, nz)
+Block(; nq=0, nc=0, nz=0, numancillas::Integer=0) = Block(nq, nc, nz; numancillas=numancillas)
 
-function Block(instructions::Vector{<:Instruction})
+function Block(instructions::Vector{<:Instruction}; numancillas::Integer=0)
     nq = numqubits(instructions)
     nc = numbits(instructions)
     nz = numzvars(instructions)
-    return Block{nq,nc,nz}(copy(instructions))
+    return Block{nq,nc,nz}(copy(instructions), numancillas)
 end
 
-Block(circuit::Circuit) = Block(copy(circuit._instructions))
+Block(circuit::Circuit; kwargs...) = Block(copy(circuit._instructions); kwargs...)
+
+numancillas(b::Block) = b.numancillas
 
 Base.iterate(c::Block) = iterate(c._instructions)
 Base.iterate(c::Block, state) = iterate(c._instructions, state)
@@ -128,7 +166,7 @@ function _reorder_op_internals(b::Block{N,M,L}, perm::AbstractVector{<:Integer})
         new_op = _reorder_op_internals(getoperation(inst), perm)
         push!(new_insts, Instruction(new_op, getqubits(inst), getbits(inst), getztargets(inst)))
     end
-    return Block{N,M,L}(new_insts)
+    return Block{N,M,L}(new_insts, b.numancillas)
 end
 
 function _check_instruction_block(inst::Instruction, nq, nc, nz)
@@ -251,7 +289,8 @@ function Base.:(==)(b1::Block, b2::Block)
 
     # check the instructions
     length(b1) == length(b2) || return false
-    b1._instructions == b2._instructions || return true
+    b1._instructions == b2._instructions || return false
+    b1.numancillas == b2.numancillas || return false
 
     return true
 end

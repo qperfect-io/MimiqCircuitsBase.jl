@@ -22,7 +22,7 @@ Everything that crosses between client and executor.
 mirrors under `mimiqcircuits-python/src/mimiqcircuits/proto/`:
 `circuit.proto`, `qcsresults.proto`, `optim.proto`, `circuitrules.proto`,
 `bitvector.proto`, `pauli.proto`, `hamiltonian.proto`,
-`noisemodel.proto`.
+`noisemodel.proto`, `experiment.proto`.
 
 **JSON request envelope** built in
 `MimiqCircuits.jl/src/execute.jl`, `MimiqCircuits.jl/src/optimization.jl`,

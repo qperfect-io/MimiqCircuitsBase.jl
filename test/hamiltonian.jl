@@ -274,3 +274,33 @@ end
 end
 
 
+
+@testset "Higher-order Trotter targets" begin
+    h = Hamiltonian()
+    push!(h, 1.0, PauliString("XX"), 1, 2)
+    push!(h, 0.5, PauliString("Z"), 1)
+
+    for push_trotter! in (push_suzukitrotter!, push_yoshidatrotter!)
+        c = push_trotter!(Circuit(), (2, 3), h, 1.0, 2, 4)
+        @test numqubits(c) == 3
+
+        # The steps of any order add up to t, so the total Z-rotation angle on
+        # each qubit matches order 2. With swapped targets this fails if the
+        # mapping is applied twice.
+        function zangles(order)
+            total = Dict{Vector{Int},Float64}()
+            for inst in decompose(push_trotter!(Circuit(), (2, 1), h, 1.0, 1, order))
+                op = getoperation(inst)
+                op isa GateU || continue
+                θ, _, λ, _ = getparams(op)
+                iszero(θ) || continue
+                q = collect(getqubits(inst))
+                total[q] = get(total, q, 0.0) + Float64(MimiqCircuitsBase.unwrapvalue(λ))
+            end
+            return total
+        end
+        o2, o4 = zangles(2), zangles(4)
+        @test keys(o2) == keys(o4)
+        @test all(isapprox(o2[q], o4[q]; atol=1e-12) for q in keys(o2))
+    end
+end

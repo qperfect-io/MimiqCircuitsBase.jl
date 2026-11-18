@@ -172,6 +172,7 @@ end
     @testset "symbols inside a block" begin
         bc = push!(Circuit(), Block(push!(Circuit(), GateRX(θ), 1)), 1)
         ex = SweepExperiment(bc, ParameterTable(θ => [0.0, π]))
-        @test ex[2] == push!(Circuit(), Block(push!(Circuit(), GateRX(π), 1)), 1)
+        @test ex[2] == evaluate(bc, Dict(θ => Float64(π)))
+        @test ex[2] != bc
     end
 end

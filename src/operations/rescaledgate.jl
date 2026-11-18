@@ -69,6 +69,8 @@ iswrapper(::Type{<:RescaledGate}) = true
 
 getoperation(g::RescaledGate) = g.gate
 
+opsquared(g::RescaledGate) = RescaledGate(opsquared(getoperation(g)), abs2(getscale(g)))
+
 parnames(::Type{<:RescaledGate{N,T}}) where {N,T} = (:m, parnames(T)...)
 
 function getparam(op::RescaledGate, name)

@@ -106,7 +106,8 @@ function decompose_step!(builder, rule::CanonicalRewrite, ws::WhileStatement, qt
     target_bits = ctargets[1:numbits(inner)]
     condition_bits = ctargets[numbits(inner)+1:end]
 
-    decomposed = decompose_step!(Circuit(), rule, inner, qtargets, target_bits, ztargets)
+    N, M, L = numqubits(inner), numbits(inner), numzvars(inner)
+    decomposed = decompose_step!(Circuit(), rule, inner, 1:N, 1:M, 1:L)
 
     # Wrap the rewritten body in a single Block instruction, preserving the loop
     # boundary as one WhileStatement. Unlike IfStatement we cannot flatten
@@ -115,13 +116,13 @@ function decompose_step!(builder, rule::CanonicalRewrite, ws::WhileStatement, qt
     if length(decomposed) == 1
         only_inst = decomposed[1]
         new_inner_op = getoperation(only_inst)
-        qt = getqubits(only_inst)
-        bt = getbits(only_inst)
-        zt = getztargets(only_inst)
+        qt = Tuple(qtargets[i] for i in getqubits(only_inst))
+        bt = Tuple(target_bits[i] for i in getbits(only_inst))
+        zt = Tuple(ztargets[i] for i in getztargets(only_inst))
         new_bits = (bt..., condition_bits...)
         push!(builder, Instruction(WhileStatement(new_inner_op, condition), qt, new_bits, zt))
     else
-        block = Block(decomposed)
+        block = Block(N, M, L, decomposed._instructions)
         new_bits = (target_bits..., condition_bits...)
         push!(builder, Instruction(WhileStatement(block, condition), qtargets, new_bits, ztargets))
     end

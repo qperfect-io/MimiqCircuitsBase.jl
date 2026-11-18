@@ -33,7 +33,7 @@ Pages   = ["instruction.jl", "circuit.jl", "circuit_extras.jl", "circuit_macro.j
 ```@autodocs
 Modules = [MimiqCircuitsBase]
 Private = false
-Pages   = ["circuit/paulibased.jl", "circuit/simplify.jl"]
+Pages   = ["circuit/paulibased.jl", "circuit/simplify.jl", "circuit/ancillas.jl"]
 ```
 
 ## Operations
@@ -146,12 +146,12 @@ Pages   = [
 ]
 ```
 
-### Gate definitions
+### Gate and block definitions
 
 ```@autodocs
 Modules = [MimiqCircuitsBase]
 Private = false
-Pages   = ["gatedecl.jl"]
+Pages   = ["gatedecl.jl", "blockdecl.jl", "operations/block.jl"]
 ```
 
 ### Non-unitary operations
@@ -167,7 +167,7 @@ Pages   = ["reset.jl", "measure.jl", "measurepauli.jl", "magic.jl"]
 ```@autodocs
 Modules = [MimiqCircuitsBase]
 Private = false
-Pages   = ["barrier.jl"]
+Pages   = ["barrier.jl", "operations/annotations.jl"]
 ```
 
 ## Bit Strings

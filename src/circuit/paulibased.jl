@@ -334,6 +334,11 @@ function pauli_based_computation(
                 tz[qs[i]] = images[i, 2]
             end
 
+        elseif op isa Union{AncillaAlloc,AncillaFree}
+            # Cliffords move across these markers here, so the windows they
+            # bound no longer hold.
+            continue
+
         elseif op isa AbstractClassical || op isa AbstractAnnotation
             push!(out, inst)
 

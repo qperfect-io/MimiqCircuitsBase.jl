@@ -366,3 +366,63 @@ getnotes(::Reloaded) = []
 
 Base.show(io::IO, ::Reloaded) = print(io, opname(Reloaded))
 Base.show(io::IO, ::MIME"text/plain", ::Reloaded) = print(io, opname(Reloaded))
+
+@doc raw"""
+    AncillaAlloc()
+
+A marker recording that a qubit is in ``|0⟩`` here and is used as a clean
+ancilla from here on.
+
+`AncillaAlloc` has no effect on execution. [`decompose`](@ref) emits it, with
+[`AncillaFree`](@ref), around every use of a clean ancilla. The two markers
+bracket a window in which the qubit holds intermediate values and is
+returned to ``|0⟩``. Passes that keep the markers must keep them true:
+nothing outside the decomposition that placed them may act on the qubit
+inside the window.
+
+See also [`AncillaFree`](@ref).
+
+## Examples
+
+```jldoctest
+julia> push!(Circuit(), AncillaAlloc(), 1)
+1-qubit circuit with 1 instruction:
+└── AncillaAlloc @ q[1]
+```
+"""
+struct AncillaAlloc <: AbstractAnnotation{1,0,0} end
+
+opname(::Type{<:AncillaAlloc}) = "AncillaAlloc"
+
+getnotes(::AncillaAlloc) = []
+
+Base.show(io::IO, ::AncillaAlloc) = print(io, opname(AncillaAlloc))
+Base.show(io::IO, ::MIME"text/plain", ::AncillaAlloc) = print(io, opname(AncillaAlloc))
+
+@doc raw"""
+    AncillaFree()
+
+A marker recording that a clean ancilla is back in ``|0⟩`` here and is free
+for reuse.
+
+`AncillaFree` has no effect on execution. It closes the window opened by an
+[`AncillaAlloc`](@ref) on the same qubit.
+
+See also [`AncillaAlloc`](@ref).
+
+## Examples
+
+```jldoctest
+julia> push!(Circuit(), AncillaFree(), 1)
+1-qubit circuit with 1 instruction:
+└── AncillaFree @ q[1]
+```
+"""
+struct AncillaFree <: AbstractAnnotation{1,0,0} end
+
+opname(::Type{<:AncillaFree}) = "AncillaFree"
+
+getnotes(::AncillaFree) = []
+
+Base.show(io::IO, ::AncillaFree) = print(io, opname(AncillaFree))
+Base.show(io::IO, ::MIME"text/plain", ::AncillaFree) = print(io, opname(AncillaFree))

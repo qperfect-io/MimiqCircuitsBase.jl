@@ -363,3 +363,42 @@ end
         end
     end
 end
+
+@testset "SweepExperiment" begin
+    @variables θ φ
+    c = push!(Circuit(), GateRX(θ), 1)
+    push!(c, GateCRZ(2 * φ), 1, 2)
+    push!(c, Measure(), 1:2, 1:2)
+    # Non-square, so a transposed layout would not round trip.
+    ex = SweepExperiment(c, gridtable(θ => [0.0, 0.5, 1.0], φ => [0.25, -1.5]))
+
+    io = IOBuffer()
+    saveproto(io, ex)
+    seekstart(io)
+    loaded = loadproto(io, SweepExperiment)
+    @test loaded == ex
+    @test Matrix(loaded.table) == Matrix(ex.table)
+    @test all(loaded[i] == ex[i] for i in 1:length(ex))
+
+    # A value count that does not match the shape is rejected.
+    bad = MimiqCircuitsBase.experiment_pb.ParameterTable(toproto(ex.table).symbols, UInt64(4), [1.0])
+    @test_throws ArgumentError fromproto(bad)
+end
+
+@testset "EquivalenceExperiment" begin
+    c1 = push!(Circuit(), GateH(), 1)
+    push!(c1, GateCX(), 1, 2)
+    c2 = push!(Circuit(), GateH(), 1)
+    push!(c2, GateCX(), 2, 1)
+
+    @testset "$method" for method in ["samples", "amplitudes"]
+        ex = EquivalenceExperiment(c1, c2; method=method)
+        io = IOBuffer()
+        saveproto(io, ex)
+        seekstart(io)
+        loaded = loadproto(io, EquivalenceExperiment)
+        @test loaded.c1 == c1
+        @test loaded.c2 == c2
+        @test loaded.method == method
+    end
+end

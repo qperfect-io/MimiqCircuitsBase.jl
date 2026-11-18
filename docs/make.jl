@@ -29,6 +29,9 @@ format = Documenter.HTML(
     # the size cap until the page is split.
     size_threshold=nothing,
     size_threshold_warn=nothing,
+    # The logo already names the package.
+    sidebar_sitename=false,
+    assets=["assets/mimiq/fonts.css", "assets/mimiq/documenter.css"],
     footer="Copyright 2022-$(year(now())) University of Strasbourg & QPerfect. All rights reserved."
 )
 
